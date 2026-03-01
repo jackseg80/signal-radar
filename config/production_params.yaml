@@ -1,14 +1,15 @@
 strategy:
   name: rsi2_mean_reversion
-  version: "1.0"
+  version: "2.0"
   validated_date: "2026-03-01"
 
 universe:
-  - SPY
-  - QQQ
-  - IWM
-  - DIA
-  - EFA
+  - META
+  - MSFT
+  - GOOGL
+
+watchlist:
+  - NVDA
 
 params:
   rsi_period: 2
@@ -21,31 +22,40 @@ params:
   cooldown_candles: 0
   sma_trend_buffer: 1.01
 
-fee_model: us_etfs_usd_account
+fee_model: us_stocks_usd_account
 
 validation_results:
-  is_period: "2005-2014"
-  is_trades: 278
-  is_win_rate: "69%"
-  is_profit_factor: 1.70
-  is_sharpe: 1.11
-
+  # Stocks $10k whole shares OOS 2014-2025
   oos_period: "2014-2025"
-  oos_trades: 380
-  oos_win_rate: "69%"
-  oos_profit_factor: 1.36
-  oos_sharpe: 0.65
-  ttest_p_value: 0.0166
-  monte_carlo_note: >
-    Block bootstrap p=0.503 -- tests trade ordering (not applicable for MR).
-    t-test is the correct significance test for mean reversion strategies.
+  capital: 10000
+  whole_shares: true
+  pooled:
+    oos_trades: 1063
+    oos_win_rate: "65%"
+    oos_profit_factor: 1.30
+    oos_sharpe: 0.69
+    ttest_p_value: 0.0116
+  per_asset:
+    META: { pf: 2.98, wr: "74%", robust_pct: 100, stable: true, p_value: 0.0003 }
+    MSFT: { pf: 1.74, wr: "73%", robust_pct: 100, stable: true, p_value: 0.057 }
+    GOOGL: { pf: 1.66, wr: "68%", robust_pct: 100, stable: true, p_value: 0.055 }
+  watchlist_detail:
+    NVDA: { pf: 1.48, wr: "67%", robust_pct: 100, stable: true, p_value: 0.135, reason: "not yet significant" }
+
+  # Previous ETF results for reference
+  previous_etf_validation:
+    universe: [SPY, QQQ, IWM, DIA, EFA]
+    capital: 100000
+    oos_trades: 380
+    oos_profit_factor: 1.36
+    oos_sharpe: 0.65
+    note: "Viable at $100k, not at $10k due to fixed commission impact"
 
 notes:
   - "Params Connors canonical, non-optimises"
-  - "Buffer 1.01 seul ajustement (anti-whipsaw, valide Step 7)"
-  - "Necessite compte USD sur Saxo (FX 0.25%/trade tue l edge)"
-  - "GLD rejet Step 9 (PF OOS 0.95 -- or trend, ne MR pas)"
-  - "TLT rejet Step 9 (PF OOS 1.04 -- edge MR faible sur obligations)"
-  - "XLE rejet Step 9 (PF OOS 1.02 -- trop cyclique)"
-  - "Donchian US stocks rejet Steps 1-4 (WFO all grade F)"
-  - "Donchian forex rejet Step 8 (PF OOS 0.50 -- range-bound post-2015)"
+  - "Buffer 1.01 seul ajustement (anti-whipsaw)"
+  - "Necessite compte USD sur Saxo (FX 0.25%/trade tue l'edge)"
+  - "Stocks > ETFs a $10k : PF 1.30 vs 1.15, AvgPnL $6.15 vs $1.56"
+  - "NVDA en watchlist -- 100% robust mais p=0.135 (surveiller)"
+  - "AMZN rejete -- PF 0.92 en 2019-2025 (instable)"
+  - "GS rejete -- 48% combos profitables (fragile)"

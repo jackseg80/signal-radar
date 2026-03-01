@@ -6,6 +6,14 @@ us_stocks:
   tax_pct: 0.0
   overnight_daily_pct: 0.0
 
+us_stocks_usd:
+  commission_per_trade: 1.0
+  commission_pct: 0.0
+  spread_pct: 0.0005
+  fx_conversion_pct: 0.0
+  tax_pct: 0.0
+  overnight_daily_pct: 0.0
+
 us_etfs_usd:
   commission_per_trade: 1.0
   commission_pct: 0.0

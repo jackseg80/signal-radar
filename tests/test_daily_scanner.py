@@ -150,3 +150,38 @@ class TestPendingSignals:
         )
         assert result.signal == Signal.PENDING_VALID
         assert result.signal != Signal.BUY
+
+
+# ---------------------------------------------------------------------------
+# Watchlist signals
+# ---------------------------------------------------------------------------
+
+
+class TestWatchlistSignals:
+    """Tests for WATCH signal on watchlist tickers."""
+
+    def test_watch_no_position(self) -> None:
+        """Watchlist ticker, RSI < 10, trend OK, no position -> WATCH (not BUY)."""
+        result = evaluate_signal(
+            rsi2_today=4.5,
+            close_today=590.0,
+            sma200_today=570.0,
+            sma5_today=588.0,
+            position=None,
+            watchlist=True,
+        )
+        assert result.signal == Signal.WATCH
+        assert result.signal != Signal.BUY
+        assert "Would trigger BUY" in result.notes
+
+    def test_watch_with_open_position(self) -> None:
+        """Watchlist ticker with open position, close > SMA5 -> SELL (normal)."""
+        result = evaluate_signal(
+            rsi2_today=55.0,
+            close_today=595.0,
+            sma200_today=570.0,
+            sma5_today=590.0,
+            position={"status": "open", "entry_price": 580.0},
+            watchlist=True,
+        )
+        assert result.signal == Signal.SELL
