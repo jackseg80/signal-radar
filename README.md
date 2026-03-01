@@ -91,10 +91,16 @@ docs/
 
 ## Phase History
 
-| Phase   | Description                                                             | Status   |
-|---------|-------------------------------------------------------------------------|----------|
-| Phase 1 | Backtesting engine + RSI(2) strategy validation on ETFs ($100k)         | COMPLETE |
-| Phase 2 | Pivot to individual stocks ($10k) + daily scanner + Docker + Telegram   | COMPLETE |
+| Phase     | Description                                                           | Status      |
+|-----------|-----------------------------------------------------------------------|-------------|
+| Phase 1   | Backtesting engine + RSI(2) strategy validation on ETFs ($100k)       | COMPLETE    |
+| Phase 2   | Pivot to individual stocks ($10k) + daily scanner + Docker + Telegram | COMPLETE    |
+| Phase 2.5 | Live validation on Saxo (30+ real trades, go/no-go)                   | IN PROGRESS |
+| Phase 3   | Web dashboard (FastAPI + SQLite, equity curve, trade journal)         | PLANNED     |
+| Phase 4   | Scale up capital + expand universe                                    | PLANNED     |
+| Phase 5   | Full automation via Saxo API                                          | VISION      |
+
+See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed planning.
 
 ## Environment Variables
 

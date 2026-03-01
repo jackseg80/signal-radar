@@ -125,6 +125,7 @@ docs/
   PHASE1_RESULTS.md          — Résultats complets Phase 1 (ETFs, stratégies rejetées)
   PHASE2_STOCKS_RESULTS.md   — Résultats Steps 11-13 : stocks individuels, robustesse, univers production
   PHASE2_RESULTS.md          — Phase 2 complète : stocks + scanner + Docker + Telegram
+  ROADMAP.md                 — Roadmap Phase 1→5 (live validation, dashboard, scale up, full auto)
 ```
 
 ## Conventions techniques
