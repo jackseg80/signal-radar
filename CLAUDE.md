@@ -108,6 +108,7 @@ config/
 
 docs/
   PHASE1_RESULTS.md          — Résultats complets Phase 1, leçons apprises
+  PHASE2_STOCKS_RESULTS.md   — Résultats Steps 11-13 : stocks individuels, robustesse, univers production
 ```
 
 ## Conventions techniques
@@ -150,9 +151,11 @@ Conteneurisation et automatisation du scanner quotidien.
 
 Architecture :
 - `engine/notifier.py` — `send_telegram()` (urllib stdlib) + `format_signal_message()` + `format_weekly_summary()`
-- `Dockerfile` — python:3.12-slim + uv + cron (pattern identique à scalp-radar)
+  - ⚠️ `r.notes` contient `<` et `>` (ex. "RSI=7.4 < 10.0") → toujours `html.escape(r.notes)` avec `parse_mode="HTML"`
+- `Dockerfile` — python:3.12-slim + uv + cron ; `ENTRYPOINT ["/entrypoint.sh"]` + `CMD []`
 - `docker-compose.yml` — service scanner, volumes data/logs/config:ro, restart unless-stopped
-- `deploy/entrypoint.sh` — écrit env vars pour cron (`/app/.env.cron`), `exec cron -f` en PID 1
+- `deploy/entrypoint.sh` — écrit env vars pour cron (`/app/.env.cron`) ; passthrough `if [ $# -gt 0 ]; then exec "$@"; fi` avant `exec cron -f`
+  - Permet : `docker compose exec scanner python scripts/daily_scanner.py`
 - `deploy/crontab` — 22:15 dim-ven (TZ=Europe/Zurich)
 
 Notifications Telegram :
