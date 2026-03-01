@@ -6,6 +6,7 @@ No external dependency required. Gracefully degrades if token/chat_id are not se
 
 from __future__ import annotations
 
+import html
 import json
 import os
 import urllib.error
@@ -125,7 +126,7 @@ def format_signal_message(
         lines.append(
             f"  RSI(2)={d.get('rsi2', '?')}  Close={d.get('close', '?')}"
         )
-        lines.append(f"  {r.notes}")
+        lines.append(f"  {html.escape(r.notes)}")
         lines.append("")
 
     for r in watch_triggers:
@@ -134,7 +135,7 @@ def format_signal_message(
         lines.append(
             f"  RSI(2)={d.get('rsi2', '?')}  Close={d.get('close', '?')}"
         )
-        lines.append(f"  {r.notes}")
+        lines.append(f"  {html.escape(r.notes)}")
         lines.append("")
 
     remaining = [
@@ -144,7 +145,9 @@ def format_signal_message(
     ]
     if remaining:
         for r in remaining:
-            lines.append(f"{r.symbol}: {r.signal.value} — {r.notes}")
+            lines.append(
+                f"{r.symbol}: {r.signal.value} — {html.escape(r.notes)}"
+            )
 
     return "\n".join(lines).strip()
 

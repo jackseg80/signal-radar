@@ -21,6 +21,11 @@ if [ "${RUN_ON_STARTUP:-false}" = "true" ]; then
     cd /app && python scripts/daily_scanner.py
 fi
 
+# Support direct command execution (e.g. docker compose exec scanner python ...)
+if [ $# -gt 0 ]; then
+    exec "$@"
+fi
+
 # Start cron in foreground (PID 1 — handles Docker signals correctly)
 echo "[signal-radar] Starting cron daemon..."
 exec cron -f
