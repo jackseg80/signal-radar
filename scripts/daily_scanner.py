@@ -1,6 +1,7 @@
 """RSI(2) Daily Signal Scanner -- Phase 2.
 
-Evaluates RSI(2) mean reversion signals on 5 ETFs after US market close.
+Evaluates RSI(2) mean reversion signals after US market close.
+Universe: validated stocks (META, MSFT, GOOGL) + watchlist (NVDA).
 Reads production params from config/production_params.yaml.
 Writes position state to data/positions.json.
 Appends signal history to data/signal_history.csv.
@@ -68,6 +69,7 @@ class Signal(str, Enum):
     NO_SIGNAL = "NO_SIGNAL"
     PENDING_VALID = "PENDING_VALID"
     PENDING_EXPIRED = "PENDING_EXPIRED"
+    WATCH = "WATCH"
 
 
 @dataclass
@@ -94,8 +96,9 @@ def evaluate_signal(
     *,
     rsi_entry_threshold: float = 10.0,
     sma_trend_buffer: float = 1.01,
+    watchlist: bool = False,
 ) -> SignalResult:
-    """Evaluate signal for one ETF based on today's close.
+    """Evaluate signal for one ticker based on today's close.
 
     Mirrors the exact logic from mean_reversion_backtest.py lines 129-185.
     Entry: signal on today (= backtest [i-1]), action at tomorrow's open (= [i]).
@@ -118,6 +121,9 @@ def evaluate_signal(
         RSI threshold for BUY signal (default 10.0).
     sma_trend_buffer : float
         Buffer multiplier for SMA(200) trend filter (default 1.01).
+    watchlist : bool
+        If True, ticker is watchlist-only: no BUY signals emitted,
+        but exits (SELL/SAFETY_EXIT) work normally on open positions.
 
     Returns
     -------
@@ -183,6 +189,23 @@ def evaluate_signal(
     # --- NO position: check entry ---
     trend_ok = close_today > sma200_today * sma_trend_buffer
     rsi_ok = rsi2_today < rsi_entry_threshold
+
+    if watchlist:
+        if trend_ok and rsi_ok:
+            return SignalResult(
+                signal=Signal.WATCH,
+                notes=(
+                    f"Would trigger BUY (RSI={rsi2_today:.1f} < "
+                    f"{rsi_entry_threshold}, trend OK) — watchlist only"
+                ),
+                details=details,
+            )
+        return SignalResult(
+            signal=Signal.WATCH,
+            notes="No entry conditions met",
+            details=details,
+        )
+
     if trend_ok and rsi_ok:
         return SignalResult(
             signal=Signal.BUY,
@@ -292,22 +315,30 @@ _SIGNAL_MARKERS = {
     Signal.NO_SIGNAL: "---",
     Signal.PENDING_VALID: "pending OK",
     Signal.PENDING_EXPIRED: "pending X",
+    Signal.WATCH: "watch",
 }
 
 
 def print_dashboard(
-    results: list[SignalResult], last_dates: dict[str, str]
+    results: list[SignalResult],
+    last_dates: dict[str, str],
+    watchlist_symbols: set[str] | None = None,
 ) -> None:
     """Print formatted signal dashboard to console."""
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     sep = "=" * 72
+    wl = watchlist_symbols or set()
+
+    main_results = [r for r in results if r.symbol not in wl]
+    watch_results = [r for r in results if r.symbol in wl]
+
     print()
     print(sep)
     print(f"  RSI(2) Daily Scanner — {now}")
     print(sep)
     print()
 
-    for r in results:
+    def _print_row(r: SignalResult) -> None:
         marker = f"[{_SIGNAL_MARKERS.get(r.signal, '?')}]"
         d = r.details
         data_date = last_dates.get(r.symbol, "?")
@@ -315,12 +346,20 @@ def print_dashboard(
         close_str = f"{d.get('close', 0):8.2f}" if d else "     N/A"
         sma5_str = f"{d.get('sma5', 0):8.2f}" if d else "     N/A"
         print(
-            f"  {r.symbol:4s}  {marker:15s}  RSI(2)={rsi_str}"
+            f"  {r.symbol:5s} {marker:15s}  RSI(2)={rsi_str}"
             f"  Close={close_str}  SMA5={sma5_str}  [{data_date}]"
         )
         if r.notes:
             print(f"        {r.notes}")
         print()
+
+    for r in main_results:
+        _print_row(r)
+
+    if watch_results:
+        print(f"  -- Watchlist {'-' * 55}")
+        for r in watch_results:
+            _print_row(r)
 
     actions = [
         r
@@ -403,10 +442,13 @@ def main() -> None:
 
     config = load_config()
     universe: list[str] = config["universe"]
+    watchlist_syms: list[str] = config.get("watchlist", [])
+    all_symbols = universe + watchlist_syms
+    watchlist_set = set(watchlist_syms)
     params: dict[str, Any] = config["params"]
 
     positions = load_positions()
-    for sym in universe:
+    for sym in all_symbols:
         if sym not in positions:
             positions[sym] = None
 
@@ -414,8 +456,9 @@ def main() -> None:
     results: list[SignalResult] = []
     last_dates: dict[str, str] = {}
 
-    for sym in universe:
-        logger.debug("Processing {}", sym)
+    for sym in all_symbols:
+        is_watch = sym in watchlist_set
+        logger.debug("Processing {} {}", sym, "(watchlist)" if is_watch else "")
         try:
             df, last_date = fetch_data(sym, loader)
             last_dates[sym] = last_date
@@ -449,11 +492,12 @@ def main() -> None:
                 position=positions.get(sym),
                 rsi_entry_threshold=params["rsi_entry_threshold"],
                 sma_trend_buffer=params["sma_trend_buffer"],
+                watchlist=is_watch,
             )
             result.symbol = sym
             results.append(result)
 
-            # Auto-write pending on BUY
+            # Auto-write pending on BUY (never for watchlist)
             if result.signal == Signal.BUY:
                 positions[sym] = {
                     "status": "pending",
@@ -476,8 +520,29 @@ def main() -> None:
             )
 
     save_positions(positions)
-    print_dashboard(results, last_dates)
+    print_dashboard(results, last_dates, watchlist_set)
     append_history(results, positions)
+
+    # --- Telegram notification ---
+    from engine.notifier import (  # noqa: E402
+        format_signal_message,
+        format_weekly_summary,
+        send_telegram,
+    )
+
+    is_sunday = datetime.now().weekday() == 6
+    if is_sunday:
+        weekly_msg = format_weekly_summary(results, positions)
+        if send_telegram(weekly_msg):
+            logger.info("Telegram weekly summary sent")
+
+    telegram_msg = format_signal_message(results, last_dates, watchlist_set)
+    if telegram_msg is not None:
+        if send_telegram(telegram_msg):
+            logger.info("Telegram notification sent")
+    else:
+        logger.debug("No actionable signals — no Telegram message")
+
     logger.info("Scanner complete — {} signals evaluated", len(results))
 
 

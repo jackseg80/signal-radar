@@ -1,0 +1,5 @@
+# signal-radar — RSI(2) daily scanner
+# Runs at 22:15 local time (TZ set in container, default Europe/Zurich)
+# Sun-Fri: Sunday for weekly report, Mon-Fri for daily scan
+15 22 * * 0-5 root . /app/.env.cron && cd /app && python scripts/daily_scanner.py >> /proc/1/fd/1 2>> /proc/1/fd/2
+# Empty line required by cron

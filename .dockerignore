@@ -1,0 +1,14 @@
+.venv/
+.git/
+.pytest_cache/
+.claude/
+__pycache__/
+*.pyc
+*.egg-info/
+data/cache/
+*.parquet
+logs/
+.env
+docs/
+tests/
+*.log
