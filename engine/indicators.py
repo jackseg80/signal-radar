@@ -106,6 +106,77 @@ def atr(
     return result
 
 
+# ─── RSI (Wilder smoothing) ─────────────────────────────────────────────────
+
+
+def _rsi_wilder_loop(
+    gains: np.ndarray,
+    losses: np.ndarray,
+    result: np.ndarray,
+    period: int,
+    avg_gain: float,
+    avg_loss: float,
+) -> np.ndarray:
+    """Wilder smoothing loop pour RSI (gain/loss trackés séparément).
+
+    Écrit result[i+1] car gains/losses sont issus de np.diff (décalage +1).
+    """
+    for i in range(period, len(gains)):
+        avg_gain = (avg_gain * (period - 1) + gains[i]) / period
+        avg_loss = (avg_loss * (period - 1) + losses[i]) / period
+        if avg_loss == 0.0:
+            result[i + 1] = 100.0
+        else:
+            rs = avg_gain / avg_loss
+            result[i + 1] = 100.0 - 100.0 / (1.0 + rs)
+    return result
+
+
+def rsi(closes: np.ndarray, period: int = 14) -> np.ndarray:
+    """Relative Strength Index avec lissage de Wilder.
+
+    Formule Wilder classique : avg = prev_avg * (n-1)/n + current/n
+    Seed = SMA des ``period`` premiers deltas.
+    Les ``period`` premières valeurs sont NaN.
+
+    Parameters
+    ----------
+    closes : np.ndarray
+        Array de prix de clôture.
+    period : int
+        Période RSI (défaut 14, Connors utilise 2).
+
+    Returns
+    -------
+    np.ndarray
+        RSI values dans [0, 100], NaN pour les ``period`` premières valeurs.
+    """
+    if len(closes) < period + 1:
+        return np.full_like(closes, np.nan, dtype=float)
+
+    closes = np.ascontiguousarray(closes, dtype=np.float64)
+
+    deltas = np.diff(closes)
+    gains = np.where(deltas > 0, deltas, 0.0)
+    losses = np.where(deltas < 0, -deltas, 0.0)
+
+    result = np.full(len(closes), np.nan, dtype=np.float64)
+
+    # Seed : SMA des period premiers deltas
+    avg_gain = float(np.mean(gains[:period]))
+    avg_loss = float(np.mean(losses[:period]))
+
+    if avg_loss == 0.0:
+        result[period] = 100.0
+    else:
+        rs = avg_gain / avg_loss
+        result[period] = 100.0 - 100.0 / (1.0 + rs)
+
+    # Wilder smoothing
+    _rsi_wilder_loop(gains, losses, result, period, avg_gain, avg_loss)
+    return result
+
+
 # ─── ADX + DI+/DI- ──────────────────────────────────────────────────────────
 
 

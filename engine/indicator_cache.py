@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from engine.indicators import adx, atr, ema, rolling_max, rolling_min
+from engine.indicators import adx, atr, ema, rolling_max, rolling_min, rsi, sma
 
 
 @dataclass
@@ -47,6 +47,12 @@ class IndicatorCache:
     # Donchian channels — rolling high/low excluant la candle courante
     rolling_high: dict[int, np.ndarray] = field(default_factory=dict)
     rolling_low: dict[int, np.ndarray] = field(default_factory=dict)
+
+    # Multi-period SMA (pour mean reversion trend filter / exit)
+    sma_by_period: dict[int, np.ndarray] = field(default_factory=dict)
+
+    # Multi-period RSI (pour mean reversion entry signal)
+    rsi_by_period: dict[int, np.ndarray] = field(default_factory=dict)
 
 
 def build_cache(
@@ -110,6 +116,23 @@ def build_cache(
     for p in atr_periods:
         atr_by_period[p] = atr(highs, lows, closes, p)
 
+    # --- SMA multi-period (pour mean reversion trend filter / exit) ---
+    sma_by_period: dict[int, np.ndarray] = {}
+    all_sma_periods: set[int] = set()
+    for key in ("sma_trend_period", "sma_exit_period"):
+        if key in param_grid_values:
+            all_sma_periods.update(param_grid_values[key])
+    for p in all_sma_periods:
+        sma_by_period[p] = sma(closes, p)
+
+    # --- RSI multi-period (pour mean reversion entry signal) ---
+    rsi_by_period: dict[int, np.ndarray] = {}
+    rsi_periods: set[int] = set()
+    if "rsi_period" in param_grid_values:
+        rsi_periods.update(param_grid_values["rsi_period"])
+    for p in rsi_periods:
+        rsi_by_period[p] = rsi(closes, p)
+
     # --- Rolling high/low pour Donchian channels ---
     lookbacks: set[int] = set()
     for key in ("donchian_entry_period", "donchian_exit_period"):
@@ -131,4 +154,6 @@ def build_cache(
         atr_by_period=atr_by_period,
         rolling_high=rolling_high_dict,
         rolling_low=rolling_low_dict,
+        sma_by_period=sma_by_period,
+        rsi_by_period=rsi_by_period,
     )

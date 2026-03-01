@@ -64,6 +64,16 @@ FEE_MODEL_US_STOCKS = FeeModel(
     overnight_daily_pct=0.0,
 )
 
+FEE_MODEL_US_ETFS_USD = FeeModel(
+    name="us_etfs_usd_account",
+    commission_per_trade=1.0,
+    commission_pct=0.0,
+    spread_pct=0.0003,          # 0.03% spread ETFs liquides (SPY, QQQ)
+    fx_conversion_pct=0.0,      # Compte USD — pas de conversion
+    tax_pct=0.0,
+    overnight_daily_pct=0.0,
+)
+
 FEE_MODEL_FOREX = FeeModel(
     name="forex_majors",
     commission_per_trade=0.0,

@@ -31,6 +31,8 @@ def make_indicator_cache():
         atr_by_period: dict[int, np.ndarray] | None = None,
         rolling_high: dict[int, np.ndarray] | None = None,
         rolling_low: dict[int, np.ndarray] | None = None,
+        sma_by_period: dict[int, np.ndarray] | None = None,
+        rsi_by_period: dict[int, np.ndarray] | None = None,
     ) -> IndicatorCache:
         if closes is None:
             closes = np.full(n, 100.0)
@@ -58,6 +60,10 @@ def make_indicator_cache():
             rolling_high = {}
         if rolling_low is None:
             rolling_low = {}
+        if sma_by_period is None:
+            sma_by_period = {}
+        if rsi_by_period is None:
+            rsi_by_period = {}
 
         return IndicatorCache(
             n_candles=n,
@@ -72,6 +78,8 @@ def make_indicator_cache():
             atr_by_period=atr_by_period,
             rolling_high=rolling_high,
             rolling_low=rolling_low,
+            sma_by_period=sma_by_period,
+            rsi_by_period=rsi_by_period,
         )
 
     return _make

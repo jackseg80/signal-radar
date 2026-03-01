@@ -179,7 +179,7 @@ def _simulate_trend_follow(
             direction, entry_price, exit_price, quantity,
             fee_model, entry_fee, n_holding_days,
         )
-        capital += capital_allocated - entry_fee + pnl
+        capital += capital_allocated + pnl
         if capital > 0:
             trade_pnls.append(pnl)
             trade_returns.append(pnl / capital)
@@ -387,7 +387,7 @@ def _simulate_trend_follow(
             direction, entry_price, exit_price, quantity,
             fee_model, entry_fee, n_holding_days,
         )
-        capital += capital_allocated - entry_fee + pnl
+        capital += capital_allocated + pnl
 
     return trade_pnls, trade_returns, capital
 

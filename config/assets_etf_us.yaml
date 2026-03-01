@@ -1,0 +1,9 @@
+symbols:
+  - SPY
+  - QQQ
+  - IWM
+  - DIA
+market: us_etfs
+fee_model: us_etfs_usd
+sides: ["long"]
+strategy: mean_reversion
