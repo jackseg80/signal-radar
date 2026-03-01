@@ -1,0 +1,11 @@
+timestamp,symbol,signal,rsi2,close,sma200,sma5,entry_price,notes
+2026-03-01 17:44:43,SPY,NO_SIGNAL,28.32,685.99,651.74,687.64,,No entry conditions met
+2026-03-01 17:44:43,QQQ,NO_SIGNAL,34.21,607.29,585.72,608.5,,No entry conditions met
+2026-03-01 17:44:43,IWM,NO_SIGNAL,22.39,261.41,236.9,263.16,,No entry conditions met
+2026-03-01 17:44:43,DIA,NO_SIGNAL,18.84,489.66,459.29,491.83,,No entry conditions met
+2026-03-01 17:44:43,EFA,NO_SIGNAL,53.06,105.38,92.43,105.15,,No entry conditions met
+2026-03-01 17:51:42,SPY,NO_SIGNAL,28.32,685.99,651.74,687.64,,No entry conditions met
+2026-03-01 17:51:42,QQQ,NO_SIGNAL,34.21,607.29,585.72,608.5,,No entry conditions met
+2026-03-01 17:51:42,IWM,NO_SIGNAL,22.39,261.41,236.9,263.16,,No entry conditions met
+2026-03-01 17:51:42,DIA,NO_SIGNAL,18.84,489.66,459.29,491.83,,No entry conditions met
+2026-03-01 17:51:42,EFA,NO_SIGNAL,53.06,105.38,92.43,105.15,,No entry conditions met

@@ -1,7 +1,7 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE — Phase 2 (daily signal scanner) in progress.
+Phase 1 COMPLETE — Phase 2 COMPLETE (daily signal scanner opérationnel).
 Validated strategy : RSI(2) mean reversion, 5 ETFs, params Connors canonical.
 
 ## Stack
@@ -10,6 +10,7 @@ Python 3.12+, pytest, numpy, pandas, scipy, yfinance
 ## Commandes
 - Tests : `pytest tests/ -v`
 - Validation finale : `python scripts/validate_rsi2_final.py`
+- **Scanner quotidien : `python scripts/daily_scanner.py`** (après clôture US ~22h CET)
 - Params production : `config/production_params.yaml`
 
 ## Règles
@@ -108,10 +109,23 @@ docs/
 - FeeModel : `entry_fee` inclus dans le PnL retourné par `_close_trend_position`
   → ne PAS soustraire à nouveau dans `capital +=` (bug corrigé en Phase 1)
 
-## Phase 2 — Objectifs
+## Phase 2 — Scanner quotidien (COMPLETE)
 
-Scanner quotidien de signaux RSI(2) :
-- Vérifier RSI(2) sur 5 ETFs à la clôture (après 22h CET)
-- Output : "BUY QQQ demain au open" / "SELL SPY à la clôture (SMA5 crossé)"
-- Exécution manuelle sur Saxo via sous-compte USD
-- Pas d'automatisation — signaux manuels uniquement
+`scripts/daily_scanner.py` — opérationnel depuis 2026-03-01.
+
+Architecture :
+- `evaluate_signal(rsi2, close, sma200, sma5, position, ...)` → `SignalResult` — fonction pure, testable
+- Signaux : BUY / SELL / SAFETY_EXIT / HOLD / NO_SIGNAL / PENDING_VALID / PENDING_EXPIRED
+- `data/positions.json` — state machine position : null → pending (auto) → open (manuel) → null (manuel)
+- `data/signal_history.csv` — log append-only (timestamp, symbol, signal, rsi2, close, sma200, sma5, entry_price, notes)
+- `logs/scanner.log` — log rotatif debug (loguru, 1 MB, 30 jours)
+
+Workflow manuel Saxo :
+1. Lancer scanner après clôture US (~22h CET)
+2. Si BUY → pending écrit auto dans positions.json → exécuter au open du lendemain sur Saxo
+3. Mettre à jour positions.json manuellement : `"status": "open"`, ajouter `"entry_price"`
+4. Scanner détecte SELL/SAFETY_EXIT → exécuter manuellement → remettre null dans positions.json
+
+Cohérence anti-look-ahead :
+- Entry : signal sur today (= backtest [i-1]), action demain au open (= [i]) ✓
+- Exit : évalué sur today's close, exécuté au open suivant (slippage documenté, intentionnel)
