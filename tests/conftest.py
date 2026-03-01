@@ -33,6 +33,7 @@ def make_indicator_cache():
         rolling_low: dict[int, np.ndarray] | None = None,
         sma_by_period: dict[int, np.ndarray] | None = None,
         rsi_by_period: dict[int, np.ndarray] | None = None,
+        ibs: np.ndarray | None = None,
     ) -> IndicatorCache:
         if closes is None:
             closes = np.full(n, 100.0)
@@ -80,6 +81,7 @@ def make_indicator_cache():
             rolling_low=rolling_low,
             sma_by_period=sma_by_period,
             rsi_by_period=rsi_by_period,
+            ibs=ibs,
         )
 
     return _make

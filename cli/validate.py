@@ -10,6 +10,7 @@ from __future__ import annotations
 import sys
 
 from engine.fee_model import FEE_MODEL_US_ETFS_USD, FEE_MODEL_US_STOCKS_USD
+from strategies.ibs_mean_reversion import IBSMeanReversion
 from strategies.rsi2_mean_reversion import RSI2MeanReversion
 from validation.config import ValidationConfig
 from validation.pipeline import validate
@@ -24,6 +25,21 @@ UNIVERSE_STOCKS: dict[str, str] = {
     "NVDA": "2005-01-01",
     "AMZN": "2005-01-01",
     "GS": "2005-01-01",
+}
+
+UNIVERSE_IBS_STOCKS: dict[str, str] = {
+    "META": "2012-06-01",
+    "MSFT": "2005-01-01",
+    "GOOGL": "2005-01-01",
+    "NVDA": "2005-01-01",
+    "AMZN": "2005-01-01",
+    "GS": "2005-01-01",
+    "AAPL": "2005-01-01",
+    "TSLA": "2010-07-01",
+    "JPM": "2005-01-01",
+    "KO": "2005-01-01",
+    "JNJ": "2005-01-01",
+    "XOM": "2005-01-01",
 }
 
 UNIVERSE_ETFS: dict[str, str] = {
@@ -52,6 +68,32 @@ PRESETS: dict[str, tuple] = {
     ),
     "rsi2_etfs": (
         RSI2MeanReversion,
+        ValidationConfig(
+            universe=UNIVERSE_ETFS,
+            data_end="2025-01-01",
+            is_end="2014-01-01",
+            initial_capital=100_000.0,
+            whole_shares=False,
+            slippage_pct=0.0003,
+            fee_model=FEE_MODEL_US_ETFS_USD,
+            oos_mid="2019-07-01",
+        ),
+    ),
+    "ibs_stocks": (
+        IBSMeanReversion,
+        ValidationConfig(
+            universe=UNIVERSE_IBS_STOCKS,
+            data_end="2025-01-01",
+            is_end="2014-01-01",
+            initial_capital=10_000.0,
+            whole_shares=True,
+            slippage_pct=0.0003,
+            fee_model=FEE_MODEL_US_STOCKS_USD,
+            oos_mid="2019-07-01",
+        ),
+    ),
+    "ibs_etfs": (
+        IBSMeanReversion,
         ValidationConfig(
             universe=UNIVERSE_ETFS,
             data_end="2025-01-01",

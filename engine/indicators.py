@@ -311,6 +311,23 @@ def rolling_max(arr: np.ndarray, window: int) -> np.ndarray:
     return result
 
 
+def internal_bar_strength(
+    highs: np.ndarray, lows: np.ndarray, closes: np.ndarray,
+) -> np.ndarray:
+    """Internal Bar Strength (IBS).
+
+    IBS = (Close - Low) / (High - Low)
+    Valeur entre 0.0 et 1.0.
+    IBS bas (< 0.2) = close pres du low = oversold.
+    IBS haut (> 0.8) = close pres du high = overbought.
+
+    Retourne NaN quand High == Low (doji parfait / pas de range).
+    """
+    range_ = highs - lows
+    ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+    return ibs
+
+
 def rolling_min(arr: np.ndarray, window: int) -> np.ndarray:
     """Rolling min sur fenêtre glissante (exclut l'élément courant).
 

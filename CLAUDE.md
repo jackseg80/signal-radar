@@ -2,15 +2,15 @@
 
 ## Project Status
 Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE.
-Framework backtest modulaire operationnel. 177 tests.
-Validated strategy : RSI(2) mean reversion, 4 stocks VALIDATED, params Connors canonical.
+Framework backtest modulaire operationnel. 200 tests.
+Validated strategies : RSI(2) MR (4 stocks), IBS MR (6 stocks VALIDATED).
 
 ## Stack
 Python 3.12+, pytest, numpy, pandas, scipy, yfinance
 
 ## Commandes
 - Tests : `pytest tests/ -v`
-- Valider une strategie : `python -m cli.validate rsi2_stocks` (ou `rsi2_etfs`)
+- Valider une strategie : `python -m cli.validate rsi2_stocks` (ou `rsi2_etfs`, `ibs_stocks`, `ibs_etfs`)
 - Verifier migration : `python scripts/verify_migration.py`
 - **Scanner quotidien : `python scripts/daily_scanner.py`** (apres cloture US ~22h CET)
 - Params production : `config/production_params.yaml`
@@ -56,6 +56,29 @@ Resultats precedents ETFs OOS 2014-2025 ($100k) :
 
 - 380 trades, WR 69%, PF 1.36, Sharpe 0.65 (viable a $100k, pas a $10k)
 
+## Strategie validee : IBS Mean Reversion (Phase 3 addendum)
+
+IBS = (Close - Low) / (High - Low). Entry IBS < 0.2 + close > SMA200. Exit IBS > 0.8 ou close > high[j-1].
+Presets : `ibs_stocks` (12 assets), `ibs_etfs` (5 ETFs).
+
+Resultats OOS 2014-2025 ($10k whole shares) :
+
+- META : 302 trades, PF 1.68, WR 72%, 100% robust -- VALIDATED
+- MSFT : 308 trades, PF 1.52, WR 69%, 100% robust -- VALIDATED
+- GOOGL : 277 trades, PF 1.29, WR 66%, 97% robust -- VALIDATED
+- NVDA : 314 trades, PF 2.07, WR 72%, 100% robust -- VALIDATED
+- AMZN : 267 trades, PF 1.46, WR 63%, 100% robust -- VALIDATED
+- AAPL : 289 trades, PF 1.51, WR 69%, 100% robust -- VALIDATED
+- GS, TSLA, JPM, KO, JNJ, XOM -- REJECTED (PF < 1.1 ou robustesse < 70%)
+- T-test poole : 3091 trades, t=3.81, p=0.0001
+
+Resultats ETFs OOS 2014-2025 ($100k fractional) :
+
+- QQQ : 265 trades, PF 1.45, WR 68%, 100% robust -- VALIDATED
+- SPY : 269 trades, PF 1.21, WR 66%, 100% robust -- CONDITIONAL (non-signif)
+- EFA : 225 trades, PF 1.38, WR 72%, 81% robust -- CONDITIONAL (instable)
+- IWM, DIA -- REJECTED
+
 ## Stratégies/assets rejetés
 
 1. Donchian TF sur US stocks (Steps 1-4) — WFO tout grade F (stocks mean-revertent)
@@ -66,6 +89,8 @@ Resultats precedents ETFs OOS 2014-2025 ($100k) :
 6. RSI(2) sur AMZN — PF 0.92 en 2019-2025 (instable)
 7. RSI(2) sur GS — 48% combos profitables (fragile, dépend des params)
 8. RSI(2) sur JPM, JNJ, TSLA, KO, XOM, CAT, WMT, AMD, AAPL — PF < 1.3 OOS
+9. IBS sur GS, TSLA, JPM, KO, JNJ, XOM — PF < 1.1 ou robustesse < 70%
+10. IBS sur IWM, DIA (ETFs) — PF < 1.0
 
 ## Contraintes critiques
 
@@ -80,13 +105,14 @@ Resultats precedents ETFs OOS 2014-2025 ($100k) :
 strategies/                            -- Phase 3 : plugins strategie
   base.py                              -- BaseStrategy ABC (check_entry, check_exit, init_state, warmup)
   rsi2_mean_reversion.py               -- RSI(2) Connors plugin
+  ibs_mean_reversion.py                -- IBS Mean Reversion plugin (6 stocks VALIDATED)
   donchian_trend.py                    -- Donchian trend following plugin
 
 engine/
   types.py                             -- Direction, ExitSignal, Position, TradeResult, BacktestResult
   simulator.py                         -- Moteur unique generique (start_idx/end_idx pour IS/OOS)
-  indicators.py                        -- SMA, EMA, Donchian, ATR, ADX, RSI (Wilder)
-  indicator_cache.py                   -- Build cache indicateurs par asset (SMA/RSI by period)
+  indicators.py                        -- SMA, EMA, Donchian, ATR, ADX, RSI (Wilder), IBS
+  indicator_cache.py                   -- Build cache indicateurs par asset (SMA/RSI/IBS)
   fee_model.py                         -- FeeModel dataclass + presets (US_STOCKS_USD, US_ETFS_USD, etc.)
   backtest_config.py                   -- BacktestConfig (symbol, capital, slippage, fee_model)
   fast_backtest.py                     -- DEPRECATED -- ancien engine trend following
@@ -117,6 +143,7 @@ tests/
   test_simulator.py                    -- Tests moteur generique (15 tests)
   test_types.py                        -- Tests types framework (13 tests)
   test_rsi2_strategy.py                -- Tests RSI(2) plugin (19 tests)
+  test_ibs_strategy.py                 -- Tests IBS plugin (23 tests)
   test_donchian_strategy.py            -- Tests Donchian plugin (27 tests)
   test_mean_reversion.py               -- Tests RSI(2) ancien moteur
   test_fee_model.py                    -- Tests fee model

@@ -14,7 +14,16 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from engine.indicators import adx, atr, ema, rolling_max, rolling_min, rsi, sma
+from engine.indicators import (
+    adx,
+    atr,
+    ema,
+    internal_bar_strength,
+    rolling_max,
+    rolling_min,
+    rsi,
+    sma,
+)
 
 
 @dataclass
@@ -53,6 +62,9 @@ class IndicatorCache:
 
     # Multi-period RSI (pour mean reversion entry signal)
     rsi_by_period: dict[int, np.ndarray] = field(default_factory=dict)
+
+    # Internal Bar Strength (IBS) — calcul par candle, pas de période
+    ibs: np.ndarray | None = None
 
 
 def build_cache(
@@ -141,6 +153,9 @@ def build_cache(
     rolling_high_dict = {lb: rolling_max(highs, lb) for lb in lookbacks}
     rolling_low_dict = {lb: rolling_min(lows, lb) for lb in lookbacks}
 
+    # --- IBS (Internal Bar Strength) — calcul par candle ---
+    ibs_arr = internal_bar_strength(highs, lows, closes)
+
     return IndicatorCache(
         n_candles=n,
         opens=opens,
@@ -156,4 +171,5 @@ def build_cache(
         rolling_low=rolling_low_dict,
         sma_by_period=sma_by_period,
         rsi_by_period=rsi_by_period,
+        ibs=ibs_arr,
     )
