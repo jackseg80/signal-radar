@@ -1,4 +1,6 @@
-"""Script démo — Backtest Donchian sur un symbole via YahooLoader.
+# DEPRECATED -- Remplace par: python -m cli.validate <preset>
+# Conserve comme reference historique Phase 1.
+"""Script demo -- Backtest Donchian sur un symbole via YahooLoader.
 
 Usage:
     python scripts/optimize.py --strategy donchian --symbol AAPL

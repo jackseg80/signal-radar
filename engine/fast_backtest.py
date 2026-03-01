@@ -1,10 +1,21 @@
-"""Moteur de backtest trend following gap-aware pour signal-radar.
+"""DEPRECATED — Ancien moteur trend following.
 
-Adapté depuis scalp-radar/backend/optimization/fast_multi_backtest.py.
+Remplace par :
+  - engine/simulator.py (moteur generique)
+  - strategies/donchian_trend.py (strategie plugin)
+
+Conserve pour reference historique et pour verify_migration.py.
+Utiliser ``simulate(DonchianTrend(), ...)`` pour tout nouveau backtest.
+
+---
+
+Moteur de backtest trend following gap-aware pour signal-radar.
+
+Adapte depuis scalp-radar/backend/optimization/fast_multi_backtest.py.
 Changements critiques :
-1. Gap-aware exits — exit à l'open si gap traverse le stop (pas au prix du stop)
+1. Gap-aware exits — exit a l'open si gap traverse le stop (pas au prix du stop)
 2. FeeModel — remplace le flat taker_fee crypto
-3. n_holding_days — tracking durée de détention pour coût overnight
+3. n_holding_days — tracking duree de detention pour cout overnight
 4. Pas de leverage — position sizing simple (fraction du capital)
 """
 

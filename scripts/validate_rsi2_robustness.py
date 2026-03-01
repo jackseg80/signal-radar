@@ -1,3 +1,5 @@
+# DEPRECATED -- Remplace par: python -m cli.validate rsi2_etfs
+# Conserve comme reference historique Phase 1.
 """Phase 1 validation -- Step 7 -- run 2026-03-01
 Results : 48/48 combos PF>1.0 (100%%), 42/48 PF>1.2 (88%%). Buffer 1.01 optimal.
 Note : MC p-value artificielle (Sharpe annualise vs distribution non-annualisee).

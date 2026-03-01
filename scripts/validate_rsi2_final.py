@@ -1,3 +1,5 @@
+# DEPRECATED -- Remplace par: python -m cli.validate rsi2_etfs
+# Conserve comme reference historique Phase 1.
 """RSI(2) Mean Reversion -- PORTFOLIO FINAL -- 5 ETFs.
 
 Phase 1 validation -- run 2026-03-01

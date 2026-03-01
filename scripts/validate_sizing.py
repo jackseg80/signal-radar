@@ -1,4 +1,6 @@
-"""RSI(2) Sizing Impact — $100k vs $10k, fractional vs whole shares.
+# DEPRECATED -- Remplace par: python -m cli.validate rsi2_stocks / rsi2_etfs
+# Conserve comme reference historique Phase 2.
+"""RSI(2) Sizing Impact -- $100k vs $10k, fractional vs whole shares.
 
 Quantifie l'impact réel du sizing sur l'edge OOS (2014-2025) :
   1. Commission fixe ($1) pèse 10x plus sur petit capital

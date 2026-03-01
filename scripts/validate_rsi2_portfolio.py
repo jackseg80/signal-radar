@@ -1,3 +1,5 @@
+# DEPRECATED -- Remplace par: python -m cli.validate rsi2_etfs
+# Conserve comme reference historique Phase 1.
 """Phase 1 validation -- Step 6 -- run 2026-03-01
 Results OOS (2014-2025) : 332 trades, WR 68%%, PF 1.35, Sharpe 0.60. All checks green.
 See docs/PHASE1_RESULTS.md for full context.

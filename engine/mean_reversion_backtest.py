@@ -1,18 +1,29 @@
-"""Moteur de backtest mean reversion RSI(2) Connors pour signal-radar.
+"""DEPRECATED — Ancien moteur mean reversion.
 
-Stratégie long-only sur Daily. Achète les pullbacks RSI(2) dans une
-tendance haussière (close > SMA trend), sort quand le prix remonte
+Remplace par :
+  - engine/simulator.py (moteur generique)
+  - strategies/rsi2_mean_reversion.py (strategie plugin)
+
+Conserve pour reference historique et pour verify_migration.py.
+Utiliser ``simulate(RSI2MeanReversion(), ...)`` pour tout nouveau backtest.
+
+---
+
+Moteur de backtest mean reversion RSI(2) Connors pour signal-radar.
+
+Strategie long-only sur Daily. Achete les pullbacks RSI(2) dans une
+tendance haussiere (close > SMA trend), sort quand le prix remonte
 au-dessus de SMA(5) (exit Connors classique).
 
 Structure boucle gap-aware par candle :
   Phase 1 : Gap-aware SL at open (si sl_percent > 0)
   Phase 2 : Intraday SL (si sl_percent > 0)
-  Phase 3 : SMA exit — closes[i] > sma_exit[i] → exit closes[i]
-  Phase 4 : RSI exit — rsi_arr[i] > rsi_exit_threshold → exit closes[i]
-  Phase 5 : Trend break — closes[i] < sma_trend[i] → exit closes[i]
+  Phase 3 : SMA exit -- closes[i] > sma_exit[i] -> exit closes[i]
+  Phase 4 : RSI exit -- rsi_arr[i] > rsi_exit_threshold -> exit closes[i]
+  Phase 5 : Trend break -- closes[i] < sma_trend[i] -> exit closes[i]
 
-Signal sur candle [i-1], entrée sur open[i] (pas de look-ahead).
-Exits Connors = "on close" (décision et prix sur candle i).
+Signal sur candle [i-1], entree sur open[i] (pas de look-ahead).
+Exits Connors = "on close" (decision et prix sur candle i).
 """
 
 from __future__ import annotations

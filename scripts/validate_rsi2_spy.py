@@ -1,3 +1,5 @@
+# DEPRECATED -- Remplace par: python -m cli.validate rsi2_etfs
+# Conserve comme reference historique Phase 1.
 """Phase 1 validation -- Step 5 -- run 2026-03-01
 Results : sans FX WR 73%% PF 1.86 (Connors valide). USD account RSI<10 : PF 1.47, 174 trades.
 See docs/PHASE1_RESULTS.md for full context.

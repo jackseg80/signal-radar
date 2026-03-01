@@ -51,24 +51,18 @@
 | 14 | Docker + Telegram + cron | ✅ Déployé sur serveur Ubuntu (192.168.1.200) |
 
 ### Pivot ETFs → Stocks
-À $10k de capital, les frais fixes ($1/trade) pèsent 3.4× plus en proportion. Les ETFs (volatilité faible, pullbacks de ~1.5%) ne génèrent pas assez de return par trade pour couvrir les frais. Les actions individuelles (pullbacks de 5-10%) résolvent le problème :
-
-| | ETFs ($10k) | Stocks ($10k) |
-|---|---|---|
-| PF OOS | 1.15 | 1.30 |
-| Avg PnL/trade | $1.56 | $6.15 |
-| Sharpe | 0.28 | 0.69 |
+À $10k de capital, les frais fixes ($1/trade) pèsent 3.4× plus en proportion. Les ETFs (volatilité faible, pullbacks de ~1.5%) ne génèrent pas assez de return par trade pour couvrir les frais. Les actions individuelles (pullbacks de 5-10%) résolvent le problème.
 
 ### Stocks validés (production)
 
-| Ticker | PF   | WR  | Robustesse 48 combos | Sous-périodes  | t-test   | Verdict        |
-|--------|------|-----|----------------------|----------------|----------|----------------|
-| META   | 2.98 | 74% | 100%                 | 6.26 / 3.19    | p=0.0003 | ✅ VALIDÉ      |
-| MSFT   | 1.74 | 73% | 100%                 | 1.81 / 2.43    | p=0.057  | ✅ VALIDÉ      |
-| GOOGL  | 1.66 | 68% | 100%                 | 1.07 / 2.45    | p=0.055  | ✅ VALIDÉ      |
-| NVDA   | 1.48 | 67% | 100%                 | 1.42 / 2.10    | p=0.135  | 👀 WATCHLIST   |
-| AMZN   | 1.48 | 65% | 88%                  | 2.59 / 0.92    | p=0.126  | ❌ Instable    |
-| GS     | 1.44 | 63% | 48%                  | 2.36 / 2.09    | p=0.162  | ❌ Fragile     |
+| Ticker | PF | WR | Robustesse 48 combos | Sous-périodes | t-test | Verdict |
+|--------|-----|-----|---------------------|---------------|--------|---------|
+| META | 2.98 | 74% | 100% | 6.26 / 3.19 | p=0.0003 | ✅ VALIDÉ |
+| MSFT | 1.74 | 73% | 100% | 1.81 / 2.43 | p=0.057 | ✅ VALIDÉ |
+| GOOGL | 1.66 | 68% | 100% | 1.07 / 2.45 | p=0.055 | ✅ VALIDÉ |
+| NVDA | 1.48 | 67% | 100% | 1.42 / 2.10 | p=0.135 | 👀 WATCHLIST |
+| AMZN | 1.48 | 65% | 88% | 2.59 / 0.92 | p=0.126 | ❌ Instable |
+| GS | 1.44 | 63% | 48% | 2.36 / 2.09 | p=0.162 | ❌ Fragile |
 
 ### Livrables
 - Scanner quotidien avec state machine (null → pending → open → null)
@@ -76,145 +70,140 @@
 - Notifications Telegram (signal + rapport hebdo)
 - Docker + cron (22h15 CET, dim-ven)
 - 80 tests passing
-- Documentation complète (CLAUDE.md, README.md, PHASE1_RESULTS.md, PHASE2_RESULTS.md)
+- Documentation complète
 
 ---
 
-## Phase 2.5 — Live Validation 🔄 EN COURS
+## Phase 3 — Backtesting Framework ✅ COMPLETE
 
-**Période :** Mars - Juin 2026
-**Objectif :** Valider la stratégie en conditions réelles avant de scale up.
+**Période :** Mars 2026
+**Objectif atteint :** Framework modulaire opérationnel.
+
+### Steps Phase 3
+
+| Step | Description | Résultat |
+| ---- | ----------- | -------- |
+| 15 | Audit scalp-radar | ✅ docs/SCALP_RADAR_AUDIT.md |
+| 16 | Design framework | ✅ BaseStrategy, moteur unique, pipeline |
+| 17 | Types + BaseStrategy + Moteur | ✅ 36 tests |
+| 18 | Migration RSI(2) MR | ✅ 19 tests |
+| 19 | Migration Donchian TF | ✅ 27 tests |
+| 20 | Pipeline de validation | ✅ CLI + 15 tests |
+| 21 | Vérification migration | ✅ 534 trades, $0.00 diff sur 4 stocks |
+| 22 | Documentation + nettoyage | ✅ |
+
+### Critères de succès — tous atteints
+
+- ✅ Ajouter une nouvelle stratégie = 1 fichier + hériter BaseStrategy
+- ✅ Valider/rejeter une stratégie = `python -m cli.validate <preset>`
+- ✅ Résultats RSI(2) identiques à Phase 2 (vérification trade par trade)
+- ✅ 177 tests passing
+
+### Résultats pipeline (nouveau framework)
+
+| Ticker | Trades | WR | PF | Robust | Stable | Signif | Verdict |
+| ------ | ------ | -- | -- | ------ | ------ | ------ | ------- |
+| META | 93 | 74% | 3.49 | 100% | ✅ | ✅ | VALIDATED |
+| MSFT | 85 | 72% | 1.66 | 100% | ✅ | ✅ | VALIDATED |
+| GOOGL | 90 | 67% | 1.72 | 100% | ✅ | ✅ | VALIDATED |
+| NVDA | 96 | 67% | 1.48 | 100% | ✅ | ✅ | VALIDATED |
+| AMZN | 74 | 65% | 1.39 | 88% | ❌ | ❌ | REJECTED |
+| GS | 70 | 64% | 1.55 | 50% | ✅ | ✅ | REJECTED |
+
+T-test poolé : 508 trades, t=4.27, p=0.0000.
+
+Note : les PnL par trade sont identiques à Phase 2 (vérifié par `scripts/verify_migration.py`).
+La différence de nombre de trades vient du warmup amélioré dans le nouveau pipeline.
+NVDA passe de WATCHLIST à VALIDATED (plus de trades → significativité atteinte).
+
+### Livrables Phase 3
+
+- `strategies/base.py` — BaseStrategy ABC
+- `strategies/rsi2_mean_reversion.py` — RSI(2) Connors plugin
+- `strategies/donchian_trend.py` — Donchian TF plugin
+- `engine/simulator.py` — Moteur unique générique (start_idx/end_idx)
+- `engine/types.py` — Direction, ExitSignal, Position, TradeResult, BacktestResult
+- `validation/pipeline.py` — Pipeline complet : robustesse + sous-périodes + t-test + verdict
+- `cli/validate.py` — CLI : `python -m cli.validate <preset>`
+- `scripts/verify_migration.py` — Preuve migration (534 trades, $0.00 diff)
+- Anciens moteurs marqués DEPRECATED (conservés pour référence)
+- 177 tests passing
+
+---
+
+## Phase 4 — Live Validation 📋 PLANIFIÉ
+
+**Période :** Avril - Juillet 2026
+**Objectif :** Valider la stratégie en conditions réelles.
+**Pré-requis :** Phase 3 complète + sous-compte USD Saxo + capital $10k.
 
 ### Pré-requis broker
 
-| Action | Statut | Détails |
-|--------|--------|---------|
-| Sous-compte USD Saxo | ❌ À ouvrir | Contacter support Saxo Switzerland |
-| Test achat META (actions, pas CFD) | ❌ À vérifier | Passer un ordre de 1 part |
-| Capital $10k transféré | ❌ À faire | Virement vers sous-compte USD |
+| Action | Statut |
+|--------|--------|
+| Sous-compte USD Saxo | ❌ À ouvrir |
+| Test achat META (actions, pas CFD) | ❌ À vérifier |
+| Capital $10k transféré | ❌ À faire |
 
-### Dry run (2-3 semaines)
+### Plan
 
-- Observer les signaux quotidiens sans trader
-- Vérifier la cohérence signaux vs charts
-- S'assurer que le scanner tourne sans problème
-- Prendre le rythme opérationnel (signal le soir → exécution le matin)
-
-### Live trading (~3-4 mois, objectif 20-30 trades)
-
-- Premier cycle complet : BUY → HOLD → SELL
-- Tracking dans signal_history.csv
-- Mesurer le slippage réel (exit close backtest → exit next open live)
-- Comparer PF/WR live vs backtest
-
-### Go/no-go à 30 trades
-
-| Métrique | Continuer | Investiguer | Arrêter |
-|----------|-----------|------------|---------|
-| PF live  | > 1.15    | 1.0 — 1.15 | < 1.0   |
-| WR live  | > 60%     | 55-60%     | < 55%   |
-| Slippage | < 0.1%    | 0.1-0.2%   | > 0.2%  |
-
-### Décision NVDA (~6 mois)
-
-Suivi paper trading via watchlist. Si après ~50 would-trigger trades la significativité s'améliore (p < 0.10), passer en actif. Sinon, retirer de la watchlist.
+- Dry run 2-3 semaines (observer sans trader)
+- 20-30 trades réels (~3-4 mois)
+- Go/no-go : PF live > 1.15 → continuer, < 1.0 → investiguer
+- Décision NVDA après ~6 mois
 
 ---
 
-## Phase 3 — Dashboard Web 📋 PLANIFIÉ
+## Phase 5 — Dashboard Web 📋 PLANIFIÉ
 
-**Période estimée :** Q2-Q3 2026
-**Objectif :** Remplacer CSV + Telegram par un dashboard web interactif.
-
-### Architecture envisagée
-
-| Composant | Technologie |
-|-----------|------------|
-| Backend | FastAPI |
-| Base de données | SQLite (→ PostgreSQL si scale) |
-| Frontend | React ou HTML/JS simple |
-| Hébergement | Docker sur 192.168.1.200 (même serveur) |
+**Période estimée :** Q3-Q4 2026
+**Objectif :** Dashboard web interactif remplaçant CSV + Telegram.
 
 ### Features
 
-| Feature | Priorité | Description |
-|---------|----------|-------------|
-| Tableau d'assets | P0 | Tous les assets avec RSI, SMA, trend, distance au signal, trié par proximité |
-| Journal de trades | P0 | Entry, exit, PnL réel, PnL backtest attendu, écart |
-| Equity curve live | P1 | Graphe cumulé trades réels vs backtest |
-| Signal history | P1 | Historique complet des signaux avec filtres |
-| Alertes proximité | P2 | "NVDA s'approche du signal" (RSI=15, en baisse depuis 3 jours) |
-| Multi-utilisateur | P3 | Authentification (si partage avec d'autres traders) |
-
-### DB Schema (ébauche)
-
-- `assets` : symbol, market, strategy, status (active/watchlist/rejected)
-- `daily_indicators` : date, symbol, close, rsi2, sma200, sma5, trend_ok
-- `signals` : date, symbol, signal_type, details, notified
-- `trades` : symbol, entry_date, entry_price, exit_date, exit_price, pnl_real, pnl_backtest
-- `config` : params, fee_model, capital
+| Feature | Priorité |
+|---------|----------|
+| Tableau d'assets (RSI, SMA, distance au signal, trend) | P0 |
+| Journal de trades (PnL réel vs backtest) | P0 |
+| Equity curve live | P1 |
+| Alertes proximité ("NVDA s'approche du signal") | P2 |
+| Comparaison multi-stratégie | P2 |
 
 ---
 
-## Phase 4 — Scale Up 📋 PLANIFIÉ
+## Phase 6 — Scale Up 📋 PLANIFIÉ
 
-**Période estimée :** Q3-Q4 2026
-**Pré-requis :** PF live > 1.15 sur 30+ trades réels.
+**Période estimée :** 2027
+**Pré-requis :** PF live > 1.15 sur 30+ trades.
 
-### Augmentation de capital
-
-| Capital       | Actions possibles                             | PF attendu |
-|---------------|-----------------------------------------------|------------|
-| $10k (actuel) | META, MSFT, GOOGL                             | 1.30       |
-| $20k          | + meilleur sizing                             | ~1.25      |
-| $50k+         | + réintégrer ETFs (SPY, QQQ, IWM, DIA, EFA)  | ~1.33      |
-| $100k         | Conditions du backtest original               | 1.36       |
-
-### Élargissement univers
-
-| Action | Pré-requis | Pipeline |
-|--------|-----------|----------|
-| NVDA → actif | p-value < 0.10 | Watchlist → validate → promote |
-| Nouvelles actions US | Screening | Backtest → robustesse 48 combos → sous-périodes → t-test |
-| ETFs réintégrés | Capital $50k+ | Même params, frais fixes dilués |
-| Marchés européens | Nouvelle recherche | Fee model EU, identifier les candidats MR |
+- Augmenter capital ($20k → $50k → $100k)
+- Réintégrer ETFs quand capital le permet
+- Ajouter des stocks validés (pipeline Phase 3)
+- Explorer marchés européens
 
 ---
 
-## Phase 5 — Automatisation Complète 📋 VISION LONG TERME
+## Phase 7 — Automatisation Complète 📋 VISION LONG TERME
 
-**Période estimée :** 2027+
-**Pré-requis :** Dashboard opérationnel, historique live positif, capital suffisant.
-
-### Exécution automatique
-
-| Feature | Description | Complexité |
-|---------|------------|-----------|
-| API Saxo | Passage d'ordres automatique | Moyenne — Saxo a une API REST |
-| Position sizing dynamique | Kelly criterion ou volatility targeting | Faible — calcul pur |
-| Confirmation manuelle | Signal auto → notification → 1 tap pour confirmer | Moyenne |
-| Full auto | Signal → ordre → tracking → exit, sans intervention | Élevée |
-
-### Multi-stratégie
-
-| Stratégie | Marché | Status |
-|-----------|--------|--------|
-| RSI(2) mean reversion | US stocks + ETFs | ✅ Validée |
-| Trend following (Donchian/EMA) | Commodities ? Crypto ? | ❌ Rejeté sur forex daily, à explorer sur d'autres marchés |
-| Pairs trading / stat arb | US stocks | 💡 Idée — pas encore explorée |
-| Momentum mensuel | ETFs sectoriels | 💡 Idée — rotation sectorielle |
+- API Saxo (exécution automatique)
+- Position sizing dynamique (Kelly / vol targeting)
+- Multi-stratégie simultané
+- Full auto (signal → ordre → tracking → exit)
 
 ---
 
 ## Historique des décisions clés
 
-| Date       | Décision | Raison |
-|------------|----------|--------|
-| Fév 2026   | Créer signal-radar séparé de scalp-radar | Pas de coupling avec le système crypto live |
-| Fév 2026   | Rejeter Donchian TF sur stocks | WFO grade F — stocks mean-revertent |
-| Mars 2026  | Adopter RSI(2) Connors (params fixes) | Publié 2004, edge comportemental persistant, pas d'optimisation |
-| Mars 2026  | Rejeter Donchian TF sur forex | PF 0.50 OOS — range-bound post-2015 |
-| Mars 2026  | Imposer compte USD Saxo | FX 0.25%/trade détruit l'edge MR court-terme |
-| Mars 2026  | Pivoter ETFs → stocks individuelles ($10k) | Frais fixes $1 trop lourds sur ETFs à petit capital |
-| Mars 2026  | Valider META/MSFT/GOOGL, watchlist NVDA | Robustesse 100%, sous-périodes stables, t-test significatif |
-| Mars 2026  | Rejeter AMZN (instable) et GS (fragile) | PF 0.92 en 2019-2025 / 48% combos profitables |
+| Date | Décision | Raison |
+|------|----------|--------|
+| Fév 2026 | Créer signal-radar séparé de scalp-radar | Pas de coupling avec le système crypto live |
+| Fév 2026 | Rejeter Donchian TF sur stocks | WFO grade F — stocks mean-revertent |
+| Mars 2026 | Adopter RSI(2) Connors (params fixes) | Publié 2004, edge comportemental persistant |
+| Mars 2026 | Rejeter Donchian TF sur forex | PF 0.50 OOS — range-bound post-2015 |
+| Mars 2026 | Imposer compte USD Saxo | FX 0.25%/trade détruit l'edge MR court-terme |
+| Mars 2026 | Pivoter ETFs → stocks individuelles ($10k) | Frais fixes trop lourds sur ETFs à petit capital |
+| Mars 2026 | Valider META/MSFT/GOOGL, watchlist NVDA | Robustesse 100%, sous-périodes stables, t-test significatif |
+| Mars 2026 | Rejeter AMZN et GS | Instable / fragile aux params |
+| Mars 2026 | Prioriser framework backtest (Phase 3) avant live | Besoin d'un système modulaire pour tester de nouvelles stratégies |
+| Mars 2026 | Framework backtest Phase 3 complété | 177 tests, migration vérifiée, pipeline opérationnel |
+| Mars 2026 | NVDA passe VALIDATED dans le nouveau pipeline | Meilleur warmup → plus de trades → significativité atteinte |

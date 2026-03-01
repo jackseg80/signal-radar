@@ -246,3 +246,11 @@ rejette le message avec 400 Bad Request.
 | 13   | daily_scanner.py                    | Scanner quotidien opérationnel            |
 | 14   | Dockerfile + docker-compose.yml     | Docker + cron déployé                     |
 | 15   | notifier.py                         | Telegram notifications + rapport hebdo   |
+
+---
+
+> **Note Phase 3 :** Le nouveau framework backtest (Phase 3) produit des resultats
+> legerement differents en nombre de trades (meilleur warmup). Les PnL par trade
+> sont identiques (verifie par `scripts/verify_migration.py`). NVDA passe de
+> WATCHLIST a VALIDATED dans le nouveau pipeline. Les resultats ci-dessus sont
+> ceux des scripts originaux Phase 2 et sont conserves pour reference historique.

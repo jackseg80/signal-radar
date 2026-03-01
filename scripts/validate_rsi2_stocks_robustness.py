@@ -1,4 +1,6 @@
-"""RSI(2) Robustesse — 6 stocks candidats (PF > 1.3 en OOS).
+# DEPRECATED -- Remplace par: python -m cli.validate rsi2_stocks
+# Conserve comme reference historique Phase 2.
+"""RSI(2) Robustesse -- 6 stocks candidats (PF > 1.3 en OOS).
 
 3 vérifications avant intégration au scanner :
   1. Robustesse paramétrique (48 combos RSI/SMA_trend/SMA_exit)

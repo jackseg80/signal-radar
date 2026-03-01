@@ -1,19 +1,21 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE — Phase 2 COMPLETE (daily signal scanner opérationnel).
-Validated strategy : RSI(2) mean reversion, 3 stocks + 1 watchlist, params Connors canonical.
+Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE.
+Framework backtest modulaire operationnel. 177 tests.
+Validated strategy : RSI(2) mean reversion, 4 stocks VALIDATED, params Connors canonical.
 
 ## Stack
 Python 3.12+, pytest, numpy, pandas, scipy, yfinance
 
 ## Commandes
 - Tests : `pytest tests/ -v`
-- Validation finale : `python scripts/validate_rsi2_final.py`
-- **Scanner quotidien : `python scripts/daily_scanner.py`** (après clôture US ~22h CET)
+- Valider une strategie : `python -m cli.validate rsi2_stocks` (ou `rsi2_etfs`)
+- Verifier migration : `python scripts/verify_migration.py`
+- **Scanner quotidien : `python scripts/daily_scanner.py`** (apres cloture US ~22h CET)
 - Params production : `config/production_params.yaml`
 - Docker build : `docker compose build`
-- Docker démarrer : `docker compose up -d`
+- Docker demarrer : `docker compose up -d`
 - Docker test scanner : `docker compose exec scanner python scripts/daily_scanner.py`
 - Docker logs : `docker compose logs -f scanner`
 
@@ -25,29 +27,34 @@ Python 3.12+, pytest, numpy, pandas, scipy, yfinance
 - Data loader toujours via BaseDataLoader (jamais yfinance en dur)
 - Tests gap-aware = priorité #1 (ne pas avancer sans qu'ils passent)
 
-## Stratégie validée : RSI(2) Mean Reversion
+## Strategie validee : RSI(2) Mean Reversion
 
-Universe : META, MSFT, GOOGL (validés) + NVDA (watchlist)
+Universe : META, MSFT, GOOGL, NVDA (tous VALIDATED par le pipeline Phase 3)
 
-Params (Connors canonical, NON optimisés) :
+Params (Connors canonical, NON optimises) :
 - RSI(2) < 10 entry
-- SMA(200) × 1.01 trend filter (buffer anti-whipsaw)
+- SMA(200) x 1.01 trend filter (buffer anti-whipsaw)
 - SMA(5) exit (close > SMA5)
 - Pas de stop-loss, position_fraction=0.2, long-only
 
 Fee model : us_stocks_usd_account (compte USD Saxo, spread 0.05%)
 
-Résultats stocks OOS 2014-2025 ($10k whole shares) :
+Resultats pipeline Phase 3 -- OOS 2014-2025 ($10k whole shares) :
 
-- Poolé 15 stocks : 1063 trades, WR 65%, PF 1.30, Sharpe 0.69, t-test p=0.0116
-- META : PF 2.98, WR 74%, 100% robust, stable, p=0.0003
-- MSFT : PF 1.74, WR 73%, 100% robust, stable, p=0.057
-- GOOGL : PF 1.66, WR 68%, 100% robust, stable, p=0.055
-- NVDA : PF 1.48, WR 67%, 100% robust, stable, p=0.135 (watchlist)
+- META : 93 trades, PF 3.49, WR 74%, 100% robust, stable, significatif -- VALIDATED
+- MSFT : 85 trades, PF 1.66, WR 72%, 100% robust, stable, significatif -- VALIDATED
+- GOOGL : 90 trades, PF 1.72, WR 67%, 100% robust, stable, significatif -- VALIDATED
+- NVDA : 96 trades, PF 1.48, WR 67%, 100% robust, stable, significatif -- VALIDATED
+- AMZN : 74 trades, PF 1.39, WR 65%, 88% robust, instable, non-signif -- REJECTED
+- GS : 70 trades, PF 1.55, WR 64%, 50% robust, stable, significatif -- REJECTED
+- T-test poole : 508 trades, t=4.27, p=0.0000
 
-Résultats précédents ETFs OOS 2014-2025 ($100k) :
+Note : les PnL par trade sont identiques a Phase 2 (verifie par verify_migration.py).
+La difference de nombre de trades vient du warmup ameliore dans le nouveau pipeline.
 
-- 380 trades, WR 69%, PF 1.36, Sharpe 0.65 (viable à $100k, pas à $10k)
+Resultats precedents ETFs OOS 2014-2025 ($100k) :
+
+- 380 trades, WR 69%, PF 1.36, Sharpe 0.65 (viable a $100k, pas a $10k)
 
 ## Stratégies/assets rejetés
 
@@ -70,75 +77,97 @@ Résultats précédents ETFs OOS 2014-2025 ($100k) :
 ## Architecture
 
 ```
+strategies/                            -- Phase 3 : plugins strategie
+  base.py                              -- BaseStrategy ABC (check_entry, check_exit, init_state, warmup)
+  rsi2_mean_reversion.py               -- RSI(2) Connors plugin
+  donchian_trend.py                    -- Donchian trend following plugin
+
 engine/
-  indicators.py              — SMA, EMA, Donchian, ATR, ADX, RSI (Wilder)
-  indicator_cache.py         — Build cache indicateurs par asset (SMA/RSI by period)
-  fee_model.py               — FeeModel dataclass + presets (US_STOCKS_USD, US_ETFS_USD, etc.)
-  backtest_config.py         — BacktestConfig (symbol, capital, slippage, fee_model)
-  fast_backtest.py           — Engine trend following (Donchian/EMA, trailing ATR stop)
-  mean_reversion_backtest.py — Engine RSI(2) mean reversion (SMA filter, SMA exit)
-  notifier.py                — Telegram : send_telegram(), format_signal_message(), format_weekly_summary()
+  types.py                             -- Direction, ExitSignal, Position, TradeResult, BacktestResult
+  simulator.py                         -- Moteur unique generique (start_idx/end_idx pour IS/OOS)
+  indicators.py                        -- SMA, EMA, Donchian, ATR, ADX, RSI (Wilder)
+  indicator_cache.py                   -- Build cache indicateurs par asset (SMA/RSI by period)
+  fee_model.py                         -- FeeModel dataclass + presets (US_STOCKS_USD, US_ETFS_USD, etc.)
+  backtest_config.py                   -- BacktestConfig (symbol, capital, slippage, fee_model)
+  fast_backtest.py                     -- DEPRECATED -- ancien engine trend following
+  mean_reversion_backtest.py           -- DEPRECATED -- ancien engine mean reversion
+  notifier.py                          -- Telegram : send_telegram(), format_signal_message(), format_weekly_summary()
+
+validation/                            -- Phase 3 : pipeline de validation
+  pipeline.py                          -- validate() -- orchestrateur complet
+  robustness.py                        -- Test 48 combos parametrique
+  sub_periods.py                       -- Stabilite sous-periodes OOS
+  statistics.py                        -- T-test significativite
+  report.py                            -- Verdict + rapport formate
+  config.py                            -- ValidationConfig
+
+cli/                                   -- Phase 3 : CLI
+  validate.py                          -- python -m cli.validate <preset>
 
 data/
-  base_loader.py             — BaseDataLoader + to_cache_arrays()
-  yahoo_loader.py            — YahooLoader, cache parquet, adj-close O/H/L
+  base_loader.py                       -- BaseDataLoader + to_cache_arrays()
+  yahoo_loader.py                      -- YahooLoader, cache parquet, adj-close O/H/L
 
 optimization/
-  walk_forward.py            — WFO fenêtres en barres (trading days)
-  overfit_detection.py       — Monte Carlo block bootstrap, DSR, stabilité
+  walk_forward.py                      -- WFO fenetres en barres (trading days)
+  overfit_detection.py                 -- Monte Carlo block bootstrap, DSR, stabilite
 
 tests/
-  test_mean_reversion.py     — Tests RSI(2) (entry, exit, gap SL, anti-look-ahead)
-  test_fee_model.py          — Tests fee model
-  test_indicator_cache.py    — Tests cache indicateurs
-  test_fast_backtest.py      — Tests engine trend following
-  test_daily_scanner.py      — Tests scanner (signaux, pending, watchlist)
-  test_notifier.py           — Tests notifier Telegram
-  test_data_loader.py        — Tests YahooLoader validation
-  conftest.py                — Fixtures partagées
+  test_pipeline.py                     -- Tests pipeline validation (15 tests)
+  test_simulator.py                    -- Tests moteur generique (15 tests)
+  test_types.py                        -- Tests types framework (13 tests)
+  test_rsi2_strategy.py                -- Tests RSI(2) plugin (19 tests)
+  test_donchian_strategy.py            -- Tests Donchian plugin (27 tests)
+  test_mean_reversion.py               -- Tests RSI(2) ancien moteur
+  test_fee_model.py                    -- Tests fee model
+  test_indicator_cache.py              -- Tests cache indicateurs
+  test_fast_backtest.py                -- Tests ancien engine trend following
+  test_daily_scanner.py                -- Tests scanner (signaux, pending, watchlist)
+  test_notifier.py                     -- Tests notifier Telegram
+  test_data_loader.py                  -- Tests YahooLoader validation
+  conftest.py                          -- Fixtures partagees
 
 scripts/
-  daily_scanner.py           — Scanner quotidien RSI(2) [PRODUCTION]
-  validate_rsi2_final.py     — Step 10 : validation portfolio final 5 ETFs [REFERENCE]
-  validate_rsi2_spy.py       — Step 5  : RSI(2) sur SPY seul, comparaison fees
-  validate_rsi2_portfolio.py — Step 6  : Portfolio 4 ETFs equity, IS/OOS
-  validate_rsi2_robustness.py— Step 7  : Monte Carlo + sensibilité 48 combos ETFs
-  validate_rsi2_expanded.py  — Step 9  : Univers élargi GLD/TLT/XLE/EFA
-  validate_rsi2_stocks.py    — Step 11 : 15 actions US individuelles, $10k whole shares
-  validate_rsi2_stocks_robustness.py — Step 12 : Robustesse 6 candidats (48 combos, sous-périodes, t-test)
-  validate_sizing.py         — Sizing impact $100k vs $10k, fractional vs whole
-  validate_donchian_forex.py — Step 8  : REJECTED — Donchian forex PF OOS 0.50
+  daily_scanner.py                     -- Scanner quotidien RSI(2) [PRODUCTION]
+  verify_migration.py                  -- Verification ancien moteur = nouveau framework
+  validate_rsi2_*.py                   -- DEPRECATED -- anciens scripts validation Phase 1-2
+  validate_donchian_forex.py           -- DEPRECATED -- Donchian forex (rejete)
+  validate_sizing.py                   -- DEPRECATED -- Sizing impact
+  optimize.py                          -- DEPRECATED -- Demo Donchian
 
 config/
-  production_params.yaml     — Params production figés pour Phase 2
-  fee_models.yaml            — Modèles de frais (us_stocks, us_stocks_usd, us_etfs_usd, forex, eu)
-  assets_etf_us.yaml         — Univers ETFs equity US (SPY/QQQ/IWM/DIA)
-  assets_forex.yaml          — 7 paires forex majeures (rejeté)
+  production_params.yaml               -- Params production figes pour Phase 2
+  fee_models.yaml                      -- Modeles de frais
+  assets_etf_us.yaml                   -- Univers ETFs equity US
+  assets_forex.yaml                    -- 7 paires forex majeures (rejete)
 
 deploy/
-  entrypoint.sh              — Écrit env vars cron + passthrough CMD
-  crontab                    — 22h15 dim-ven (TZ=Europe/Zurich)
-  deploy.sh                  — Script déploiement serveur Ubuntu
-  README.md                  — Instructions déploiement serveur
+  entrypoint.sh                        -- Ecrit env vars cron + passthrough CMD
+  crontab                              -- 22h15 dim-ven (TZ=Europe/Zurich)
+  deploy.sh                            -- Script deploiement serveur Ubuntu
+  README.md                            -- Instructions deploiement serveur
 
 docs/
-  PHASE1_RESULTS.md          — Résultats complets Phase 1 (ETFs, stratégies rejetées)
-  PHASE2_STOCKS_RESULTS.md   — Résultats Steps 11-13 : stocks individuels, robustesse, univers production
-  PHASE2_RESULTS.md          — Phase 2 complète : stocks + scanner + Docker + Telegram
-  ROADMAP.md                 — Roadmap Phase 1→5 (live validation, dashboard, scale up, full auto)
+  PHASE1_RESULTS.md                    -- Resultats complets Phase 1
+  PHASE2_STOCKS_RESULTS.md             -- Resultats Steps 11-13
+  PHASE2_RESULTS.md                    -- Phase 2 complete
+  ROADMAP.md                           -- Roadmap Phase 1-5
 ```
 
 ## Conventions techniques
 
 - Anti-look-ahead : signal sur [i-1], action sur open[i]
-- Gap-aware exits : vérifier open vs SL avant le intraday
-- Force-close fin de données : EXCLU de trade_pnls (biais)
-- Méthodologie split IS/OOS : slicer le DataFrame avant l'engine (SMA recalculée proprement)
-- t-test pour signification statistique MR (block bootstrap teste l'ordre, pas la sélection)
+- Gap-aware exits : verifier open vs SL avant le intraday
+- Force-close fin de donnees : EXCLU de trade_pnls (biais)
+- t-test pour signification statistique MR (block bootstrap teste l'ordre, pas la selection)
 - `to_cache_arrays(df)` : fonction module-level dans `data/base_loader.py`
-- `holding_days_out` : liste vide passée à `_simulate_mean_reversion` pour durées trades
-- FeeModel : `entry_fee` inclus dans le PnL retourné par `_close_trend_position`
-  → ne PAS soustraire à nouveau dans `capital +=` (bug corrigé en Phase 1)
+- FeeModel : `entry_fee` inclus dans le PnL retourne par `_close_trend_position`
+  -> ne PAS soustraire a nouveau dans `capital +=` (bug corrige en Phase 1)
+- Nouvelle strategie = 1 fichier dans strategies/ + herite BaseStrategy
+- Validation = `python -m cli.validate <preset>` -> rapport + verdict automatique
+- Les anciens moteurs (fast_backtest.py, mean_reversion_backtest.py) sont DEPRECATED
+- simulator.py est le seul moteur a utiliser pour tout nouveau backtest
+- start_idx/end_idx dans simulate() pour IS/OOS slicing (pas de reconstruction de cache)
 
 ## Phase 2 — Scanner quotidien (COMPLETE)
 
@@ -162,7 +191,7 @@ Cohérence anti-look-ahead :
 - Entry : signal sur today (= backtest [i-1]), action demain au open (= [i]) ✓
 - Exit : évalué sur today's close, exécuté au open suivant (slippage documenté, intentionnel)
 
-## Phase 3 — Déploiement Docker + Telegram (COMPLETE)
+## Phase 3a -- Deploiement Docker + Telegram (COMPLETE)
 
 Conteneurisation et automatisation du scanner quotidien.
 
@@ -189,3 +218,30 @@ docker compose exec scanner python scripts/daily_scanner.py  # test
 ```
 
 Variables d'environnement : `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TZ=Europe/Zurich`
+
+## Phase 3b -- Backtesting Framework (COMPLETE)
+
+Framework modulaire : strategies pluggables, moteur unique, pipeline de validation.
+
+Architecture :
+
+- `strategies/base.py` -- BaseStrategy ABC : check_entry(), check_exit(), init_state(), warmup(), param_grid()
+- `engine/types.py` -- Direction, ExitSignal, Position, TradeResult, BacktestResult
+- `engine/simulator.py` -- Moteur unique generique, remplace fast_backtest + mean_reversion_backtest
+  - start_idx/end_idx pour IS/OOS slicing sans reconstruction de cache
+  - Gap SL, intraday SL, cooldown, DD guard, force-close
+- `validation/pipeline.py` -- validate(strategy, config) -> ValidationReport
+  - Robustesse parametrique (48 combos cartesien)
+  - Stabilite sous-periodes OOS
+  - T-test significativite (one-tailed)
+  - Verdict automatique : VALIDATED / CONDITIONAL / REJECTED
+
+Strategies migrees :
+
+- `strategies/rsi2_mean_reversion.py` -- RSI(2) Connors (19 tests)
+- `strategies/donchian_trend.py` -- Donchian trend following (27 tests)
+
+Migration verifiee :
+
+- 534 trades sur 4 stocks, PnL identique a $0.0000 (scripts/verify_migration.py)
+- 177 tests passent

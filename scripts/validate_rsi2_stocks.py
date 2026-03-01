@@ -1,4 +1,6 @@
-"""RSI(2) Mean Reversion — Actions individuelles US large cap.
+# DEPRECATED -- Remplace par: python -m cli.validate rsi2_stocks
+# Conserve comme reference historique Phase 2.
+"""RSI(2) Mean Reversion -- Actions individuelles US large cap.
 
 Teste si RSI(2) Connors fonctionne mieux sur actions individuelles
 que sur ETFs, grâce aux pullbacks plus profonds (5-10% vs 1.5%).

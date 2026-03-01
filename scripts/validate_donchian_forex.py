@@ -1,3 +1,4 @@
+# DEPRECATED -- Strategie rejetee. Conserve comme reference historique Phase 1.
 """REJECTED -- Phase 1 Step 8 -- run 2026-03-01
 Results OOS (2015-2025) : 149 trades, WR 34%%, PF 0.50. Non viable.
 Cause : forex majors range-bound post-2015. See docs/PHASE1_RESULTS.md.

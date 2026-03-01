@@ -1,3 +1,5 @@
+# DEPRECATED -- Remplace par: python -m cli.validate rsi2_etfs
+# Conserve comme reference historique Phase 1.
 """Phase 1 validation -- Step 9 -- run 2026-03-01
 Results OOS : EFA PF 1.18 [inclus], GLD 0.95 / TLT 1.04 / XLE 1.02 [rejetes].
 See docs/PHASE1_RESULTS.md for full context.

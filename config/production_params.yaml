@@ -25,22 +25,28 @@ params:
 fee_model: us_stocks_usd_account
 
 validation_results:
-  # Stocks $10k whole shares OOS 2014-2025
+  # Phase 3 pipeline results -- OOS 2014-2025 ($10k whole shares)
+  pipeline_note: >
+    Results from Phase 3 pipeline (validation/pipeline.py).
+    Slightly different trade counts from Phase 2 scripts due to
+    improved indicator warmup. PnL per trade verified identical
+    via scripts/verify_migration.py.
   oos_period: "2014-2025"
   capital: 10000
   whole_shares: true
   pooled:
-    oos_trades: 1063
-    oos_win_rate: "65%"
-    oos_profit_factor: 1.30
-    oos_sharpe: 0.69
-    ttest_p_value: 0.0116
+    oos_trades: 508
+    ttest_t_stat: 4.27
+    ttest_p_value: 0.0000
   per_asset:
-    META: { pf: 2.98, wr: "74%", robust_pct: 100, stable: true, p_value: 0.0003 }
-    MSFT: { pf: 1.74, wr: "73%", robust_pct: 100, stable: true, p_value: 0.057 }
-    GOOGL: { pf: 1.66, wr: "68%", robust_pct: 100, stable: true, p_value: 0.055 }
+    META: { trades: 93, pf: 3.49, wr: "74%", robust_pct: 100, stable: true, significant: true, verdict: VALIDATED }
+    MSFT: { trades: 85, pf: 1.66, wr: "72%", robust_pct: 100, stable: true, significant: true, verdict: VALIDATED }
+    GOOGL: { trades: 90, pf: 1.72, wr: "67%", robust_pct: 100, stable: true, significant: true, verdict: VALIDATED }
   watchlist_detail:
-    NVDA: { pf: 1.48, wr: "67%", robust_pct: 100, stable: true, p_value: 0.135, reason: "not yet significant" }
+    NVDA: { trades: 96, pf: 1.48, wr: "67%", robust_pct: 100, stable: true, significant: true, verdict: VALIDATED, note: "promoted from watchlist in Phase 3 pipeline -- keeping in watchlist for dry run" }
+  rejected:
+    AMZN: { trades: 74, pf: 1.39, wr: "65%", robust_pct: 88, stable: false, significant: false, verdict: REJECTED }
+    GS: { trades: 70, pf: 1.55, wr: "64%", robust_pct: 50, stable: true, significant: true, verdict: REJECTED }
 
   # Previous ETF results for reference
   previous_etf_validation:
@@ -55,7 +61,6 @@ notes:
   - "Params Connors canonical, non-optimises"
   - "Buffer 1.01 seul ajustement (anti-whipsaw)"
   - "Necessite compte USD sur Saxo (FX 0.25%/trade tue l'edge)"
-  - "Stocks > ETFs a $10k : PF 1.30 vs 1.15, AvgPnL $6.15 vs $1.56"
-  - "NVDA en watchlist -- 100% robust mais p=0.135 (surveiller)"
-  - "AMZN rejete -- PF 0.92 en 2019-2025 (instable)"
-  - "GS rejete -- 48% combos profitables (fragile)"
+  - "NVDA VALIDATED par pipeline Phase 3 mais garde en watchlist pour dry run"
+  - "AMZN rejete -- instable en 2019-2025"
+  - "GS rejete -- 50% combos profitables (fragile)"
