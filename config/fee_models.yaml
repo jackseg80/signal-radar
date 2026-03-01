@@ -1,0 +1,23 @@
+us_stocks:
+  commission_per_trade: 1.0
+  commission_pct: 0.0
+  spread_pct: 0.0005
+  fx_conversion_pct: 0.0025
+  tax_pct: 0.0
+  overnight_daily_pct: 0.0
+
+forex_majors:
+  commission_per_trade: 0.0
+  commission_pct: 0.0
+  spread_pct: 0.0001
+  fx_conversion_pct: 0.0
+  tax_pct: 0.0
+  overnight_daily_pct: 0.0
+
+eu_stocks:
+  commission_per_trade: 10.0
+  commission_pct: 0.001
+  spread_pct: 0.001
+  fx_conversion_pct: 0.0
+  tax_pct: 0.003
+  overnight_daily_pct: 0.0

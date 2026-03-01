@@ -1,0 +1,11 @@
+symbols:
+  - EURUSD=X
+  - GBPUSD=X
+  - USDJPY=X
+  - USDCHF=X
+  - AUDUSD=X
+  - NZDUSD=X
+  - USDCAD=X
+market: forex_majors
+fee_model: forex_majors
+sides: ["long", "short"]

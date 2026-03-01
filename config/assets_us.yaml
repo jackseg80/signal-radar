@@ -1,0 +1,14 @@
+symbols:
+  - AAPL
+  - MSFT
+  - GOOGL
+  - AMZN
+  - NVDA
+  - JPM
+  - XOM
+  - JNJ
+  - V
+  - MA
+market: us_stocks
+fee_model: us_stocks
+sides: ["long"]

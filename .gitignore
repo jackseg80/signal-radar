@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.so
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+data/cache/
+*.parquet
+.env
+.pytest_cache/
+*.log
+Untitled-1.txt
