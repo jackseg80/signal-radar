@@ -111,7 +111,7 @@ def main() -> None:
 
     # Affichage
     print("\n" + "=" * 60)
-    print(f"  {args.symbol} — Donchian Breakout ({args.start} → {args.end})")
+    print(f"  {args.symbol} -- Donchian Breakout ({args.start} -> {args.end})")
     print("=" * 60)
     print(f"  Trades        : {n_trades}")
     print(f"  Sharpe        : {sharpe:.3f}")

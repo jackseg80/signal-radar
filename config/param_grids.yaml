@@ -1,3 +1,6 @@
+# Grille réduite : 12 combos (ratio combos/trades gérable)
+# Donchian 50/20 classique (Turtle), on optimise seulement
+# le filtre ADX, le trailing mult et le SL.
 signal_donchian:
   wfo:
     is_days: 756        # 3 ans (3 × 252 trading days)
@@ -6,14 +9,29 @@ signal_donchian:
     embargo_days: 1
   default:
     entry_mode: ["donchian"]
-    donchian_entry_period: [20, 50, 100]
-    donchian_exit_period: [10, 20]
+    donchian_entry_period: [50]
+    donchian_exit_period: [20]
     adx_period: [14]
-    adx_threshold: [0, 20, 25]
+    adx_threshold: [0, 20]
     atr_period: [14]
     trailing_atr_mult: [3.0, 4.0, 5.0]
-    exit_mode: ["trailing", "channel"]
-    sl_percent: [8.0, 10.0, 15.0]
-    position_fraction: [0.2, 0.3]
+    exit_mode: ["trailing"]
+    sl_percent: [8.0, 10.0]
+    position_fraction: [0.3]
     cooldown_candles: [3]
     # sides défini par asset_class, pas ici
+
+# Archive : grille complète 648 combos (trop large pour 1-2 trades/fenêtre OOS)
+# signal_donchian_full:
+#   default:
+#     entry_mode: ["donchian"]
+#     donchian_entry_period: [20, 50, 100]
+#     donchian_exit_period: [10, 20]
+#     adx_period: [14]
+#     adx_threshold: [0, 20, 25]
+#     atr_period: [14]
+#     trailing_atr_mult: [3.0, 4.0, 5.0]
+#     exit_mode: ["trailing", "channel"]
+#     sl_percent: [8.0, 10.0, 15.0]
+#     position_fraction: [0.2, 0.3]
+#     cooldown_candles: [3]

@@ -212,46 +212,61 @@ def _median_params(
     return result
 
 
-def _build_windows(
-    data_start: datetime,
-    data_end: datetime,
-    is_days: int,
-    oos_days: int,
-    step_days: int,
-    embargo_days: int = 0,
+def _build_windows_from_index(
+    trading_dates: pd.DatetimeIndex,
+    is_bars: int,
+    oos_bars: int,
+    step_bars: int,
+    embargo_bars: int = 0,
 ) -> list[tuple[datetime, datetime, datetime, datetime]]:
-    """Construit les fenêtres IS+OOS glissantes."""
+    """Construit les fenêtres IS+OOS en JOURS DE TRADING (barres du DataFrame).
+
+    is_bars, oos_bars, step_bars comptent en lignes du DataFrame, pas en jours
+    calendaires. Avec des données daily stock, 252 barres = 1 an exactement.
+    """
+    n = len(trading_dates)
     windows = []
-    current_start = data_start
+    cursor = 0
 
     while True:
-        is_start = current_start
-        is_end = is_start + timedelta(days=is_days)
-        oos_start = is_end + timedelta(days=embargo_days)
-        oos_end = oos_start + timedelta(days=oos_days)
+        is_start_idx = cursor
+        is_end_idx = is_start_idx + is_bars
+        oos_start_idx = is_end_idx + embargo_bars
+        oos_end_idx = oos_start_idx + oos_bars
 
-        if oos_end > data_end:
+        if oos_end_idx > n:
             break
 
-        windows.append((is_start, is_end, oos_start, oos_end))
-        current_start += timedelta(days=step_days)
+        windows.append((
+            trading_dates[is_start_idx].to_pydatetime(),
+            trading_dates[is_end_idx - 1].to_pydatetime(),      # dernière barre IS
+            trading_dates[oos_start_idx].to_pydatetime(),
+            trading_dates[oos_end_idx - 1].to_pydatetime(),      # dernière barre OOS
+        ))
+        cursor += step_bars
 
     return windows
 
 
 def _slice_df(df: pd.DataFrame, start: datetime, end: datetime) -> pd.DataFrame:
-    """Extrait les rows dans [start, end)."""
-    mask = (df.index >= pd.Timestamp(start)) & (df.index < pd.Timestamp(end))
+    """Extrait les rows dans [start, end] (bornes incluses)."""
+    mask = (df.index >= pd.Timestamp(start)) & (df.index <= pd.Timestamp(end))
     return df.loc[mask]
 
 
 def _df_to_arrays(df: pd.DataFrame) -> dict[str, np.ndarray]:
-    """Convertit un DataFrame OHLCV en dict de numpy arrays."""
+    """Convertit un DataFrame OHLCV en dict de numpy arrays.
+
+    Utilise Adj_Close pour closes (cohérent avec to_cache_arrays).
+    Après le fix split-adjust dans yahoo_loader, O/H/L sont déjà ajustés
+    et Close == Adj_Close, mais on garde le fallback par sécurité.
+    """
+    close_col = "Adj_Close" if "Adj_Close" in df.columns else "Close"
     return {
         "opens": df["Open"].values.astype(np.float64),
         "highs": df["High"].values.astype(np.float64),
         "lows": df["Low"].values.astype(np.float64),
-        "closes": df["Adj_Close"].values.astype(np.float64) if "Adj_Close" in df.columns else df["Close"].values.astype(np.float64),
+        "closes": df[close_col].values.astype(np.float64),
         "volumes": df["Volume"].values.astype(np.float64),
     }
 
@@ -317,16 +332,15 @@ class WalkForwardOptimizer:
         step_days = wfo_config.get("step_days", 126)
         embargo_days = wfo_config.get("embargo_days", 1)
 
-        # Data bounds
-        data_start = df.index[0].to_pydatetime()
-        data_end = df.index[-1].to_pydatetime()
-
-        # Build windows
-        windows = _build_windows(
-            data_start, data_end, is_days, oos_days, step_days,
-            embargo_days=embargo_days,
+        # Build windows from actual trading dates (not calendar days)
+        windows = _build_windows_from_index(
+            df.index, is_days, oos_days, step_days,
+            embargo_bars=embargo_days,
         )
-        logger.info("{} fenêtres WFO pour {} {}", len(windows), strategy_name, symbol)
+        logger.info(
+            "{} fenêtres WFO pour {} {} (IS={}bars OOS={}bars step={}bars)",
+            len(windows), strategy_name, symbol, is_days, oos_days, step_days,
+        )
 
         if not windows:
             raise ValueError("Pas assez de données pour au moins une fenêtre WFO")
@@ -407,6 +421,11 @@ class WalkForwardOptimizer:
 
             top_5 = [{"params": r[0], "sharpe": r[1]} for r in all_is_results[:5]]
 
+            logger.info(
+                "  IS best: sharpe={:.3f} ret={:+.1f}% trades={} | IS bars={}",
+                best_is[1], best_is[2], best_is[4], len(is_df),
+            )
+
             # --- OOS ---
             oos_df = _slice_df(df, oos_start, oos_end)
             if len(oos_df) < 20:
@@ -418,6 +437,11 @@ class WalkForwardOptimizer:
 
             # OOS with best IS params
             oos_result = run_backtest_from_cache(best_params, oos_cache, config)
+
+            logger.info(
+                "  OOS: sharpe={:.3f} ret={:+.1f}% trades={} | OOS bars={}",
+                oos_result[1], oos_result[2], oos_result[4], len(oos_df),
+            )
 
             # Accumulate combo results
             seen_keys = set()

@@ -51,6 +51,7 @@ def _simulate_trend_follow(
     cache: IndicatorCache,
     params: dict[str, Any],
     config: BacktestConfig,
+    daily_equity_out: np.ndarray | None = None,
 ) -> tuple[list[float], list[float], float]:
     """Simulation Trend Following sur Daily (EMA cross ou Donchian breakout).
 
@@ -185,6 +186,11 @@ def _simulate_trend_follow(
         peak_capital = max(peak_capital, capital)
         in_position = False
         cooldown_remaining = cooldown
+
+    # ── Initialiser daily equity (warmup = capital flat) ──
+    if daily_equity_out is not None:
+        for j in range(warmup):
+            daily_equity_out[j] = capital
 
     # ══════════════════════════════════════════════════════════════════════
     # BOUCLE PRINCIPALE
@@ -364,6 +370,14 @@ def _simulate_trend_follow(
             elif direction == -1 and ef_prev > es_prev and ef_prev2 <= es_prev2:
                 _exit(opens[i] * (1 + slippage_pct), i)
                 continue
+
+        # ── Daily equity tracking (fin de candle i) ──
+        if daily_equity_out is not None:
+            if in_position:
+                unrealized = (closes[i] - entry_price) * quantity * direction
+                daily_equity_out[i] = capital + capital_allocated + unrealized
+            else:
+                daily_equity_out[i] = capital
 
     # Force-close fin de données — N'AJOUTE PAS à trade_pnls (convention)
     if in_position:

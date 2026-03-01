@@ -35,12 +35,21 @@ class BaseDataLoader(ABC):
 
         Utilise Adj_Close comme 'closes' pour prendre en compte les splits/dividendes.
         """
-        import numpy as np
+        return to_cache_arrays(df)
 
-        return {
-            "opens": np.asarray(df["Open"].values, dtype=np.float64),
-            "highs": np.asarray(df["High"].values, dtype=np.float64),
-            "lows": np.asarray(df["Low"].values, dtype=np.float64),
-            "closes": np.asarray(df["Adj_Close"].values, dtype=np.float64),
-            "volumes": np.asarray(df["Volume"].values, dtype=np.float64),
-        }
+
+def to_cache_arrays(df: pd.DataFrame) -> dict[str, "np.ndarray"]:
+    """Convertit un DataFrame OHLCV en dict de numpy arrays pour IndicatorCache.
+
+    Utilise Adj_Close comme 'closes' pour prendre en compte les splits/dividendes.
+    Peut être appelée comme fonction standalone ou via BaseDataLoader.to_cache_arrays().
+    """
+    import numpy as np
+
+    return {
+        "opens": np.asarray(df["Open"].values, dtype=np.float64),
+        "highs": np.asarray(df["High"].values, dtype=np.float64),
+        "lows": np.asarray(df["Low"].values, dtype=np.float64),
+        "closes": np.asarray(df["Adj_Close"].values, dtype=np.float64),
+        "volumes": np.asarray(df["Volume"].values, dtype=np.float64),
+    }

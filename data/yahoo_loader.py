@@ -83,15 +83,23 @@ class YahooLoader(BaseDataLoader):
         if df.index.tz is not None:
             df.index = df.index.tz_localize(None)
 
+        # Ajuster O/H/L pour splits et dividendes (ratio Adj_Close / Close)
+        # Sans cet ajustement, un split 4:1 fait que les prix pré-split sont
+        # 4x trop hauts → ATR, Donchian channels, SL complètement faux.
+        adj_ratio = df["Adj_Close"].values / df["Close"].values
+        has_adjustments = not np.allclose(adj_ratio, 1.0, rtol=1e-6)
+        if has_adjustments:
+            logger.info(
+                "{}: ajustement O/H/L pour splits/dividendes (ratio min={:.4f}, max={:.4f})",
+                symbol, adj_ratio.min(), adj_ratio.max(),
+            )
+            df["Open"] = df["Open"] * adj_ratio
+            df["High"] = df["High"] * adj_ratio
+            df["Low"] = df["Low"] * adj_ratio
+            df["Close"] = df["Adj_Close"]  # Close = Adj_Close après ajustement
+
         # Validation
         self._validate(df, symbol)
-
-        # Warning splits/dividendes
-        if not np.allclose(df["Close"].values, df["Adj_Close"].values, rtol=1e-6):
-            logger.warning(
-                "{}: Adj_Close != Close détecté (splits ou dividendes présents)",
-                symbol,
-            )
 
         # Sauvegarder dans le cache
         df.to_parquet(cache_path)
