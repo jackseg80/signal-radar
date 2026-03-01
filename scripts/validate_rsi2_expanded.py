@@ -1,4 +1,8 @@
-"""RSI(2) Mean Reversion -- Univers elargi : GLD, TLT, XLE, EFA.
+"""Phase 1 validation -- Step 9 -- run 2026-03-01
+Results OOS : EFA PF 1.18 [inclus], GLD 0.95 / TLT 1.04 / XLE 1.02 [rejetes].
+See docs/PHASE1_RESULTS.md for full context.
+
+RSI(2) Mean Reversion -- Univers elargi : GLD, TLT, XLE, EFA.
 
 Question cle : l'edge MR court-terme s'etend-il hors equity US ?
 Split IS (2005-2014) / OOS (2014-2025).

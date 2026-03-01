@@ -1,4 +1,9 @@
-"""Robustesse RSI(2) Mean Reversion -- OOS 2014-2025 -- 4 ETFs.
+"""Phase 1 validation -- Step 7 -- run 2026-03-01
+Results : 48/48 combos PF>1.0 (100%%), 42/48 PF>1.2 (88%%). Buffer 1.01 optimal.
+Note : MC p-value artificielle (Sharpe annualise vs distribution non-annualisee).
+See docs/PHASE1_RESULTS.md and validate_rsi2_final.py pour la correction.
+
+Robustesse RSI(2) Mean Reversion -- OOS 2014-2025 -- 4 ETFs.
 
 1. Monte Carlo block bootstrap (significativite statistique)
 2. Sensibilite parametrique (48 combos sur OOS)

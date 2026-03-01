@@ -1,4 +1,8 @@
-"""Validation Donchian 50/20 Trend Following sur 7 paires forex majeures.
+"""REJECTED -- Phase 1 Step 8 -- run 2026-03-01
+Results OOS (2015-2025) : 149 trades, WR 34%%, PF 0.50. Non viable.
+Cause : forex majors range-bound post-2015. See docs/PHASE1_RESULTS.md.
+
+Validation Donchian 50/20 Trend Following sur 7 paires forex majeures.
 
 Params fixes (Turtle Traders style), long+short, ADX filter.
 Split IS (2003-2015) / OOS (2015-2025).

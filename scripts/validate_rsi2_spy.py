@@ -1,4 +1,8 @@
-"""Validation RSI(2) Mean Reversion (Connors) sur SPY — 2000->2025.
+"""Phase 1 validation -- Step 5 -- run 2026-03-01
+Results : sans FX WR 73%% PF 1.86 (Connors valide). USD account RSI<10 : PF 1.47, 174 trades.
+See docs/PHASE1_RESULTS.md for full context.
+
+Validation RSI(2) Mean Reversion (Connors) sur SPY -- 2000->2025.
 
 Compare les résultats du moteur mean reversion aux benchmarks publiés de Connors :
   - Trades : 200-400 sur 25 ans (~10-15/an)

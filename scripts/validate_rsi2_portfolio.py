@@ -1,4 +1,8 @@
-"""Validation RSI(2) Mean Reversion -- Portfolio 4 ETFs equity US.
+"""Phase 1 validation -- Step 6 -- run 2026-03-01
+Results OOS (2014-2025) : 332 trades, WR 68%%, PF 1.35, Sharpe 0.60. All checks green.
+See docs/PHASE1_RESULTS.md for full context.
+
+Validation RSI(2) Mean Reversion -- Portfolio 4 ETFs equity US.
 
 Params fixes RSI<10 (Connors standard), compte USD, pas d'optimisation.
 Split IS (2000-2014) / OOS (2014-2025).
