@@ -1,7 +1,7 @@
 [project]
 name = "signal-radar"
 version = "0.1.0"
-description = "Swing trading signal engine for stocks and forex (daily trend following)"
+description = "RSI(2) mean reversion signal scanner for US stocks (META, MSFT, GOOGL)"
 requires-python = ">=3.12"
 dependencies = [
     "numpy>=2.0",
@@ -10,6 +10,7 @@ dependencies = [
     "pyarrow>=15.0",
     "pyyaml>=6.0",
     "loguru>=0.7",
+    "scipy>=1.12",
 ]
 
 [project.optional-dependencies]

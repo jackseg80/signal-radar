@@ -12,4 +12,6 @@ data/cache/
 .env
 .pytest_cache/
 *.log
+logs/
+.claude/
 Untitled-1.txt

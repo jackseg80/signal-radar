@@ -1,5 +1,9 @@
 # Phase 1 — Backtesting & Strategy Validation
 
+> **Note:** Phase 1 validated ETFs (SPY, QQQ, IWM, DIA, EFA) at $100k.
+> Production scanner now uses individual stocks (META, MSFT, GOOGL) at $10k.
+> See [config/production_params.yaml](../config/production_params.yaml) for current configuration.
+
 Période de travail : janvier–mars 2026
 Objectif : identifier une stratégie daily sur ETFs/forex viable pour exécution manuelle sur Saxo.
 

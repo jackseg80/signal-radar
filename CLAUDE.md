@@ -12,6 +12,10 @@ Python 3.12+, pytest, numpy, pandas, scipy, yfinance
 - Validation finale : `python scripts/validate_rsi2_final.py`
 - **Scanner quotidien : `python scripts/daily_scanner.py`** (après clôture US ~22h CET)
 - Params production : `config/production_params.yaml`
+- Docker build : `docker compose build`
+- Docker démarrer : `docker compose up -d`
+- Docker test scanner : `docker compose exec scanner python scripts/daily_scanner.py`
+- Docker logs : `docker compose logs -f scanner`
 
 ## Règles
 - JAMAIS modifier scalp-radar (D:\Python\scalp-radar\ = lecture seule)
@@ -73,6 +77,7 @@ engine/
   backtest_config.py         — BacktestConfig (symbol, capital, slippage, fee_model)
   fast_backtest.py           — Engine trend following (Donchian/EMA, trailing ATR stop)
   mean_reversion_backtest.py — Engine RSI(2) mean reversion (SMA filter, SMA exit)
+  notifier.py                — Telegram : send_telegram(), format_signal_message(), format_weekly_summary()
 
 data/
   base_loader.py             — BaseDataLoader + to_cache_arrays()
@@ -83,13 +88,17 @@ optimization/
   overfit_detection.py       — Monte Carlo block bootstrap, DSR, stabilité
 
 tests/
-  test_mean_reversion.py     — 12 tests RSI(2) (entry, exit, gap SL, anti-look-ahead)
+  test_mean_reversion.py     — Tests RSI(2) (entry, exit, gap SL, anti-look-ahead)
   test_fee_model.py          — Tests fee model
   test_indicator_cache.py    — Tests cache indicateurs
   test_fast_backtest.py      — Tests engine trend following
+  test_daily_scanner.py      — Tests scanner (signaux, pending, watchlist)
+  test_notifier.py           — Tests notifier Telegram
+  test_data_loader.py        — Tests YahooLoader validation
   conftest.py                — Fixtures partagées
 
 scripts/
+  daily_scanner.py           — Scanner quotidien RSI(2) [PRODUCTION]
   validate_rsi2_final.py     — Step 10 : validation portfolio final 5 ETFs [REFERENCE]
   validate_rsi2_spy.py       — Step 5  : RSI(2) sur SPY seul, comparaison fees
   validate_rsi2_portfolio.py — Step 6  : Portfolio 4 ETFs equity, IS/OOS
@@ -106,9 +115,16 @@ config/
   assets_etf_us.yaml         — Univers ETFs equity US (SPY/QQQ/IWM/DIA)
   assets_forex.yaml          — 7 paires forex majeures (rejeté)
 
+deploy/
+  entrypoint.sh              — Écrit env vars cron + passthrough CMD
+  crontab                    — 22h15 dim-ven (TZ=Europe/Zurich)
+  deploy.sh                  — Script déploiement serveur Ubuntu
+  README.md                  — Instructions déploiement serveur
+
 docs/
-  PHASE1_RESULTS.md          — Résultats complets Phase 1, leçons apprises
+  PHASE1_RESULTS.md          — Résultats complets Phase 1 (ETFs, stratégies rejetées)
   PHASE2_STOCKS_RESULTS.md   — Résultats Steps 11-13 : stocks individuels, robustesse, univers production
+  PHASE2_RESULTS.md          — Phase 2 complète : stocks + scanner + Docker + Telegram
 ```
 
 ## Conventions techniques
