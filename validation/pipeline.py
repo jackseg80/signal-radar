@@ -84,7 +84,8 @@ def validate(
 
         # 3. Build cache (full dataset, merged grid)
         arrays = to_cache_arrays(df)
-        cache = build_cache(arrays, cache_grid)
+        dates = df.index.values  # datetime64 array pour les stratégies calendaires
+        cache = build_cache(arrays, cache_grid, dates=dates)
 
         # 4. BacktestConfig pour cet asset
         bt_config = BacktestConfig(

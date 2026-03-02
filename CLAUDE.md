@@ -2,15 +2,15 @@
 
 ## Project Status
 Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE.
-Framework backtest modulaire operationnel. 200 tests.
-Validated strategies : RSI(2) MR (4 stocks), IBS MR (6 stocks VALIDATED).
+Framework backtest modulaire operationnel. 221 tests.
+Validated strategies : RSI(2) MR (4 stocks), IBS MR (6 stocks), TOM (4 stocks + 3 ETFs VALIDATED).
 
 ## Stack
 Python 3.12+, pytest, numpy, pandas, scipy, yfinance
 
 ## Commandes
 - Tests : `pytest tests/ -v`
-- Valider une strategie : `python -m cli.validate rsi2_stocks` (ou `rsi2_etfs`, `ibs_stocks`, `ibs_etfs`)
+- Valider une strategie : `python -m cli.validate rsi2_stocks` (ou `rsi2_etfs`, `ibs_stocks`, `ibs_etfs`, `tom_stocks`, `tom_etfs`)
 - Verifier migration : `python scripts/verify_migration.py`
 - **Scanner quotidien : `python scripts/daily_scanner.py`** (apres cloture US ~22h CET)
 - Params production : `config/production_params.yaml`
@@ -79,6 +79,38 @@ Resultats ETFs OOS 2014-2025 ($100k fractional) :
 - EFA : 225 trades, PF 1.38, WR 72%, 81% robust -- CONDITIONAL (instable)
 - IWM, DIA -- REJECTED
 
+## Strategie validee : Turn of the Month / TOM (Phase 3 addendum)
+
+Signal calendaire pur. IBS = (Close - Low) / (High - Low) n'est pas utilise ici.
+Entry : derniers N jours de trading du mois (default N=5). Exit : M-eme jour de trading du nouveau mois (default M=3).
+Presets : `tom_stocks` (6 assets), `tom_etfs` (5 ETFs).
+Param grid : entry_days_before_eom [3,4,5,6] x exit_day_of_new_month [2,3,4] = 12 combos.
+
+Architecture specifique :
+
+- `engine/indicator_cache.py` -- `build_cache(dates=...)` calcule `trading_day_of_month` + `trading_days_left_in_month`
+- Warmup = 30 (pas d'indicateur technique, juste 1 mois minimum)
+- Completement decorele de RSI(2) et IBS (signal calendaire vs technique)
+
+Resultats OOS 2014-2025 ($10k whole shares) :
+
+- META : 132 trades, PF 1.89, WR 64%, 100% robust, stable, significatif -- VALIDATED
+- NVDA : 132 trades, PF 1.29, WR 58%, 100% robust, stable, significatif -- VALIDATED
+- AAPL : 132 trades, PF 1.40, WR 59%, 100% robust, stable, significatif -- VALIDATED
+- AMZN : 132 trades, PF 1.29, WR 58%, 100% robust, stable, significatif -- VALIDATED
+- MSFT : 132 trades, PF 1.23, WR 53%, 100% robust, stable, non-signif -- CONDITIONAL
+- GOOGL : 132 trades, PF 1.25, WR 56%, 100% robust, instable -- REJECTED
+- T-test poole : 792 trades, t=3.90, p=0.0001
+
+Resultats ETFs OOS 2014-2025 ($100k fractional) :
+
+- SPY : 132 trades, PF 1.52, WR 61%, 100% robust -- VALIDATED
+- QQQ : 132 trades, PF 1.47, WR 62%, 100% robust -- VALIDATED
+- DIA : 132 trades, PF 1.42, WR 58%, 100% robust -- VALIDATED
+- IWM : 132 trades, PF 1.06, WR 50%, 92% robust -- REJECTED
+- EFA : 132 trades, PF 0.95, WR 52%, 42% robust -- REJECTED
+- T-test poole : 660 trades, t=2.43, p=0.0076
+
 ## Stratégies/assets rejetés
 
 1. Donchian TF sur US stocks (Steps 1-4) — WFO tout grade F (stocks mean-revertent)
@@ -91,6 +123,9 @@ Resultats ETFs OOS 2014-2025 ($100k fractional) :
 8. RSI(2) sur JPM, JNJ, TSLA, KO, XOM, CAT, WMT, AMD, AAPL — PF < 1.3 OOS
 9. IBS sur GS, TSLA, JPM, KO, JNJ, XOM — PF < 1.1 ou robustesse < 70%
 10. IBS sur IWM, DIA (ETFs) — PF < 1.0
+11. TOM sur IWM, EFA (ETFs) — PF < 1.1 ou robustesse < 70%
+12. TOM sur GOOGL (stocks) — instable OOS
+13. TOM sur MSFT (stocks) — CONDITIONAL (non-significatif)
 
 ## Contraintes critiques
 
@@ -107,12 +142,13 @@ strategies/                            -- Phase 3 : plugins strategie
   rsi2_mean_reversion.py               -- RSI(2) Connors plugin
   ibs_mean_reversion.py                -- IBS Mean Reversion plugin (6 stocks VALIDATED)
   donchian_trend.py                    -- Donchian trend following plugin
+  turn_of_month.py                     -- Turn of the Month plugin (4 stocks + 3 ETFs VALIDATED)
 
 engine/
   types.py                             -- Direction, ExitSignal, Position, TradeResult, BacktestResult
   simulator.py                         -- Moteur unique generique (start_idx/end_idx pour IS/OOS)
   indicators.py                        -- SMA, EMA, Donchian, ATR, ADX, RSI (Wilder), IBS
-  indicator_cache.py                   -- Build cache indicateurs par asset (SMA/RSI/IBS)
+  indicator_cache.py                   -- Build cache indicateurs par asset (SMA/RSI/IBS + arrays calendaires)
   fee_model.py                         -- FeeModel dataclass + presets (US_STOCKS_USD, US_ETFS_USD, etc.)
   backtest_config.py                   -- BacktestConfig (symbol, capital, slippage, fee_model)
   fast_backtest.py                     -- DEPRECATED -- ancien engine trend following
@@ -144,6 +180,7 @@ tests/
   test_types.py                        -- Tests types framework (13 tests)
   test_rsi2_strategy.py                -- Tests RSI(2) plugin (19 tests)
   test_ibs_strategy.py                 -- Tests IBS plugin (23 tests)
+  test_tom_strategy.py                 -- Tests TOM plugin (21 tests)
   test_donchian_strategy.py            -- Tests Donchian plugin (27 tests)
   test_mean_reversion.py               -- Tests RSI(2) ancien moteur
   test_fee_model.py                    -- Tests fee model

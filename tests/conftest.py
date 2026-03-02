@@ -34,6 +34,9 @@ def make_indicator_cache():
         sma_by_period: dict[int, np.ndarray] | None = None,
         rsi_by_period: dict[int, np.ndarray] | None = None,
         ibs: np.ndarray | None = None,
+        dates: np.ndarray | None = None,
+        trading_day_of_month: np.ndarray | None = None,
+        trading_days_left_in_month: np.ndarray | None = None,
     ) -> IndicatorCache:
         if closes is None:
             closes = np.full(n, 100.0)
@@ -82,6 +85,9 @@ def make_indicator_cache():
             sma_by_period=sma_by_period,
             rsi_by_period=rsi_by_period,
             ibs=ibs,
+            dates=dates,
+            trading_day_of_month=trading_day_of_month,
+            trading_days_left_in_month=trading_days_left_in_month,
         )
 
     return _make

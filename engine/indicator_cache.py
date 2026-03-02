@@ -66,10 +66,16 @@ class IndicatorCache:
     # Internal Bar Strength (IBS) — calcul par candle, pas de période
     ibs: np.ndarray | None = None
 
+    # Arrays calendaires (optionnels — requis pour TurnOfMonth et stratégies calendaires)
+    dates: np.ndarray | None = None                        # datetime64 array des dates de trading
+    trading_day_of_month: np.ndarray | None = None        # rang du jour dans le mois (1er, 2ème, ...)
+    trading_days_left_in_month: np.ndarray | None = None  # jours de trading restants dans le mois (inclus)
+
 
 def build_cache(
     arrays: dict[str, np.ndarray],
     param_grid_values: dict[str, list],
+    dates: np.ndarray | None = None,
 ) -> IndicatorCache:
     """Construit le cache d'indicateurs pour une fenêtre de données.
 
@@ -81,6 +87,10 @@ def build_cache(
     param_grid_values : dict
         Union de toutes les valeurs de paramètres du grid WFO.
         Ex: {"ema_fast": [9, 21], "atr_period": [14], ...}
+    dates : np.ndarray | None
+        Array datetime64 des dates de trading (optionnel). Requis pour les
+        stratégies calendaires (TurnOfMonth). Si fourni, calcule automatiquement
+        trading_day_of_month et trading_days_left_in_month.
 
     Returns
     -------
@@ -156,6 +166,33 @@ def build_cache(
     # --- IBS (Internal Bar Strength) — calcul par candle ---
     ibs_arr = internal_bar_strength(highs, lows, closes)
 
+    # --- Arrays calendaires (optionnels) ---
+    dates_arr: np.ndarray | None = None
+    trading_day_of_month_arr: np.ndarray | None = None
+    trading_days_left_arr: np.ndarray | None = None
+
+    if dates is not None:
+        import pandas as pd
+
+        dates_arr = np.asarray(dates)
+        ts = pd.DatetimeIndex(dates_arr)
+        # Période mensuelle pour chaque date
+        periods = ts.to_period("M")
+
+        tdom = np.zeros(n, dtype=np.int32)
+        tdlm = np.zeros(n, dtype=np.int32)
+
+        for month_period in periods.unique():
+            mask = periods == month_period
+            idx_in_month = np.where(mask)[0]
+            n_in_month = len(idx_in_month)
+            for rank, idx in enumerate(idx_in_month):
+                tdom[idx] = rank + 1         # 1er, 2ème... jour de trading du mois
+                tdlm[idx] = n_in_month - rank  # jours restants (inclus)
+
+        trading_day_of_month_arr = tdom
+        trading_days_left_arr = tdlm
+
     return IndicatorCache(
         n_candles=n,
         opens=opens,
@@ -172,4 +209,7 @@ def build_cache(
         sma_by_period=sma_by_period,
         rsi_by_period=rsi_by_period,
         ibs=ibs_arr,
+        dates=dates_arr,
+        trading_day_of_month=trading_day_of_month_arr,
+        trading_days_left_in_month=trading_days_left_arr,
     )
