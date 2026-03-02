@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
 from enum import Enum
 
 from engine.types import BacktestResult
@@ -38,6 +41,8 @@ class ValidationReport:
     strategy_name: str
     assets: list[AssetValidation] = field(default_factory=list)
     pooled_ttest: TTestResult | None = None
+    universe_name: str = ""
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
 
     @property
     def validated(self) -> list[str]:
@@ -123,3 +128,71 @@ def print_report(report: ValidationReport) -> None:
     print(f"  CONDITIONAL  : {', '.join(report.conditional) or '-'}")
     print(f"  REJECTED     : {', '.join(report.rejected) or '-'}")
     print(sep)
+
+
+def save_report(
+    report: ValidationReport,
+    output_dir: Path | None = None,
+) -> Path:
+    """Sauvegarde le rapport en JSON.
+
+    Nom du fichier : {strategy}_{universe}_{date}.json
+    Ex: rsi2_us_stocks_large_2026-03-02.json
+
+    Args:
+        report: Rapport de validation complet
+        output_dir: Repertoire de sortie (defaut: validation_results/)
+
+    Returns:
+        Chemin du fichier JSON cree
+    """
+    if output_dir is None:
+        output_dir = Path("validation_results")
+    output_dir.mkdir(exist_ok=True)
+
+    date_str = report.timestamp[:10]
+    universe = report.universe_name or "unknown"
+    filename = f"{report.strategy_name}_{universe}_{date_str}.json"
+    path = output_dir / filename
+
+    pooled: dict = {}
+    if report.pooled_ttest is not None:
+        pt = report.pooled_ttest
+        pooled = {
+            "n_trades": pt.n_trades,
+            "t_stat": round(pt.t_stat, 4),
+            "p_value": round(pt.p_value, 6),
+            "significant": pt.significant,
+        }
+
+    data = {
+        "strategy": report.strategy_name,
+        "universe": universe,
+        "timestamp": report.timestamp,
+        "pooled_ttest": pooled,
+        "assets": [
+            {
+                "symbol": a.symbol,
+                "n_trades": a.oos_result.n_trades,
+                "win_rate": round(a.oos_result.win_rate, 4),
+                "profit_factor": round(a.oos_result.profit_factor, 4),
+                "sharpe": round(a.oos_result.sharpe, 4),
+                "net_return_pct": round(a.oos_result.net_return_pct, 2),
+                "robustness_pct": round(a.robustness.pct_profitable, 1),
+                "stable": a.sub_periods.stable,
+                "ttest_p": round(a.ttest.p_value, 6),
+                "verdict": a.verdict.value,
+            }
+            for a in report.assets
+        ],
+        "summary": {
+            "validated": report.validated,
+            "conditional": report.conditional,
+            "rejected": report.rejected,
+        },
+    }
+
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+    return path

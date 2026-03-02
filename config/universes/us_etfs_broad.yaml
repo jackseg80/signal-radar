@@ -1,0 +1,18 @@
+# US Broad ETFs — Major US equity ETFs
+name: "US Broad ETFs"
+description: "Major US equity ETFs"
+market: "us_etfs"
+default_fee_model: "us_etfs_usd_account"
+default_start: "2005-01-01"
+
+assets:
+  SPY: {}
+  QQQ: {}
+  IWM: {}
+  DIA: {}
+  EFA: {}
+  VTI: {}
+  VOO: { start: "2010-09-01" }
+  IVV: {}
+  MDY: {}
+  IJR: {}

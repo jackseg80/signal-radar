@@ -1,0 +1,66 @@
+# US Large Cap Stocks — Top US stocks by market cap
+name: "US Large Cap Stocks"
+description: "Top US stocks by market cap, liquid, daily data available on Yahoo"
+market: "us_stocks"
+default_fee_model: "us_stocks_usd_account"
+default_start: "2005-01-01"
+
+assets:
+  # Tech
+  AAPL: { start: "2005-01-01" }
+  MSFT: { start: "2005-01-01" }
+  GOOGL: { start: "2005-01-01" }
+  AMZN: { start: "2005-01-01" }
+  META: { start: "2012-06-01" }
+  NVDA: { start: "2005-01-01" }
+  TSLA: { start: "2010-07-01" }
+  AMD: { start: "2005-01-01" }
+  AVGO: { start: "2009-08-01" }
+  CRM: { start: "2005-01-01" }
+  ADBE: { start: "2005-01-01" }
+  NFLX: { start: "2005-01-01" }
+  ORCL: { start: "2005-01-01" }
+  INTC: { start: "2005-01-01" }
+  CSCO: { start: "2005-01-01" }
+
+  # Finance
+  JPM: { start: "2005-01-01" }
+  GS: { start: "2005-01-01" }
+  BAC: { start: "2005-01-01" }
+  MS: { start: "2005-01-01" }
+  V: { start: "2008-03-01" }
+  MA: { start: "2006-05-01" }
+
+  # Healthcare
+  JNJ: { start: "2005-01-01" }
+  UNH: { start: "2005-01-01" }
+  PFE: { start: "2005-01-01" }
+  ABBV: { start: "2013-01-01" }
+  LLY: { start: "2005-01-01" }
+  MRK: { start: "2005-01-01" }
+
+  # Consumer
+  KO: { start: "2005-01-01" }
+  PEP: { start: "2005-01-01" }
+  WMT: { start: "2005-01-01" }
+  PG: { start: "2005-01-01" }
+  COST: { start: "2005-01-01" }
+  HD: { start: "2005-01-01" }
+  MCD: { start: "2005-01-01" }
+  NKE: { start: "2005-01-01" }
+  SBUX: { start: "2005-01-01" }
+
+  # Industrial / Energy / Materials
+  CAT: { start: "2005-01-01" }
+  BA: { start: "2005-01-01" }
+  XOM: { start: "2005-01-01" }
+  CVX: { start: "2005-01-01" }
+  GE: { start: "2005-01-01" }
+  UPS: { start: "2005-01-01" }
+
+  # Other
+  DIS: { start: "2005-01-01" }
+  PYPL: { start: "2015-07-01" }
+  SQ: { start: "2015-11-01" }
+  UBER: { start: "2019-05-01" }
+  ABNB: { start: "2020-12-01" }

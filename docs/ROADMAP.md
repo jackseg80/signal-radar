@@ -95,9 +95,9 @@
 ### Critères de succès — tous atteints
 
 - ✅ Ajouter une nouvelle stratégie = 1 fichier + hériter BaseStrategy
-- ✅ Valider/rejeter une stratégie = `python -m cli.validate <preset>`
+- ✅ Valider/rejeter une stratégie = `python -m cli.validate <strategy> <universe>`
 - ✅ Résultats RSI(2) identiques à Phase 2 (vérification trade par trade)
-- ✅ 177 tests passing
+- ✅ 233 tests passing
 
 ### Résultats pipeline (nouveau framework)
 
@@ -120,14 +120,86 @@ NVDA passe de WATCHLIST à VALIDATED (plus de trades → significativité attein
 
 - `strategies/base.py` — BaseStrategy ABC
 - `strategies/rsi2_mean_reversion.py` — RSI(2) Connors plugin
+- `strategies/ibs_mean_reversion.py` — IBS Mean Reversion plugin (6 stocks VALIDATED)
+- `strategies/turn_of_month.py` — Turn of the Month plugin (4 stocks + 3 ETFs VALIDATED)
 - `strategies/donchian_trend.py` — Donchian TF plugin
 - `engine/simulator.py` — Moteur unique générique (start_idx/end_idx)
 - `engine/types.py` — Direction, ExitSignal, Position, TradeResult, BacktestResult
 - `validation/pipeline.py` — Pipeline complet : robustesse + sous-périodes + t-test + verdict
-- `cli/validate.py` — CLI : `python -m cli.validate <preset>`
+- `cli/validate.py` — CLI : `python -m cli.validate <strategy> <universe>`
 - `scripts/verify_migration.py` — Preuve migration (534 trades, $0.00 diff)
 - Anciens moteurs marqués DEPRECATED (conservés pour référence)
-- 177 tests passing
+- 221 tests passing (après IBS + TOM)
+
+### Addendum Phase 3 — IBS Mean Reversion
+
+IBS = (Close − Low) / (High − Low). Entry IBS < 0.2 + close > SMA200. Exit IBS > 0.8 ou close > high[j−1].
+
+| Ticker | Trades | WR  | PF   | Robust | Verdict   |
+| ------ | ------ | --- | ---- | ------ | --------- |
+| META   | 302    | 72% | 1.68 | 100%   | VALIDATED |
+| MSFT   | 308    | 69% | 1.52 | 100%   | VALIDATED |
+| GOOGL  | 277    | 66% | 1.29 | 97%    | VALIDATED |
+| NVDA   | 314    | 72% | 2.07 | 100%   | VALIDATED |
+| AMZN   | 267    | 63% | 1.46 | 100%   | VALIDATED |
+| AAPL   | 289    | 69% | 1.51 | 100%   | VALIDATED |
+
+T-test poolé : 3091 trades, t=3.81, p=0.0001.
+
+### Addendum Phase 3 — Turn of the Month (TOM)
+
+Signal calendaire pur. Entry : derniers N jours de trading du mois. Exit : M-ème jour du nouveau mois.
+Complètement décorrélé de RSI(2) et IBS.
+
+**ETFs ($100k fractional) :**
+
+| Ticker | PF   | WR  | Robust | Verdict   |
+| ------ | ---- | --- | ------ | --------- |
+| SPY    | 1.52 | 61% | 100%   | VALIDATED |
+| QQQ    | 1.47 | 62% | 100%   | VALIDATED |
+| DIA    | 1.42 | 58% | 100%   | VALIDATED |
+
+T-test poolé : 660 trades, t=2.43, p=0.0076.
+
+**Stocks ($10k whole shares) :**
+
+| Ticker | PF   | WR  | Robust | Verdict     |
+| ------ | ---- | --- | ------ | ----------- |
+| META   | 1.89 | 64% | 100%   | VALIDATED   |
+| AAPL   | 1.40 | 59% | 100%   | VALIDATED   |
+| NVDA   | 1.29 | 58% | 100%   | VALIDATED   |
+| AMZN   | 1.29 | 58% | 100%   | VALIDATED   |
+| MSFT   | 1.23 | 53% | 100%   | CONDITIONAL |
+
+T-test poolé : 792 trades, t=3.90, p=0.0001.
+
+---
+
+## Infra Scale-Up ✅ COMPLETE
+
+**Période :** Mars 2026
+**Objectif :** Passer de presets hardcodés à un système scalable YAML + batch screening.
+
+### Livrables Scale-Up
+
+- `config/universes/*.yaml` — Univers YAML (us_stocks_large ~45, us_etfs_broad, us_etfs_sector, forex_majors)
+- `config/universe_loader.py` — `load_universe(name)`, `list_universes()`
+- `cli/validate.py` — Refactorisé : argparse + YAML universes, sauvegarde JSON auto
+- `cli/screen.py` — Screening rapide sans robustesse, tableau trié par PF
+- `cli/compare.py` — Comparaison croisée des fichiers JSON dans `validation_results/`
+- `validation/report.py` — `save_report()` → `validation_results/{strategy}_{universe}_{date}.json`
+- `engine/fee_model.py` — `FEE_MODEL_FOREX_SAXO` (spread 0.015%)
+- 233 tests passing (+12 nouveaux)
+
+### Nouvelles commandes
+
+```bash
+python -m cli.validate rsi2 us_stocks_large           # validation complète (~45 stocks)
+python -m cli.screen rsi2 us_stocks_large              # screen rapide (pas de robustesse)
+python -m cli.compare                                   # tableau croisé des résultats JSON
+python -m cli.validate --list-universes                # 4 univers disponibles
+python -m cli.validate --list-strategies               # 4 stratégies disponibles
+```
 
 ---
 

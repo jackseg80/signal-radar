@@ -30,6 +30,14 @@ forex_majors:
   tax_pct: 0.0
   overnight_daily_pct: 0.0
 
+forex_saxo:
+  commission_per_trade: 0.0
+  commission_pct: 0.0
+  spread_pct: 0.00015
+  fx_conversion_pct: 0.0
+  tax_pct: 0.0
+  overnight_daily_pct: 0.0
+
 eu_stocks:
   commission_per_trade: 10.0
   commission_pct: 0.001

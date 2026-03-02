@@ -1,16 +1,21 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE.
-Framework backtest modulaire operationnel. 221 tests.
+Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE.
+Framework backtest modulaire operationnel. 233 tests.
 Validated strategies : RSI(2) MR (4 stocks), IBS MR (6 stocks), TOM (4 stocks + 3 ETFs VALIDATED).
+Univers YAML, screening batch, resultats JSON, compare CLI.
 
 ## Stack
 Python 3.12+, pytest, numpy, pandas, scipy, yfinance
 
 ## Commandes
 - Tests : `pytest tests/ -v`
-- Valider une strategie : `python -m cli.validate rsi2_stocks` (ou `rsi2_etfs`, `ibs_stocks`, `ibs_etfs`, `tom_stocks`, `tom_etfs`)
+- Valider une strategie : `python -m cli.validate rsi2 us_stocks_large` (strategie + univers YAML)
+- Screening rapide : `python -m cli.screen rsi2 us_stocks_large` (backtest simple, pas de robustesse)
+- Comparer resultats : `python -m cli.compare` (tableau croise depuis validation_results/)
+- Lister univers : `python -m cli.validate --list-universes`
+- Lister strategies : `python -m cli.validate --list-strategies`
 - Verifier migration : `python scripts/verify_migration.py`
 - **Scanner quotidien : `python scripts/daily_scanner.py`** (apres cloture US ~22h CET)
 - Params production : `config/production_params.yaml`
@@ -160,11 +165,13 @@ validation/                            -- Phase 3 : pipeline de validation
   robustness.py                        -- Test 48 combos parametrique
   sub_periods.py                       -- Stabilite sous-periodes OOS
   statistics.py                        -- T-test significativite
-  report.py                            -- Verdict + rapport formate
+  report.py                            -- Verdict + rapport formate + save_report() JSON
   config.py                            -- ValidationConfig
 
-cli/                                   -- Phase 3 : CLI
-  validate.py                          -- python -m cli.validate <preset>
+cli/                                   -- CLI
+  validate.py                          -- python -m cli.validate <strategy> <universe>
+  screen.py                            -- python -m cli.screen <strategy> <universe> (rapide, pas de robustesse)
+  compare.py                           -- python -m cli.compare (tableau croise validation_results/)
 
 data/
   base_loader.py                       -- BaseDataLoader + to_cache_arrays()
@@ -181,6 +188,8 @@ tests/
   test_rsi2_strategy.py                -- Tests RSI(2) plugin (19 tests)
   test_ibs_strategy.py                 -- Tests IBS plugin (23 tests)
   test_tom_strategy.py                 -- Tests TOM plugin (21 tests)
+  test_universe_loader.py              -- Tests chargement univers YAML (8 tests)
+  test_report_save.py                  -- Tests sauvegarde rapport JSON (4 tests)
   test_donchian_strategy.py            -- Tests Donchian plugin (27 tests)
   test_mean_reversion.py               -- Tests RSI(2) ancien moteur
   test_fee_model.py                    -- Tests fee model
@@ -202,8 +211,14 @@ scripts/
 config/
   production_params.yaml               -- Params production figes pour Phase 2
   fee_models.yaml                      -- Modeles de frais
-  assets_etf_us.yaml                   -- Univers ETFs equity US
-  assets_forex.yaml                    -- 7 paires forex majeures (rejete)
+  universe_loader.py                   -- Charge les univers YAML (load_universe, list_universes)
+  universes/                           -- Univers d'assets YAML
+    us_stocks_large.yaml               -- ~45 large cap US stocks
+    us_etfs_broad.yaml                 -- 10 ETFs broad market
+    us_etfs_sector.yaml                -- 11 sector ETFs (SPDR)
+    forex_majors.yaml                  -- 7 paires forex majeures
+  assets_etf_us.yaml                   -- LEGACY -- ancien univers ETFs
+  assets_forex.yaml                    -- LEGACY -- 7 paires forex majeures
 
 deploy/
   entrypoint.sh                        -- Ecrit env vars cron + passthrough CMD
@@ -228,7 +243,9 @@ docs/
 - FeeModel : `entry_fee` inclus dans le PnL retourne par `_close_trend_position`
   -> ne PAS soustraire a nouveau dans `capital +=` (bug corrige en Phase 1)
 - Nouvelle strategie = 1 fichier dans strategies/ + herite BaseStrategy
-- Validation = `python -m cli.validate <preset>` -> rapport + verdict automatique
+- Validation = `python -m cli.validate <strategy> <universe>` -> rapport + verdict + sauvegarde JSON
+- Screening = `python -m cli.screen <strategy> <universe>` -> tableau trie par PF (rapide)
+- Univers YAML dans config/universes/ : ajouter un fichier = ajouter un univers testable
 - Les anciens moteurs (fast_backtest.py, mean_reversion_backtest.py) sont DEPRECATED
 - simulator.py est le seul moteur a utiliser pour tout nouveau backtest
 - start_idx/end_idx dans simulate() pour IS/OOS slicing (pas de reconstruction de cache)
@@ -309,3 +326,31 @@ Migration verifiee :
 
 - 534 trades sur 4 stocks, PnL identique a $0.0000 (scripts/verify_migration.py)
 - 177 tests passent
+
+## Infra Scale-Up (COMPLETE)
+
+Univers YAML, screening batch, resultats structures, CLI compare.
+
+Architecture :
+
+- `config/universes/*.yaml` -- Univers d'assets (us_stocks_large: ~45, us_etfs_broad: 10, us_etfs_sector: 11, forex_majors: 7)
+- `config/universe_loader.py` -- `load_universe(name)` -> UniverseConfig, `list_universes()` -> list[str]
+- `validation/report.py` -- `save_report(report)` -> JSON dans validation_results/
+- `cli/validate.py` -- Refactorise : `python -m cli.validate <strategy> <universe>` (argparse + YAML)
+- `cli/screen.py` -- Screening rapide : backtest simple sur tout un univers, trie par PF
+- `cli/compare.py` -- Tableau croise de tous les resultats JSON
+
+Nouveaux fee models :
+
+- `FEE_MODEL_FOREX_SAXO` : spread 0.015%, pas de commission (Saxo forex)
+
+CLI usage :
+
+```bash
+python -m cli.validate rsi2 us_stocks_large           # validation complete
+python -m cli.validate rsi2 us_stocks_large --capital 100000 --no-whole-shares
+python -m cli.screen rsi2 us_stocks_large              # screen rapide (pas de robustesse)
+python -m cli.compare                                   # compare les JSON sauvegardes
+python -m cli.validate --list-universes                # lister les univers
+python -m cli.validate --list-strategies               # lister les strategies
+```

@@ -16,3 +16,4 @@ data/signal_history.csv
 logs/
 .claude/
 Untitled-1.txt
+validation_results/*.json

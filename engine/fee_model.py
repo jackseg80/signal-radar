@@ -94,6 +94,16 @@ FEE_MODEL_FOREX = FeeModel(
     overnight_daily_pct=0.0,
 )
 
+FEE_MODEL_FOREX_SAXO = FeeModel(
+    name="forex_saxo",
+    commission_per_trade=0.0,       # Pas de commission sur forex Saxo
+    commission_pct=0.0,
+    spread_pct=0.00015,             # ~1.5 pips sur majors ~ 0.015%
+    fx_conversion_pct=0.0,
+    tax_pct=0.0,
+    overnight_daily_pct=0.0,        # Swap ignore pour backtest (holding < 5j)
+)
+
 FEE_MODEL_EU_STOCKS = FeeModel(
     name="eu_stocks",
     commission_per_trade=10.0,

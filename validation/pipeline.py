@@ -77,6 +77,15 @@ def validate(
         oos_start_idx = int(df.index.searchsorted(pd.Timestamp(config.is_end)))
         oos_end_idx = len(df)
 
+        # Garantir que start_idx >= warmup (assets avec start > is_end)
+        warmup = strategy.warmup(strategy.default_params())
+        if oos_start_idx < warmup:
+            oos_start_idx = warmup
+
+        if oos_end_idx - oos_start_idx < 50:
+            print(f"SKIP (insufficient OOS data: {oos_end_idx - oos_start_idx} bars)")
+            continue
+
         if config.oos_mid is not None:
             oos_mid_idx = int(df.index.searchsorted(pd.Timestamp(config.oos_mid)))
         else:

@@ -1,0 +1,16 @@
+# Forex Major Pairs — G7 forex pairs (Yahoo format)
+name: "Forex Major Pairs"
+description: "G7 forex pairs -- Yahoo format (EURUSD=X)"
+market: "forex"
+default_fee_model: "forex_saxo"
+default_start: "2005-01-01"
+
+# IMPORTANT: Yahoo Finance forex tickers use format "EURUSD=X"
+assets:
+  EURUSD=X: {}
+  GBPUSD=X: {}
+  USDJPY=X: {}
+  USDCHF=X: {}
+  AUDUSD=X: {}
+  USDCAD=X: {}
+  NZDUSD=X: {}

@@ -1,0 +1,19 @@
+# US Sector ETFs — SPDR Sector ETFs
+name: "US Sector ETFs"
+description: "SPDR Sector ETFs"
+market: "us_etfs"
+default_fee_model: "us_etfs_usd_account"
+default_start: "2005-01-01"
+
+assets:
+  XLK: {}    # Technology
+  XLF: {}    # Financials
+  XLE: {}    # Energy
+  XLV: {}    # Healthcare
+  XLY: {}    # Consumer Discretionary
+  XLP: {}    # Consumer Staples
+  XLI: {}    # Industrials
+  XLB: {}    # Materials
+  XLU: {}    # Utilities
+  XLRE: { start: "2015-10-01" }  # Real Estate
+  XLC: { start: "2018-06-01" }   # Communication Services
