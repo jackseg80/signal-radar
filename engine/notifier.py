@@ -121,20 +121,12 @@ def format_signal_message(
         sig = str(r.signal.value)
         emoji = _SIGNAL_EMOJI.get(sig, "\u2753")
         label = "SAFETY EXIT" if sig == "SAFETY_EXIT" else sig
-        d = r.details
         lines.append(f"{emoji} <b>{label} {r.symbol}</b>")
-        lines.append(
-            f"  RSI(2)={d.get('rsi2', '?')}  Close={d.get('close', '?')}"
-        )
         lines.append(f"  {html.escape(r.notes)}")
         lines.append("")
 
     for r in watch_triggers:
-        d = r.details
         lines.append(f"\U0001f440 <b>WATCH {r.symbol}</b> (watchlist)")
-        lines.append(
-            f"  RSI(2)={d.get('rsi2', '?')}  Close={d.get('close', '?')}"
-        )
         lines.append(f"  {html.escape(r.notes)}")
         lines.append("")
 

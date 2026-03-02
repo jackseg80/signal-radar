@@ -36,6 +36,10 @@ import pandas as pd
 
 DB_PATH = Path(__file__).parent / "signal_radar.db"
 
+# SQLite timeout (seconds) — avoids instant OperationalError when another
+# process holds the write lock (e.g. scanner + API writing concurrently).
+SQLITE_TIMEOUT = 30
+
 
 class SignalRadarDB:
     """Base de donnees SQLite unique : prix OHLCV + resultats."""
@@ -45,9 +49,13 @@ class SignalRadarDB:
         self.db_path.parent.mkdir(exist_ok=True)
         self._init_db()
 
+    def _connect(self) -> sqlite3.Connection:
+        """Create a new SQLite connection with proper timeout."""
+        return sqlite3.connect(self.db_path, timeout=SQLITE_TIMEOUT)
+
     def _init_db(self) -> None:
         """Cree les tables si elles n'existent pas."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             # -- Prix OHLCV --
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS ohlcv (
@@ -129,8 +137,8 @@ class SignalRadarDB:
                     strategy TEXT NOT NULL,
                     symbol TEXT NOT NULL,
                     entry_date TEXT NOT NULL,
-                    entry_price REAL NOT NULL,
-                    shares REAL NOT NULL,
+                    entry_price REAL NOT NULL CHECK(entry_price > 0),
+                    shares REAL NOT NULL CHECK(shares > 0),
                     status TEXT NOT NULL DEFAULT 'open',
                     exit_date TEXT,
                     exit_price REAL,
@@ -162,13 +170,13 @@ class SignalRadarDB:
                     symbol TEXT NOT NULL,
                     side TEXT NOT NULL DEFAULT 'long',
                     entry_date TEXT NOT NULL,
-                    entry_price REAL NOT NULL,
-                    shares REAL NOT NULL,
-                    fees_entry REAL DEFAULT 0,
+                    entry_price REAL NOT NULL CHECK(entry_price > 0),
+                    shares REAL NOT NULL CHECK(shares > 0),
+                    fees_entry REAL DEFAULT 0 CHECK(fees_entry >= 0),
                     status TEXT NOT NULL DEFAULT 'open',
                     exit_date TEXT,
                     exit_price REAL,
-                    fees_exit REAL DEFAULT 0,
+                    fees_exit REAL DEFAULT 0 CHECK(fees_exit >= 0),
                     pnl_dollars REAL,
                     pnl_pct REAL,
                     notes TEXT DEFAULT '',
@@ -176,6 +184,24 @@ class SignalRadarDB:
                     created_at TEXT NOT NULL DEFAULT (datetime('now')),
                     UNIQUE(strategy, symbol, entry_date)
                 )
+            """)
+
+            # -- Indexes for query performance --
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_signal_log_timestamp
+                ON signal_log(timestamp)
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_signal_log_symbol_ts
+                ON signal_log(symbol, timestamp)
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_paper_positions_status_strategy
+                ON paper_positions(status, strategy)
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_live_trades_status_strategy
+                ON live_trades(status, strategy)
             """)
 
     # ------------------------------------------------------------------ #
@@ -202,7 +228,7 @@ class SignalRadarDB:
                 float(row.get("Volume", 0)),
             ))
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.executemany("""
                 INSERT OR REPLACE INTO ohlcv
                 (symbol, date, open, high, low, close, volume)
@@ -231,7 +257,7 @@ class SignalRadarDB:
 
         query += " ORDER BY date"
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             df = pd.read_sql_query(query, conn, params=params)
 
         if df.empty:
@@ -247,7 +273,7 @@ class SignalRadarDB:
 
     def has_ohlcv(self, symbol: str) -> bool:
         """Verifie si un symbol a des donnees en DB."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             row = conn.execute(
                 "SELECT COUNT(*) FROM ohlcv WHERE symbol = ?", (symbol,)
             ).fetchone()
@@ -255,7 +281,7 @@ class SignalRadarDB:
 
     def ohlcv_date_range(self, symbol: str) -> tuple[str, str] | None:
         """Retourne (min_date, max_date) pour un symbol. None si absent."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             row = conn.execute(
                 "SELECT MIN(date), MAX(date) FROM ohlcv WHERE symbol = ?",
                 (symbol,),
@@ -266,7 +292,7 @@ class SignalRadarDB:
 
     def list_assets(self) -> list[dict]:
         """Liste tous les assets en DB avec metadata."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             rows = conn.execute("""
                 SELECT symbol, COUNT(*) as rows,
                        MIN(date) as start, MAX(date) as end
@@ -281,7 +307,7 @@ class SignalRadarDB:
 
     def clear_ohlcv(self, symbol: str | None = None) -> None:
         """Supprime les donnees OHLCV. Sans argument = tout."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             if symbol:
                 conn.execute("DELETE FROM ohlcv WHERE symbol = ?", (symbol,))
             else:
@@ -310,7 +336,7 @@ class SignalRadarDB:
         if timestamp is None:
             timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             for r in results:
                 conn.execute("""
                     INSERT OR REPLACE INTO screens
@@ -340,7 +366,7 @@ class SignalRadarDB:
             report: ValidationReport (from validation.report)
         """
         timestamp = report.timestamp  # type: ignore[attr-defined]
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             for a in report.assets:  # type: ignore[attr-defined]
                 conn.execute("""
                     INSERT OR REPLACE INTO validations
@@ -418,7 +444,7 @@ class SignalRadarDB:
 
         query += " ORDER BY profit_factor DESC"
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             return [dict(r) for r in conn.execute(query, params).fetchall()]
 
@@ -432,7 +458,7 @@ class SignalRadarDB:
         table = "screens" if source == "screens" else "validations"
         results: dict[str, dict] = {}
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
 
             for strat in strategies:
@@ -465,7 +491,7 @@ class SignalRadarDB:
         """Tous les resultats (screen + validation) pour un symbol."""
         results: list[dict] = []
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
 
             for table, src_label in [("screens", "screen"), ("validations", "validation")]:
@@ -497,7 +523,7 @@ class SignalRadarDB:
     def get_strategies(self, source: str = "screens") -> list[str]:
         """Liste les strategies ayant des resultats."""
         table = "screens" if source == "screens" else "validations"
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             rows = conn.execute(
                 f"SELECT DISTINCT strategy FROM {table} ORDER BY strategy"
             ).fetchall()
@@ -506,7 +532,7 @@ class SignalRadarDB:
     def get_universes(self, source: str = "screens") -> list[str]:
         """Liste les univers ayant des resultats."""
         table = "screens" if source == "screens" else "validations"
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             rows = conn.execute(
                 f"SELECT DISTINCT universe FROM {table} ORDER BY universe"
             ).fetchall()
@@ -515,7 +541,7 @@ class SignalRadarDB:
     def count(self, source: str = "screens") -> int:
         """Nombre de lignes dans une table."""
         table = "screens" if source == "screens" else "validations"
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             return conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
 
     # ------------------------------------------------------------------ #
@@ -530,14 +556,21 @@ class SignalRadarDB:
         entry_price: float,
         shares: float,
     ) -> bool:
-        """Ouvre une position paper. Retourne False si deja ouverte."""
-        with sqlite3.connect(self.db_path) as conn:
+        """Ouvre une position paper. Retourne False si deja ouverte.
+
+        Uses BEGIN EXCLUSIVE to prevent TOCTOU race conditions when
+        two scanner processes run concurrently.
+        """
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN EXCLUSIVE")
             existing = conn.execute(
                 "SELECT id FROM paper_positions "
                 "WHERE strategy = ? AND symbol = ? AND status = 'open'",
                 (strategy, symbol),
             ).fetchone()
             if existing:
+                conn.rollback()
                 return False
             conn.execute(
                 """
@@ -547,7 +580,13 @@ class SignalRadarDB:
                 """,
                 (strategy, symbol, entry_date, entry_price, shares),
             )
+            conn.commit()
             return True
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def close_paper_position(
         self,
@@ -556,15 +595,21 @@ class SignalRadarDB:
         exit_date: str,
         exit_price: float,
     ) -> dict | None:
-        """Ferme une position paper. Retourne le trade info ou None."""
-        with sqlite3.connect(self.db_path) as conn:
+        """Ferme une position paper. Retourne le trade info ou None.
+
+        Uses BEGIN EXCLUSIVE for atomicity (prevents concurrent close).
+        """
+        conn = self._connect()
+        try:
             conn.row_factory = sqlite3.Row
+            conn.execute("BEGIN EXCLUSIVE")
             row = conn.execute(
                 "SELECT * FROM paper_positions "
                 "WHERE strategy = ? AND symbol = ? AND status = 'open'",
                 (strategy, symbol),
             ).fetchone()
             if row is None:
+                conn.rollback()
                 return None
 
             entry_price = row["entry_price"]
@@ -585,6 +630,7 @@ class SignalRadarDB:
                 """,
                 (exit_date, exit_price, round(pnl_dollars, 2), round(pnl_pct, 2), row["id"]),
             )
+            conn.commit()
 
             return {
                 "strategy": strategy,
@@ -597,10 +643,15 @@ class SignalRadarDB:
                 "pnl_dollars": round(pnl_dollars, 2),
                 "pnl_pct": round(pnl_pct, 2),
             }
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def get_open_positions(self, strategy: str | None = None) -> list[dict]:
         """Retourne les positions paper ouvertes."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             if strategy:
                 rows = conn.execute(
@@ -634,34 +685,35 @@ class SignalRadarDB:
         query += " ORDER BY exit_date DESC LIMIT ?"
         params.append(limit)
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             return [dict(r) for r in conn.execute(query, params).fetchall()]
 
     def get_paper_summary(self) -> dict:
         """Resume du paper trading : PnL total, win rate, par strategie."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
+        with self._connect() as conn:
+            # Global aggregation
+            row = conn.execute("""
+                SELECT COUNT(*) as n,
+                       COALESCE(SUM(CASE WHEN pnl_dollars > 0 THEN 1 ELSE 0 END), 0) as wins,
+                       COALESCE(SUM(pnl_dollars), 0.0) as total_pnl
+                FROM paper_positions WHERE status = 'closed'
+            """).fetchone()
+            n_trades, wins, total_pnl = row[0], row[1], row[2]
 
-            closed = conn.execute(
-                "SELECT * FROM paper_positions WHERE status = 'closed'"
-            ).fetchall()
-
-            n_trades = len(closed)
-            wins = sum(1 for t in closed if t["pnl_dollars"] and t["pnl_dollars"] > 0)
-            total_pnl = sum(t["pnl_dollars"] or 0 for t in closed)
-
-            by_strategy: dict[str, dict] = {}
-            for t in closed:
-                strat = t["strategy"]
-                if strat not in by_strategy:
-                    by_strategy[strat] = {"trades": 0, "wins": 0, "pnl": 0.0}
-                by_strategy[strat]["trades"] += 1
-                if t["pnl_dollars"] and t["pnl_dollars"] > 0:
-                    by_strategy[strat]["wins"] += 1
-                by_strategy[strat]["pnl"] += t["pnl_dollars"] or 0
-            for strat in by_strategy:
-                by_strategy[strat]["pnl"] = round(by_strategy[strat]["pnl"], 2)
+            # Per-strategy aggregation
+            strat_rows = conn.execute("""
+                SELECT strategy,
+                       COUNT(*) as trades,
+                       SUM(CASE WHEN pnl_dollars > 0 THEN 1 ELSE 0 END) as wins,
+                       COALESCE(SUM(pnl_dollars), 0.0) as pnl
+                FROM paper_positions WHERE status = 'closed'
+                GROUP BY strategy
+            """).fetchall()
+            by_strategy = {
+                r[0]: {"trades": r[1], "wins": r[2], "pnl": round(r[3], 2)}
+                for r in strat_rows
+            }
 
             n_open = conn.execute(
                 "SELECT COUNT(*) FROM paper_positions WHERE status = 'open'"
@@ -678,7 +730,7 @@ class SignalRadarDB:
 
     def clear_paper_positions(self, strategy: str | None = None) -> int:
         """Supprime les positions paper ouvertes. Retourne le nombre supprime."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             if strategy:
                 cur = conn.execute(
                     "DELETE FROM paper_positions "
@@ -706,7 +758,7 @@ class SignalRadarDB:
         notes: str = "",
     ) -> None:
         """Log un signal dans la table signal_log."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.execute(
                 """
                 INSERT INTO signal_log
@@ -731,7 +783,7 @@ class SignalRadarDB:
         tous les signaux de ce timestamp.
         Returns (None, []) si pas de signaux.
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
 
             row = conn.execute(
@@ -759,7 +811,7 @@ class SignalRadarDB:
         days: int = 7,
     ) -> list[dict]:
         """Retourne l'historique des signaux sur N jours."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
 
             query = "SELECT * FROM signal_log WHERE 1=1"
@@ -783,7 +835,7 @@ class SignalRadarDB:
 
     def get_latest_price(self, symbol: str) -> float | None:
         """Retourne le dernier close_price connu pour un symbol (depuis signal_log)."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             row = conn.execute(
                 "SELECT close_price FROM signal_log "
                 "WHERE symbol = ? AND close_price IS NOT NULL "
@@ -793,12 +845,24 @@ class SignalRadarDB:
             return row[0] if row else None
 
     def get_latest_prices(self, symbols: list[str]) -> dict[str, float]:
-        """Retourne les derniers prix connus pour une liste de symbols."""
-        return {
-            sym: price
-            for sym in symbols
-            if (price := self.get_latest_price(sym)) is not None
-        }
+        """Retourne les derniers prix connus pour une liste de symbols (batch)."""
+        if not symbols:
+            return {}
+        placeholders = ",".join("?" for _ in symbols)
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT symbol, close_price FROM signal_log
+                WHERE id IN (
+                    SELECT MAX(id) FROM signal_log
+                    WHERE symbol IN ({placeholders})
+                    AND close_price IS NOT NULL
+                    GROUP BY symbol
+                )
+                """,
+                symbols,
+            ).fetchall()
+            return {row[0]: row[1] for row in rows}
 
     def get_screens_filtered(
         self,
@@ -807,7 +871,7 @@ class SignalRadarDB:
         min_pf: float = 1.0,
     ) -> list[dict]:
         """Retourne les screens filtres, dedupliques (plus recent par strategy+universe+symbol)."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
 
             query = """
@@ -841,7 +905,7 @@ class SignalRadarDB:
         verdict: str | None = None,
     ) -> list[dict]:
         """Retourne les validations filtrees, dedupliquees (plus recent par strategy+universe+symbol)."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
 
             query = """
@@ -887,7 +951,7 @@ class SignalRadarDB:
         paper_position_id: int | None = None,
     ) -> bool:
         """Ouvre un trade live. Retourne True si cree, False si doublon."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             try:
                 conn.execute(
                     """
@@ -912,7 +976,7 @@ class SignalRadarDB:
         fees: float = 0,
     ) -> dict | None:
         """Ferme un trade live. Retourne le trade info avec PnL, ou None."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute(
                 "SELECT * FROM live_trades "
@@ -926,9 +990,11 @@ class SignalRadarDB:
             shares_val = row["shares"]
             fees_entry = row["fees_entry"] or 0
             pnl_dollars = (exit_price - entry_price) * shares_val - fees_entry - fees
+            # Net pnl_pct includes fees (consistent with pnl_dollars)
+            cost_basis = entry_price * shares_val + fees_entry
             pnl_pct = (
-                (exit_price - entry_price) / entry_price * 100
-                if entry_price > 0
+                pnl_dollars / cost_basis * 100
+                if cost_basis > 0
                 else 0.0
             )
 
@@ -960,7 +1026,7 @@ class SignalRadarDB:
 
     def get_open_live_trades(self, strategy: str | None = None) -> list[dict]:
         """Retourne les trades live ouverts."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             if strategy:
                 rows = conn.execute(
@@ -994,40 +1060,41 @@ class SignalRadarDB:
         query += " ORDER BY exit_date DESC LIMIT ?"
         params.append(limit)
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             return [dict(r) for r in conn.execute(query, params).fetchall()]
 
     def delete_live_trade(self, trade_id: int) -> bool:
         """Supprime un live trade (open ou closed) par ID. Retourne True si supprime."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cur = conn.execute("DELETE FROM live_trades WHERE id = ?", (trade_id,))
             return cur.rowcount > 0
 
     def get_live_summary(self) -> dict:
         """Resume live : n_trades, win_rate, total_pnl, par strategie."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
+        with self._connect() as conn:
+            # Global aggregation
+            row = conn.execute("""
+                SELECT COUNT(*) as n,
+                       COALESCE(SUM(CASE WHEN pnl_dollars > 0 THEN 1 ELSE 0 END), 0) as wins,
+                       COALESCE(SUM(pnl_dollars), 0.0) as total_pnl
+                FROM live_trades WHERE status = 'closed'
+            """).fetchone()
+            n_trades, wins, total_pnl = row[0], row[1], row[2]
 
-            closed = conn.execute(
-                "SELECT * FROM live_trades WHERE status = 'closed'"
-            ).fetchall()
-
-            n_trades = len(closed)
-            wins = sum(1 for t in closed if t["pnl_dollars"] and t["pnl_dollars"] > 0)
-            total_pnl = sum(t["pnl_dollars"] or 0 for t in closed)
-
-            by_strategy: dict[str, dict] = {}
-            for t in closed:
-                strat = t["strategy"]
-                if strat not in by_strategy:
-                    by_strategy[strat] = {"trades": 0, "wins": 0, "pnl": 0.0}
-                by_strategy[strat]["trades"] += 1
-                if t["pnl_dollars"] and t["pnl_dollars"] > 0:
-                    by_strategy[strat]["wins"] += 1
-                by_strategy[strat]["pnl"] += t["pnl_dollars"] or 0
-            for strat in by_strategy:
-                by_strategy[strat]["pnl"] = round(by_strategy[strat]["pnl"], 2)
+            # Per-strategy aggregation
+            strat_rows = conn.execute("""
+                SELECT strategy,
+                       COUNT(*) as trades,
+                       SUM(CASE WHEN pnl_dollars > 0 THEN 1 ELSE 0 END) as wins,
+                       COALESCE(SUM(pnl_dollars), 0.0) as pnl
+                FROM live_trades WHERE status = 'closed'
+                GROUP BY strategy
+            """).fetchall()
+            by_strategy = {
+                r[0]: {"trades": r[1], "wins": r[2], "pnl": round(r[3], 2)}
+                for r in strat_rows
+            }
 
             n_open = conn.execute(
                 "SELECT COUNT(*) FROM live_trades WHERE status = 'open'"

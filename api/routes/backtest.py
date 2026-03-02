@@ -59,7 +59,7 @@ def get_validations(
                 "profit_factor": r["profit_factor"],
                 "sharpe": r["sharpe"],
                 "robustness_pct": r["robustness_pct"],
-                "t_stat": r.get("ttest_p"),  # DB column is ttest_p
+                "t_stat": None,  # not stored in validations table
                 "p_value": r.get("ttest_p"),
                 "verdict": r["verdict"],
             }

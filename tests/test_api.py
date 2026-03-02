@@ -258,3 +258,68 @@ class TestLive:
         data = r.json()
         assert "paper" in data
         assert "live" in data
+
+
+class TestInputValidation:
+    """Tests for input validation on API endpoints."""
+
+    def test_open_negative_price_rejected(self, client):
+        r = client.post("/api/live/open", params={
+            "strategy": "rsi2", "symbol": "META",
+            "entry_date": "2026-03-05", "entry_price": -1.0, "shares": 8.0,
+        })
+        assert r.status_code == 422
+
+    def test_open_zero_shares_rejected(self, client):
+        r = client.post("/api/live/open", params={
+            "strategy": "rsi2", "symbol": "META",
+            "entry_date": "2026-03-05", "entry_price": 100.0, "shares": 0.0,
+        })
+        assert r.status_code == 422
+
+    def test_open_negative_fees_rejected(self, client):
+        r = client.post("/api/live/open", params={
+            "strategy": "rsi2", "symbol": "META",
+            "entry_date": "2026-03-05", "entry_price": 100.0,
+            "shares": 5.0, "fees": -10.0,
+        })
+        assert r.status_code == 422
+
+    def test_close_zero_price_rejected(self, client):
+        client.post("/api/live/open", params={
+            "strategy": "rsi2", "symbol": "META",
+            "entry_date": "2026-03-05", "entry_price": 100.0, "shares": 5.0,
+        })
+        r = client.post("/api/live/close", params={
+            "strategy": "rsi2", "symbol": "META",
+            "exit_date": "2026-03-08", "exit_price": 0.0,
+        })
+        assert r.status_code == 422
+
+    def test_close_negative_fees_rejected(self, client):
+        client.post("/api/live/open", params={
+            "strategy": "rsi2", "symbol": "META",
+            "entry_date": "2026-03-05", "entry_price": 100.0, "shares": 5.0,
+        })
+        r = client.post("/api/live/close", params={
+            "strategy": "rsi2", "symbol": "META",
+            "exit_date": "2026-03-08", "exit_price": 105.0, "fees": -5.0,
+        })
+        assert r.status_code == 422
+
+    def test_closed_limit_negative_rejected(self, client):
+        r = client.get("/api/live/closed?limit=-1")
+        assert r.status_code == 422
+
+    def test_closed_limit_too_large_rejected(self, client):
+        r = client.get("/api/live/closed?limit=5000")
+        assert r.status_code == 422
+
+    def test_positions_closed_limit_negative_rejected(self, client):
+        r = client.get("/api/positions/closed?limit=-1")
+        assert r.status_code == 422
+
+    def test_scanner_status_while_not_running(self, client):
+        r = client.get("/api/scanner/status")
+        assert r.status_code == 200
+        assert r.json()["running"] is False

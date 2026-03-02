@@ -1,6 +1,6 @@
 """Position endpoints."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from data.db import SignalRadarDB
 from api.dependencies import get_db
@@ -16,10 +16,14 @@ def get_open_positions(
     """Open paper positions with unrealized P&L."""
     positions = db.get_open_positions(strategy=strategy)
 
+    # Batch fetch prices (avoids N+1 queries)
+    symbols = list({p["symbol"] for p in positions})
+    prices = db.get_latest_prices(symbols) if symbols else {}
+
     enriched = []
     total_unrealized = 0.0
     for p in positions:
-        current_price = db.get_latest_price(p["symbol"])
+        current_price = prices.get(p["symbol"])
         unrealized_pnl = 0.0
         unrealized_pct = 0.0
         if current_price is not None and p["entry_price"] > 0:
@@ -52,7 +56,7 @@ def get_open_positions(
 def get_closed_positions(
     strategy: str | None = None,
     symbol: str | None = None,
-    limit: int = 50,
+    limit: int = Query(50, ge=1, le=1000),
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Closed paper trades."""

@@ -586,3 +586,51 @@ class TestLiveTrades:
         )
         trades = db.get_open_live_trades()
         assert trades[0]["paper_position_id"] == 42
+
+    def test_close_live_trade_loss(self, db: SignalRadarDB) -> None:
+        """PnL should be negative when exit < entry."""
+        db.open_live_trade("rsi2", "META", "2026-03-05", 100.0, 10.0, fees=1.0)
+        trade = db.close_live_trade("rsi2", "META", "2026-03-08", 95.0, fees=1.0)
+        assert trade is not None
+        # PnL = (95-100)*10 - 1 - 1 = -52.0
+        assert trade["pnl_dollars"] == pytest.approx(-52.0, abs=0.1)
+        assert trade["pnl_pct"] < 0
+
+    def test_close_live_trade_zero_fees(self, db: SignalRadarDB) -> None:
+        """PnL with zero fees."""
+        db.open_live_trade("rsi2", "META", "2026-03-05", 100.0, 10.0)
+        trade = db.close_live_trade("rsi2", "META", "2026-03-08", 110.0)
+        assert trade is not None
+        # PnL = (110-100)*10 - 0 - 0 = 100.0
+        assert trade["pnl_dollars"] == pytest.approx(100.0, abs=0.1)
+
+    def test_close_live_trade_breakeven(self, db: SignalRadarDB) -> None:
+        """PnL is exactly zero when price unchanged and no fees."""
+        db.open_live_trade("rsi2", "META", "2026-03-05", 100.0, 10.0)
+        trade = db.close_live_trade("rsi2", "META", "2026-03-08", 100.0)
+        assert trade is not None
+        assert trade["pnl_dollars"] == 0.0
+        assert trade["pnl_pct"] == 0.0
+
+    def test_pnl_pct_includes_fees(self, db: SignalRadarDB) -> None:
+        """pnl_pct should account for fees (net return)."""
+        db.open_live_trade("rsi2", "META", "2026-03-05", 100.0, 10.0, fees=5.0)
+        trade = db.close_live_trade("rsi2", "META", "2026-03-08", 101.0, fees=5.0)
+        assert trade is not None
+        # pnl_dollars = (101-100)*10 - 5 - 5 = 0.0
+        assert trade["pnl_dollars"] == pytest.approx(0.0, abs=0.1)
+        # pnl_pct should be 0 (or very close) since net PnL is 0
+        assert trade["pnl_pct"] == pytest.approx(0.0, abs=0.1)
+
+    def test_get_latest_prices_batch(self, db: SignalRadarDB) -> None:
+        """get_latest_prices should return prices in batch."""
+        db.log_signal("2026-03-05 22:00", "rsi2", "META", "BUY", 600.0)
+        db.log_signal("2026-03-05 22:00", "rsi2", "NVDA", "BUY", 130.0)
+        prices = db.get_latest_prices(["META", "NVDA", "UNKNOWN"])
+        assert prices["META"] == 600.0
+        assert prices["NVDA"] == 130.0
+        assert "UNKNOWN" not in prices
+
+    def test_get_latest_prices_empty(self, db: SignalRadarDB) -> None:
+        """get_latest_prices with empty list."""
+        assert db.get_latest_prices([]) == {}

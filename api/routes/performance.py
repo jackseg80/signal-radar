@@ -18,11 +18,13 @@ def get_performance_summary(
     config = load_production_config()
     capital = config.get("capital", 5000)
 
-    # Unrealized P&L from open positions
+    # Unrealized P&L from open positions (batch fetch)
     open_positions = db.get_open_positions()
+    symbols = list({p["symbol"] for p in open_positions})
+    prices = db.get_latest_prices(symbols) if symbols else {}
     total_unrealized = 0.0
     for p in open_positions:
-        current_price = db.get_latest_price(p["symbol"])
+        current_price = prices.get(p["symbol"])
         if current_price is not None and p["entry_price"] > 0:
             total_unrealized += (current_price - p["entry_price"]) * p["shares"]
 

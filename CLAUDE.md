@@ -1,8 +1,8 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE -- CLI Container COMPLETE -- Scanner Trigger COMPLETE -- Live Trades COMPLETE.
-Framework backtest modulaire operationnel. 329 tests.
+Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE -- CLI Container COMPLETE -- Scanner Trigger COMPLETE -- Live Trades COMPLETE -- Hardening Audit COMPLETE.
+Framework backtest modulaire operationnel. 348 tests.
 Validated strategies : RSI(2) MR (10 stocks), IBS MR (13 stocks), TOM (21 stocks + 6 ETFs).
 Base SQLite unique (data/signal_radar.db) : prix OHLCV + resultats + paper trading + live trades.
 Scanner multi-strategie avec paper trading ($5k capital). Trigger manuel via dashboard.
@@ -199,7 +199,7 @@ cli/                                   -- CLI
   analyze.py                           -- python -m cli.analyze best/compare/asset/summary
 
 data/
-  db.py                                -- SignalRadarDB : base SQLite unique (prix OHLCV + resultats + paper trading)
+  db.py                                -- SignalRadarDB : base SQLite unique (prix OHLCV + resultats + paper trading + live trades)
   base_loader.py                       -- BaseDataLoader + to_cache_arrays()
   yahoo_loader.py                      -- YahooLoader, cache SQLite, adj-close O/H/L
 
@@ -224,8 +224,8 @@ tests/
   test_daily_scanner.py                -- Tests scanner multi-strategie (RSI2+IBS+TOM, 33 tests)
   test_notifier.py                     -- Tests notifier Telegram
   test_data_loader.py                  -- Tests YahooLoader validation
-  test_db.py                           -- Tests SignalRadarDB + paper trading + live trades + API methods (43 tests)
-  test_api.py                          -- Tests FastAPI endpoints + scanner trigger + live trades (21 tests)
+  test_db.py                           -- Tests SignalRadarDB + paper trading + live trades + API methods (51 tests)
+  test_api.py                          -- Tests FastAPI endpoints + scanner trigger + live trades + input validation (31 tests)
   conftest.py                          -- Fixtures partagees
 
 scripts/
@@ -262,7 +262,7 @@ api/                                   -- FastAPI Dashboard API
     live.py                            -- POST /api/live/open, /close ; GET /api/live/open, /closed, /summary, /compare
 
 Dockerfile                             -- Scanner image (cron + uv + python:3.12-slim) -- inclut cli/ validation/ strategies/
-Dockerfile.api                         -- API image (uvicorn + frontend/dist/ + scanner code + numpy/yfinance/loguru)
+Dockerfile.api                         -- API image (uvicorn + frontend/dist/ + scanner code + numpy/yfinance/loguru + HEALTHCHECK)
 requirements-api.txt                   -- Deps API + scanner (fastapi, uvicorn, pandas, pyyaml, numpy, yfinance, loguru)
 
 deploy/
@@ -568,7 +568,7 @@ Architecture : l'API execute le scanner en subprocess (code scanner copie dans l
 
 Notes :
 
-- SQLite : un seul writer a la fois, le second attend (mode DELETE, timeout 5s)
+- SQLite : un seul writer a la fois, le second attend (mode DELETE, timeout 30s)
 - `data/` rw pour l'API : l'API n'est plus 100% read-only (acceptable projet solo LAN)
 
 ### 3. Live Trades -- logging des trades reels
@@ -599,4 +599,46 @@ Frontend :
 - `components/positions/OpenPositions.jsx` -- bouton "Log Real" par ligne (pré-remplit le formulaire)
 - `pages/Dashboard.jsx` -- LivePositions + PaperVsLive integres
 
-329 tests (313 + 8 TestLiveTrades DB + 1 TestScanner API + 7 TestLive API).
+348 tests (313 + 8 TestLiveTrades DB + 1 TestScanner API + 7 TestLive API + 19 hardening audit).
+
+## Hardening Audit (COMPLETE)
+
+Audit securite, integrite, performance, et qualite du code. 348 tests.
+
+### Securite
+
+- CORS restreint : `allow_origins` limite a localhost:3001 + LAN 192.168.1.200:9000 (plus de wildcard `*`)
+- Validation d'inputs API : `Query(gt=0)` sur entry_price, shares, exit_price ; `Query(ge=0)` sur fees ; `Query(ge=1, le=1000)` sur limit
+- CHECK constraints DB : `entry_price > 0`, `shares > 0`, `fees >= 0` sur paper_positions et live_trades
+- `sys.executable` dans scanner subprocess (plus de `["python", ...]`)
+
+### Integrite des donnees
+
+- TOCTOU fix : `open_paper_position` et `close_paper_position` utilisent `BEGIN EXCLUSIVE` (atomique)
+- `pnl_pct` net : calcul corrige `pnl_dollars / cost_basis * 100` (inclut fees, coherent avec pnl_dollars)
+- `get_latest_prices()` : requete batch `WHERE symbol IN (...)` (plus de N queries individuelles)
+
+### Performance
+
+- SQLite timeout=30s : toutes connexions via `self._connect()` (evite OperationalError instantanee)
+- Indexes : `signal_log(timestamp)`, `signal_log(symbol, timestamp)`, `paper_positions(status, strategy)`, `live_trades(status, strategy)`
+- N+1 fix : `positions.py` et `performance.py` utilisent `get_latest_prices()` batch
+- Aggregations SQL : `get_paper_summary()` et `get_live_summary()` utilisent `SUM`/`COUNT` SQL (plus de boucles Python)
+
+### Fiabilite
+
+- Scanner lock : `asyncio.Lock` remplace le booleen `_scan_running` (thread-safe)
+- Config error handling : `load_production_config()` avec cache + try/except (FileNotFoundError, YAMLError)
+- HEALTHCHECK Docker dans `Dockerfile.api`
+
+### Code quality
+
+- `t_stat` backtest API : retourne `None` au lieu du p-value (le t-stat n'est pas stocke dans validations)
+- Notifier : supprime hardcode `RSI(2)=` dans `format_signal_message()` (utilise `r.notes` generique)
+- Deps prod : retire `pyarrow` (inutilise) et `pytest` (dev-only) de requirements.txt, ajoute `scipy`
+
+### Tests ajoutes (+19)
+
+- TestInputValidation (10 tests) : prix negatifs, shares=0, fees negatifs, limit invalide
+- TestLiveTrades edge cases (7 tests) : loss, breakeven, zero fees, pnl_pct net, batch prices
+- Total : 329 -> 348 tests

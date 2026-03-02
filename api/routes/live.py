@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from api.dependencies import get_db
 from data.db import SignalRadarDB
@@ -15,9 +15,9 @@ def open_live_trade(
     strategy: str,
     symbol: str,
     entry_date: str,
-    entry_price: float,
-    shares: float,
-    fees: float = 0,
+    entry_price: float = Query(..., gt=0),
+    shares: float = Query(..., gt=0),
+    fees: float = Query(0, ge=0),
     notes: str = "",
     paper_position_id: int | None = None,
     db: SignalRadarDB = Depends(get_db),
@@ -40,8 +40,8 @@ def close_live_trade(
     strategy: str,
     symbol: str,
     exit_date: str,
-    exit_price: float,
-    fees: float = 0,
+    exit_price: float = Query(..., gt=0),
+    fees: float = Query(0, ge=0),
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Log a real trade exit."""
@@ -97,7 +97,7 @@ def get_open_live_trades(
 def get_closed_live_trades(
     strategy: str | None = None,
     symbol: str | None = None,
-    limit: int = 50,
+    limit: int = Query(50, ge=1, le=1000),
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Closed live trades."""
