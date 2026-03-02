@@ -782,21 +782,32 @@ class SignalRadarDB:
         universe: str | None = None,
         min_pf: float = 1.0,
     ) -> list[dict]:
-        """Retourne les screens filtres, tries par PF desc."""
+        """Retourne les screens filtres, dedupliques (plus recent par strategy+universe+symbol)."""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
 
-            query = "SELECT * FROM screens WHERE profit_factor >= ?"
+            query = """
+                SELECT s.* FROM screens s
+                INNER JOIN (
+                    SELECT strategy, universe, symbol, MAX(timestamp) as max_ts
+                    FROM screens
+                    GROUP BY strategy, universe, symbol
+                ) latest ON s.strategy = latest.strategy
+                    AND s.universe = latest.universe
+                    AND s.symbol = latest.symbol
+                    AND s.timestamp = latest.max_ts
+                WHERE s.profit_factor >= ?
+            """
             params: list = [min_pf]
 
             if strategy:
-                query += " AND strategy = ?"
+                query += " AND s.strategy = ?"
                 params.append(strategy)
             if universe:
-                query += " AND universe = ?"
+                query += " AND s.universe = ?"
                 params.append(universe)
 
-            query += " ORDER BY profit_factor DESC"
+            query += " ORDER BY s.profit_factor DESC"
             return [dict(r) for r in conn.execute(query, params).fetchall()]
 
     def get_validations_filtered(
@@ -805,22 +816,33 @@ class SignalRadarDB:
         universe: str | None = None,
         verdict: str | None = None,
     ) -> list[dict]:
-        """Retourne les validations filtrees."""
+        """Retourne les validations filtrees, dedupliquees (plus recent par strategy+universe+symbol)."""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
 
-            query = "SELECT * FROM validations WHERE 1=1"
+            query = """
+                SELECT v.* FROM validations v
+                INNER JOIN (
+                    SELECT strategy, universe, symbol, MAX(timestamp) as max_ts
+                    FROM validations
+                    GROUP BY strategy, universe, symbol
+                ) latest ON v.strategy = latest.strategy
+                    AND v.universe = latest.universe
+                    AND v.symbol = latest.symbol
+                    AND v.timestamp = latest.max_ts
+                WHERE 1=1
+            """
             params: list = []
 
             if strategy:
-                query += " AND strategy = ?"
+                query += " AND v.strategy = ?"
                 params.append(strategy)
             if universe:
-                query += " AND universe = ?"
+                query += " AND v.universe = ?"
                 params.append(universe)
             if verdict:
-                query += " AND verdict = ?"
+                query += " AND v.verdict = ?"
                 params.append(verdict)
 
-            query += " ORDER BY profit_factor DESC"
+            query += " ORDER BY v.profit_factor DESC"
             return [dict(r) for r in conn.execute(query, params).fetchall()]

@@ -1,15 +1,16 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE.
-Framework backtest modulaire operationnel. 311 tests.
+Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE.
+Framework backtest modulaire operationnel. 313 tests.
 Validated strategies : RSI(2) MR (10 stocks), IBS MR (13 stocks), TOM (21 stocks + 6 ETFs).
 Base SQLite unique (data/signal_radar.db) : prix OHLCV + resultats + paper trading.
 Scanner multi-strategie avec paper trading ($5k capital).
-API REST read-only (FastAPI) pour dashboard React (futur).
+API REST read-only (FastAPI) + Frontend React (Vite + Tailwind v4 + Recharts).
 
 ## Stack
 Python 3.12+, pytest, numpy, pandas, scipy, yfinance, fastapi, uvicorn
+Frontend : React 18, Vite, Tailwind CSS v4, Recharts, React Router
 
 ## Commandes
 - Tests : `pytest tests/ -v`
@@ -28,6 +29,8 @@ Python 3.12+, pytest, numpy, pandas, scipy, yfinance, fastapi, uvicorn
 - **API Dashboard : `uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload`**
 - API health : `curl http://localhost:8000/api/health`
 - API docs : `http://localhost:8000/docs` (Swagger auto-genere)
+- **Frontend dev : `cd frontend && npm run dev`** (http://127.0.0.1:3001)
+- Frontend build : `cd frontend && npm run build`
 
 ### Donnees et analyse
 
@@ -450,3 +453,41 @@ Notes :
 - market/overview lit production_params.yaml pour mapping universe/watchlist
 - TestClient + dependency override (get_db) pour tests isoles
 - 311 tests (280 existants + 8 DB + 13 API)
+- get_screens_filtered() + get_validations_filtered() : dedupliques (MAX timestamp par strategy+universe+symbol)
+- Noms strategies DB : screens=court (rsi2/ibs/tom), validations=long (rsi2_mean_reversion/ibs_mean_reversion/turn_of_month)
+
+## Phase 4b -- React Frontend Dashboard (COMPLETE)
+
+Frontend read-only consommant l'API FastAPI. Outil d'aide a la decision consulte apres cloture US.
+
+Architecture :
+
+- `frontend/` -- Vite + React 18 + Tailwind CSS v4 + Recharts + React Router
+- `frontend/src/api/client.js` -- 11 fonctions fetch -> endpoints FastAPI
+- `frontend/src/hooks/useApi.js` -- Hook custom (loading/error/refetch, pas de polling)
+- `frontend/src/hooks/useRefresh.jsx` -- RefreshContext (bouton Refresh global)
+- `frontend/src/utils/format.js` -- Formatage + constantes couleurs (STRATEGY_COLORS, SIGNAL_COLORS, VERDICT_COLORS)
+- `frontend/src/pages/Dashboard.jsx` -- KPIs + signaux + positions + equity curve + market overview
+- `frontend/src/pages/Backtest.jsx` -- Compare Matrix + Validations + Screens (sub-tabs)
+
+Composants principaux :
+
+- `components/performance/StrategyBreakdown.jsx` -- 5 KPI cards + breakdown par strategie
+- `components/signals/StrategySection.jsx` + `SignalCard.jsx` -- Signaux par strategie (BUY/SELL/HOLD/WATCH)
+- `components/positions/OpenPositions.jsx` + `ClosedTrades.jsx` -- Tables positions + trades
+- `components/performance/EquityCurve.jsx` -- Recharts AreaChart PnL cumule
+- `components/market/MarketOverview.jsx` -- Grille assets multi-strategie
+- `components/backtest/CompareMatrix.jsx` -- Matrice strategie x asset avec verdicts
+- `components/backtest/ValidationsTable.jsx` + `ScreensTable.jsx` -- Tables filtrables
+
+Design system :
+
+- Theme dark : bg-primary #0f1117, bg-card #1a1d27
+- Strategies : RSI2=blue, IBS=purple, TOM=amber
+- Signaux : BUY=green, SELL=red, HOLD=blue, WATCH=amber
+- Typo : JetBrains Mono (donnees) + Space Grotesk (titres)
+- Refresh manuel (pas de polling) -- scanner 1x/jour
+
+Port dev : 3001 (ports 4654-5805 exclus par Hyper-V sur cette machine)
+
+Note : 313 tests Python (311 + 2 dedup tests DB).

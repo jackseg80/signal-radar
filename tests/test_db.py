@@ -458,6 +458,58 @@ class TestAPIDBMethods:
         results = db.get_screens_filtered(min_pf=1.0)
         assert isinstance(results, list)
 
+    def test_get_screens_filtered_dedup(self, db: SignalRadarDB) -> None:
+        """Multiple runs of same screen should return only the latest."""
+        import sqlite3 as _sqlite3
+
+        with _sqlite3.connect(db.db_path) as conn:
+            conn.execute(
+                "INSERT INTO screens (timestamp, strategy, universe, symbol, "
+                "n_trades, win_rate, profit_factor, sharpe, net_return_pct) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                ("2026-03-01 10:00:00", "rsi2", "us_stocks_large", "META",
+                 90, 73.0, 3.40, 6.5, 150.0),
+            )
+            conn.execute(
+                "INSERT INTO screens (timestamp, strategy, universe, symbol, "
+                "n_trades, win_rate, profit_factor, sharpe, net_return_pct) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                ("2026-03-02 10:00:00", "rsi2", "us_stocks_large", "META",
+                 93, 74.2, 3.49, 6.86, 160.0),
+            )
+
+        results = db.get_screens_filtered()
+        meta = [r for r in results if r["symbol"] == "META" and r["strategy"] == "rsi2"]
+        assert len(meta) == 1
+        assert meta[0]["profit_factor"] == 3.49  # latest run
+
     def test_get_validations_filtered(self, db: SignalRadarDB) -> None:
         results = db.get_validations_filtered()
         assert isinstance(results, list)
+
+    def test_get_validations_filtered_dedup(self, db: SignalRadarDB) -> None:
+        """Multiple runs of same validation should return only the latest."""
+        import sqlite3 as _sqlite3
+
+        with _sqlite3.connect(db.db_path) as conn:
+            conn.execute(
+                "INSERT INTO validations (timestamp, strategy, universe, symbol, "
+                "n_trades, win_rate, profit_factor, sharpe, net_return_pct, "
+                "robustness_pct, stable, ttest_p, verdict) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                ("2026-03-01 10:00:00", "rsi2", "us_stocks_large", "NVDA",
+                 90, 67.0, 1.40, 0.5, 80.0, 100.0, 1, 0.001, "VALIDATED"),
+            )
+            conn.execute(
+                "INSERT INTO validations (timestamp, strategy, universe, symbol, "
+                "n_trades, win_rate, profit_factor, sharpe, net_return_pct, "
+                "robustness_pct, stable, ttest_p, verdict) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                ("2026-03-02 10:00:00", "rsi2", "us_stocks_large", "NVDA",
+                 96, 67.5, 1.48, 0.55, 85.0, 100.0, 1, 0.0005, "VALIDATED"),
+            )
+
+        results = db.get_validations_filtered()
+        nvda = [r for r in results if r["symbol"] == "NVDA" and r["strategy"] == "rsi2"]
+        assert len(nvda) == 1
+        assert nvda[0]["profit_factor"] == 1.48  # latest run
