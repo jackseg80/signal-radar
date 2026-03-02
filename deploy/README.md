@@ -27,7 +27,7 @@ cd ~/signal-radar
 cp .env.example .env
 nano .env  # remplir TELEGRAM_BOT_TOKEN et TELEGRAM_CHAT_ID
 
-# 3. Deployer (build frontend + images Docker + start)
+# 3. Deployer (build images Docker + start)
 bash deploy/deploy.sh
 ```
 
@@ -37,13 +37,13 @@ Apres deploiement, le dashboard est accessible sur le LAN :
 
 ```bash
 # Depuis le reseau local
-http://<server-ip>:8000
+http://<server-ip>:9000
 
 # API docs (Swagger auto-genere)
-http://<server-ip>:8000/docs
+http://<server-ip>:9000/docs
 
 # Health check
-curl http://<server-ip>:8000/api/health
+curl http://<server-ip>:9000/api/health
 ```
 
 Le dashboard est read-only et affiche :
@@ -63,7 +63,7 @@ Les donnees sont mises a jour par le scanner a 22h15.
 docker compose exec scanner python scripts/daily_scanner.py
 
 # Tester l'API
-curl http://localhost:8000/api/health
+curl http://localhost:9000/api/health
 
 # Tester l'envoi Telegram
 docker compose exec scanner python -c "
@@ -86,7 +86,7 @@ docker compose logs -f api
 docker compose ps
 
 # Signaux du jour via API
-curl http://localhost:8000/api/signals/today
+curl http://localhost:9000/api/signals/today
 ```
 
 ## Mise a jour

@@ -15,7 +15,7 @@ services:
       context: .
       dockerfile: Dockerfile.api
     ports:
-      - "8000:8000"
+      - "9000:8000"
     environment:
       - TZ=${TZ:-Europe/Zurich}
     volumes:

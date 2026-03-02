@@ -27,7 +27,7 @@ Frontend : React 18, Vite, Tailwind CSS v4, Recharts, React Router
 - Docker test scanner : `docker compose exec scanner python scripts/daily_scanner.py`
 - Docker logs scanner : `docker compose logs -f scanner`
 - Docker logs api : `docker compose logs -f api`
-- **Dashboard prod : `http://192.168.1.200:8000`** (LAN apres deploiement)
+- **Dashboard prod : `http://192.168.1.200:9000`** (LAN apres deploiement)
 - Deploy serveur : `bash deploy/deploy.sh` (git pull + docker compose build + up)
 - **API Dashboard : `uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload`**
 - API health : `curl http://localhost:8000/api/health`
@@ -523,7 +523,7 @@ Fichiers cles :
   - `html=True` : renvoie index.html pour les routes SPA (/backtest etc.)
   - `if FRONTEND_DIR.is_dir()` : conditionnel -> tests et dev local non impactes
 - `Dockerfile` -- bug corrige : ajout `data/db.py` manquant (scanner l'importe)
-- `docker-compose.yml` -- service `api` : ports 8000:8000, data:ro, config:ro
+- `docker-compose.yml` -- service `api` : ports 9000:8000, data:ro, config:ro
 
 Notes :
 
@@ -538,5 +538,5 @@ Deploiement :
 ```bash
 bash deploy/deploy.sh
 # -> git pull + docker compose build (inclut npm build) + up -d
-# -> Dashboard : http://192.168.1.200:8000
+# -> Dashboard : http://192.168.1.200:9000
 ```
