@@ -513,3 +513,65 @@ class TestAPIDBMethods:
         nvda = [r for r in results if r["symbol"] == "NVDA" and r["strategy"] == "rsi2"]
         assert len(nvda) == 1
         assert nvda[0]["profit_factor"] == 1.48  # latest run
+
+
+# ------------------------------------------------------------------ #
+# LIVE TRADES
+# ------------------------------------------------------------------ #
+
+
+class TestLiveTrades:
+    """Tests pour live trades."""
+
+    def test_open_live_trade(self, db: SignalRadarDB) -> None:
+        opened = db.open_live_trade("rsi2", "META", "2026-03-05", 612.30, 8.0, fees=1.0)
+        assert opened is True
+        trades = db.get_open_live_trades()
+        assert len(trades) == 1
+        assert trades[0]["entry_price"] == 612.30
+        assert trades[0]["fees_entry"] == 1.0
+
+    def test_close_live_trade(self, db: SignalRadarDB) -> None:
+        db.open_live_trade("rsi2", "META", "2026-03-05", 612.30, 8.0, fees=1.0)
+        trade = db.close_live_trade("rsi2", "META", "2026-03-08", 620.00, fees=1.0)
+        assert trade is not None
+        # PnL = (620 - 612.30) * 8 - 1.0 - 1.0 = 59.60
+        assert trade["pnl_dollars"] == pytest.approx(59.60, abs=0.1)
+
+    def test_close_nonexistent_live_trade(self, db: SignalRadarDB) -> None:
+        result = db.close_live_trade("rsi2", "META", "2026-03-08", 620.00)
+        assert result is None
+
+    def test_duplicate_live_trade_rejected(self, db: SignalRadarDB) -> None:
+        db.open_live_trade("rsi2", "META", "2026-03-05", 612.30, 8.0)
+        opened = db.open_live_trade("rsi2", "META", "2026-03-05", 615.00, 7.0)
+        assert opened is False
+
+    def test_live_summary(self, db: SignalRadarDB) -> None:
+        db.open_live_trade("rsi2", "META", "2026-03-05", 100.0, 10.0, fees=1.0)
+        db.close_live_trade("rsi2", "META", "2026-03-08", 110.0, fees=1.0)
+        summary = db.get_live_summary()
+        assert summary["n_trades"] == 1
+        # PnL = (110-100)*10 - 1 - 1 = 98.0
+        assert summary["total_pnl"] == pytest.approx(98.0, abs=0.1)
+
+    def test_live_summary_empty(self, db: SignalRadarDB) -> None:
+        summary = db.get_live_summary()
+        assert summary["n_trades"] == 0
+        assert summary["win_rate"] == 0.0
+        assert summary["total_pnl"] == 0.0
+
+    def test_get_closed_live_trades(self, db: SignalRadarDB) -> None:
+        db.open_live_trade("rsi2", "META", "2026-03-05", 100.0, 10.0)
+        db.close_live_trade("rsi2", "META", "2026-03-08", 110.0)
+        trades = db.get_closed_live_trades()
+        assert len(trades) == 1
+        assert trades[0]["symbol"] == "META"
+
+    def test_paper_position_id_link(self, db: SignalRadarDB) -> None:
+        db.open_live_trade(
+            "rsi2", "META", "2026-03-05", 612.30, 8.0,
+            paper_position_id=42,
+        )
+        trades = db.get_open_live_trades()
+        assert trades[0]["paper_position_id"] == 42

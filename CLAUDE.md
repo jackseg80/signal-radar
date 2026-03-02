@@ -1,12 +1,12 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE.
-Framework backtest modulaire operationnel. 313 tests.
+Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE -- CLI Container COMPLETE -- Scanner Trigger COMPLETE -- Live Trades COMPLETE.
+Framework backtest modulaire operationnel. 329 tests.
 Validated strategies : RSI(2) MR (10 stocks), IBS MR (13 stocks), TOM (21 stocks + 6 ETFs).
-Base SQLite unique (data/signal_radar.db) : prix OHLCV + resultats + paper trading.
-Scanner multi-strategie avec paper trading ($5k capital).
-API REST read-only (FastAPI) + Frontend React (Vite + Tailwind v4 + Recharts).
+Base SQLite unique (data/signal_radar.db) : prix OHLCV + resultats + paper trading + live trades.
+Scanner multi-strategie avec paper trading ($5k capital). Trigger manuel via dashboard.
+API REST (FastAPI) + Frontend React (Vite + Tailwind v4 + Recharts). Live trades logging + paper vs live compare.
 
 ## Stack
 Python 3.12+, pytest, numpy, pandas, scipy, yfinance, fastapi, uvicorn
@@ -224,8 +224,8 @@ tests/
   test_daily_scanner.py                -- Tests scanner multi-strategie (RSI2+IBS+TOM, 33 tests)
   test_notifier.py                     -- Tests notifier Telegram
   test_data_loader.py                  -- Tests YahooLoader validation
-  test_db.py                           -- Tests SignalRadarDB + paper trading + API methods (35 tests)
-  test_api.py                          -- Tests FastAPI endpoints (13 tests)
+  test_db.py                           -- Tests SignalRadarDB + paper trading + live trades + API methods (43 tests)
+  test_api.py                          -- Tests FastAPI endpoints + scanner trigger + live trades (21 tests)
   conftest.py                          -- Fixtures partagees
 
 scripts/
@@ -248,8 +248,8 @@ config/
   assets_etf_us.yaml                   -- LEGACY -- ancien univers ETFs
   assets_forex.yaml                    -- LEGACY -- 7 paires forex majeures
 
-api/                                   -- FastAPI Dashboard API (read-only)
-  app.py                               -- FastAPI app, CORS, lifespan, routes + StaticFiles SPA mount
+api/                                   -- FastAPI Dashboard API
+  app.py                               -- FastAPI app, CORS (GET+POST), lifespan, routes + StaticFiles SPA mount
   config.py                            -- Settings (DB_PATH, load_production_config)
   dependencies.py                      -- get_db() singleton
   routes/
@@ -258,10 +258,12 @@ api/                                   -- FastAPI Dashboard API (read-only)
     performance.py                     -- GET /api/performance/summary, /equity-curve
     market.py                          -- GET /api/market/overview
     backtest.py                        -- GET /api/backtest/screens, /validations, /compare
+    scanner.py                         -- POST /api/scanner/run, GET /api/scanner/status
+    live.py                            -- POST /api/live/open, /close ; GET /api/live/open, /closed, /summary, /compare
 
-Dockerfile                             -- Scanner image (cron + uv + python:3.12-slim)
-Dockerfile.api                         -- API image (uvicorn + frontend/dist/, sans cron/numpy/yfinance)
-requirements-api.txt                   -- Deps legeres API (fastapi, uvicorn, pandas, pyyaml)
+Dockerfile                             -- Scanner image (cron + uv + python:3.12-slim) -- inclut cli/ validation/ strategies/
+Dockerfile.api                         -- API image (uvicorn + frontend/dist/ + scanner code + numpy/yfinance/loguru)
+requirements-api.txt                   -- Deps API + scanner (fastapi, uvicorn, pandas, pyyaml, numpy, yfinance, loguru)
 
 deploy/
   entrypoint.sh                        -- Ecrit env vars cron + passthrough CMD
@@ -540,3 +542,61 @@ bash deploy/deploy.sh
 # -> git pull + docker compose build (inclut npm build) + up -d
 # -> Dashboard : http://192.168.1.200:9000
 ```
+
+## Phase 4d -- CLI Container + Scanner Trigger + Live Trades (COMPLETE)
+
+Trois ameliorations au systeme deploye.
+
+### 1. CLI dans le container scanner
+
+`Dockerfile` inclut desormais `strategies/`, `validation/`, `cli/` -> les commandes CLI fonctionnent dans le container :
+
+```bash
+docker compose exec scanner python -m cli.screen rsi2 us_stocks_large
+docker compose exec scanner python -m cli.validate --list-strategies
+```
+
+### 2. Bouton "Run Scanner" dans le dashboard
+
+Architecture : l'API execute le scanner en subprocess (code scanner copie dans l'image API).
+
+- `api/routes/scanner.py` -- `POST /api/scanner/run` (subprocess asyncio, 5 min timeout, lock anti-concurrent) + `GET /api/scanner/status`
+- `Dockerfile.api` -- ajout `engine/`, `strategies/`, `data/base_loader.py`, `data/yahoo_loader.py`, `scripts/`
+- `requirements-api.txt` -- ajout `numpy`, `yfinance`, `loguru` pour le scanner
+- `docker-compose.yml` -- `data/` passe en rw (scanner ecrit depuis le container API) + `env_file: .env` pour Telegram
+- Frontend : bouton "Scan" dans la Navbar (vert, spinner, feedback OK/error, refresh auto si succes)
+
+Notes :
+
+- SQLite : un seul writer a la fois, le second attend (mode DELETE, timeout 5s)
+- `data/` rw pour l'API : l'API n'est plus 100% read-only (acceptable projet solo LAN)
+
+### 3. Live Trades -- logging des trades reels
+
+Table `live_trades` dans la DB + API CRUD + composants React.
+
+DB (`data/db.py`) :
+
+- Table `live_trades` : strategy, symbol, entry_date, entry_price, shares, fees_entry/exit, pnl, paper_position_id
+- `UNIQUE(strategy, symbol, entry_date)` -- anti-doublon
+- Methodes : `open_live_trade`, `close_live_trade`, `get_open_live_trades`, `get_closed_live_trades`, `get_live_summary`
+- PnL inclut fees : `(exit - entry) * shares - fees_entry - fees_exit`
+
+API (`api/routes/live.py`) :
+
+- `POST /api/live/open` -- ouvrir un trade (409 si doublon)
+- `POST /api/live/close` -- fermer un trade (404 si absent)
+- `GET /api/live/open` -- positions ouvertes + unrealized PnL (depuis signal_log)
+- `GET /api/live/closed` -- trades fermes
+- `GET /api/live/summary` -- resume live (n_trades, win_rate, total_pnl, by_strategy)
+- `GET /api/live/compare` -- paper vs live cote a cote
+
+Frontend :
+
+- `components/live/LiveTradeForm.jsx` -- modal open/close trade (pré-rempli depuis paper position)
+- `components/live/LivePositions.jsx` -- tableau trades live ouverts avec bouton Close
+- `components/live/PaperVsLive.jsx` -- cards comparaison paper vs live (masque si vide)
+- `components/positions/OpenPositions.jsx` -- bouton "Log Real" par ligne (pré-remplit le formulaire)
+- `pages/Dashboard.jsx` -- LivePositions + PaperVsLive integres
+
+329 tests (313 + 8 TestLiveTrades DB + 1 TestScanner API + 7 TestLive API).

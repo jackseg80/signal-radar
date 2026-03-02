@@ -169,3 +169,78 @@ class TestBacktest:
         r = client.get("/api/backtest/validations")
         assert r.status_code == 200
         assert r.json()["total"] == 0
+
+
+class TestScanner:
+    def test_scanner_status(self, client):
+        """GET /api/scanner/status returns running state."""
+        r = client.get("/api/scanner/status")
+        assert r.status_code == 200
+        assert r.json()["running"] is False
+
+
+class TestLive:
+    def test_open_live_trade(self, client):
+        r = client.post("/api/live/open", params={
+            "strategy": "rsi2", "symbol": "META",
+            "entry_date": "2026-03-05", "entry_price": 612.30,
+            "shares": 8.0, "fees": 1.0,
+        })
+        assert r.status_code == 200
+        assert r.json()["status"] == "created"
+
+    def test_open_duplicate_live_trade(self, client):
+        client.post("/api/live/open", params={
+            "strategy": "rsi2", "symbol": "AAPL",
+            "entry_date": "2026-03-05", "entry_price": 175.0,
+            "shares": 28.0,
+        })
+        r = client.post("/api/live/open", params={
+            "strategy": "rsi2", "symbol": "AAPL",
+            "entry_date": "2026-03-05", "entry_price": 176.0,
+            "shares": 27.0,
+        })
+        assert r.status_code == 409
+
+    def test_get_open_live_trades(self, client):
+        client.post("/api/live/open", params={
+            "strategy": "rsi2", "symbol": "META",
+            "entry_date": "2026-03-05", "entry_price": 612.30,
+            "shares": 8.0,
+        })
+        r = client.get("/api/live/open")
+        assert r.status_code == 200
+        assert len(r.json()["trades"]) == 1
+
+    def test_close_live_trade(self, client):
+        client.post("/api/live/open", params={
+            "strategy": "rsi2", "symbol": "META",
+            "entry_date": "2026-03-05", "entry_price": 612.30,
+            "shares": 8.0, "fees": 1.0,
+        })
+        r = client.post("/api/live/close", params={
+            "strategy": "rsi2", "symbol": "META",
+            "exit_date": "2026-03-08", "exit_price": 620.0,
+            "fees": 1.0,
+        })
+        assert r.status_code == 200
+        assert r.json()["status"] == "closed"
+
+    def test_close_nonexistent_live_trade(self, client):
+        r = client.post("/api/live/close", params={
+            "strategy": "rsi2", "symbol": "UNKNOWN",
+            "exit_date": "2026-03-08", "exit_price": 100.0,
+        })
+        assert r.status_code == 404
+
+    def test_live_summary_empty(self, client):
+        r = client.get("/api/live/summary")
+        assert r.status_code == 200
+        assert r.json()["n_trades"] == 0
+
+    def test_live_compare(self, client):
+        r = client.get("/api/live/compare")
+        assert r.status_code == 200
+        data = r.json()
+        assert "paper" in data
+        assert "live" in data

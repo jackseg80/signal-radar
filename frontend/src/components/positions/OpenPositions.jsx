@@ -7,7 +7,7 @@ import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 
-export default function OpenPositions() {
+export default function OpenPositions({ onLogReal }) {
   const { refreshKey } = useRefresh();
   const { data, loading, error, refetch } = useApi(() => api.openPositions(), [refreshKey]);
 
@@ -34,6 +34,7 @@ export default function OpenPositions() {
               <th className="text-right py-2 px-2">Shares</th>
               <th className="text-right py-2 px-2">PnL</th>
               <th className="text-right py-2 px-2">%</th>
+              {onLogReal && <th className="text-right py-2 px-2"></th>}
             </tr>
           </thead>
           <tbody>
@@ -57,14 +58,31 @@ export default function OpenPositions() {
                   <td className={`py-2.5 px-2 text-right ${pnlColor(p.unrealized_pct)}`}>
                     {formatPct(p.unrealized_pct)}
                   </td>
+                  {onLogReal && (
+                    <td className="py-2.5 px-2 text-right">
+                      <button
+                        onClick={() => onLogReal({
+                          strategy: p.strategy,
+                          symbol: p.symbol,
+                          date: p.entry_date,
+                          price: p.entry_price,
+                          shares: p.shares,
+                          paper_position_id: p.id,
+                        })}
+                        className="px-2 py-0.5 rounded text-xs border border-green-500/30 text-green-400 hover:bg-green-500/10 transition-colors cursor-pointer whitespace-nowrap"
+                      >
+                        Log Real
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })}
           </tbody>
           <tfoot>
             <tr className="border-t border-[--border-subtle]">
-              <td colSpan={6} className="py-2.5 px-2 text-right text-xs text-[--text-muted] uppercase">Total unrealized</td>
-              <td colSpan={2} className={`py-2.5 px-2 text-right font-semibold ${pnlColor(data.total_unrealized_pnl)}`}>
+              <td colSpan={onLogReal ? 7 : 6} className="py-2.5 px-2 text-right text-xs text-[--text-muted] uppercase">Total unrealized</td>
+              <td colSpan={onLogReal ? 2 : 2} className={`py-2.5 px-2 text-right font-semibold ${pnlColor(data.total_unrealized_pnl)}`}>
                 {formatPnl(data.total_unrealized_pnl)}
               </td>
             </tr>

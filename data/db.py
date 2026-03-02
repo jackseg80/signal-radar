@@ -154,6 +154,30 @@ class SignalRadarDB:
                 )
             """)
 
+            # -- Live trades (real trades logged by user) --
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS live_trades (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    strategy TEXT NOT NULL,
+                    symbol TEXT NOT NULL,
+                    side TEXT NOT NULL DEFAULT 'long',
+                    entry_date TEXT NOT NULL,
+                    entry_price REAL NOT NULL,
+                    shares REAL NOT NULL,
+                    fees_entry REAL DEFAULT 0,
+                    status TEXT NOT NULL DEFAULT 'open',
+                    exit_date TEXT,
+                    exit_price REAL,
+                    fees_exit REAL DEFAULT 0,
+                    pnl_dollars REAL,
+                    pnl_pct REAL,
+                    notes TEXT DEFAULT '',
+                    paper_position_id INTEGER,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    UNIQUE(strategy, symbol, entry_date)
+                )
+            """)
+
     # ------------------------------------------------------------------ #
     # OHLCV
     # ------------------------------------------------------------------ #
@@ -846,3 +870,168 @@ class SignalRadarDB:
 
             query += " ORDER BY v.profit_factor DESC"
             return [dict(r) for r in conn.execute(query, params).fetchall()]
+
+    # ------------------------------------------------------------------ #
+    # LIVE TRADES
+    # ------------------------------------------------------------------ #
+
+    def open_live_trade(
+        self,
+        strategy: str,
+        symbol: str,
+        entry_date: str,
+        entry_price: float,
+        shares: float,
+        fees: float = 0,
+        notes: str = "",
+        paper_position_id: int | None = None,
+    ) -> bool:
+        """Ouvre un trade live. Retourne True si cree, False si doublon."""
+        with sqlite3.connect(self.db_path) as conn:
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO live_trades
+                    (strategy, symbol, entry_date, entry_price, shares,
+                     fees_entry, notes, paper_position_id, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')
+                    """,
+                    (strategy, symbol, entry_date, entry_price, shares,
+                     fees, notes, paper_position_id),
+                )
+                return True
+            except sqlite3.IntegrityError:
+                return False
+
+    def close_live_trade(
+        self,
+        strategy: str,
+        symbol: str,
+        exit_date: str,
+        exit_price: float,
+        fees: float = 0,
+    ) -> dict | None:
+        """Ferme un trade live. Retourne le trade info avec PnL, ou None."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT * FROM live_trades "
+                "WHERE strategy = ? AND symbol = ? AND status = 'open'",
+                (strategy, symbol),
+            ).fetchone()
+            if row is None:
+                return None
+
+            entry_price = row["entry_price"]
+            shares_val = row["shares"]
+            fees_entry = row["fees_entry"] or 0
+            pnl_dollars = (exit_price - entry_price) * shares_val - fees_entry - fees
+            pnl_pct = (
+                (exit_price - entry_price) / entry_price * 100
+                if entry_price > 0
+                else 0.0
+            )
+
+            conn.execute(
+                """
+                UPDATE live_trades
+                SET status = 'closed', exit_date = ?, exit_price = ?,
+                    fees_exit = ?, pnl_dollars = ?, pnl_pct = ?
+                WHERE id = ?
+                """,
+                (exit_date, exit_price, fees,
+                 round(pnl_dollars, 2), round(pnl_pct, 2), row["id"]),
+            )
+
+            return {
+                "id": row["id"],
+                "strategy": strategy,
+                "symbol": symbol,
+                "entry_date": row["entry_date"],
+                "entry_price": entry_price,
+                "exit_date": exit_date,
+                "exit_price": exit_price,
+                "shares": shares_val,
+                "fees_entry": fees_entry,
+                "fees_exit": fees,
+                "pnl_dollars": round(pnl_dollars, 2),
+                "pnl_pct": round(pnl_pct, 2),
+            }
+
+    def get_open_live_trades(self, strategy: str | None = None) -> list[dict]:
+        """Retourne les trades live ouverts."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            if strategy:
+                rows = conn.execute(
+                    "SELECT * FROM live_trades "
+                    "WHERE status = 'open' AND strategy = ? "
+                    "ORDER BY entry_date",
+                    (strategy,),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM live_trades "
+                    "WHERE status = 'open' ORDER BY strategy, entry_date"
+                ).fetchall()
+            return [dict(r) for r in rows]
+
+    def get_closed_live_trades(
+        self,
+        strategy: str | None = None,
+        symbol: str | None = None,
+        limit: int = 50,
+    ) -> list[dict]:
+        """Retourne les trades live fermes."""
+        query = "SELECT * FROM live_trades WHERE status = 'closed'"
+        params: list = []
+        if strategy:
+            query += " AND strategy = ?"
+            params.append(strategy)
+        if symbol:
+            query += " AND symbol = ?"
+            params.append(symbol)
+        query += " ORDER BY exit_date DESC LIMIT ?"
+        params.append(limit)
+
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            return [dict(r) for r in conn.execute(query, params).fetchall()]
+
+    def get_live_summary(self) -> dict:
+        """Resume live : n_trades, win_rate, total_pnl, par strategie."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+
+            closed = conn.execute(
+                "SELECT * FROM live_trades WHERE status = 'closed'"
+            ).fetchall()
+
+            n_trades = len(closed)
+            wins = sum(1 for t in closed if t["pnl_dollars"] and t["pnl_dollars"] > 0)
+            total_pnl = sum(t["pnl_dollars"] or 0 for t in closed)
+
+            by_strategy: dict[str, dict] = {}
+            for t in closed:
+                strat = t["strategy"]
+                if strat not in by_strategy:
+                    by_strategy[strat] = {"trades": 0, "wins": 0, "pnl": 0.0}
+                by_strategy[strat]["trades"] += 1
+                if t["pnl_dollars"] and t["pnl_dollars"] > 0:
+                    by_strategy[strat]["wins"] += 1
+                by_strategy[strat]["pnl"] += t["pnl_dollars"] or 0
+            for strat in by_strategy:
+                by_strategy[strat]["pnl"] = round(by_strategy[strat]["pnl"], 2)
+
+            n_open = conn.execute(
+                "SELECT COUNT(*) FROM live_trades WHERE status = 'open'"
+            ).fetchone()[0]
+
+            return {
+                "n_trades": n_trades,
+                "n_wins": wins,
+                "win_rate": round(wins / n_trades * 100, 1) if n_trades > 0 else 0.0,
+                "total_pnl": round(total_pnl, 2),
+                "n_open": n_open,
+                "by_strategy": by_strategy,
+            }

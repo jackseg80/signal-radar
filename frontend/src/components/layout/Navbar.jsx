@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { useApi } from '../../hooks/useApi';
@@ -7,6 +8,32 @@ import { formatTimestamp } from '../../utils/format';
 export default function Navbar() {
   const { refreshKey, refresh } = useRefresh();
   const { data } = useApi(() => api.signalsToday(), [refreshKey]);
+
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+
+  useEffect(() => {
+    if (scanResult) {
+      const timer = setTimeout(() => setScanResult(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [scanResult]);
+
+  const runScanner = async () => {
+    setScanning(true);
+    setScanResult(null);
+    try {
+      const res = await api.scannerRun();
+      setScanResult(res);
+      if (res.status === 'completed') {
+        refresh();
+      }
+    } catch (err) {
+      setScanResult({ status: 'error', detail: err.message });
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const linkClass = ({ isActive }) =>
     `px-3 py-1.5 rounded text-sm transition-colors ${
@@ -31,6 +58,26 @@ export default function Navbar() {
           {data?.scanner_timestamp && (
             <span>Last scan: {formatTimestamp(data.scanner_timestamp)}</span>
           )}
+
+          {scanResult && scanResult.status === 'completed' && (
+            <span className="text-green-400">Scan OK</span>
+          )}
+          {scanResult && scanResult.status === 'error' && (
+            <span className="text-red-400">{scanResult.detail || 'Scan failed'}</span>
+          )}
+
+          <button
+            onClick={runScanner}
+            disabled={scanning}
+            className={`px-3 py-1 rounded border transition-colors cursor-pointer ${
+              scanning
+                ? 'border-amber-500/40 text-amber-400 opacity-70 cursor-wait'
+                : 'border-green-500/30 text-[--text-secondary] hover:bg-green-500/10 hover:text-green-400'
+            }`}
+          >
+            {scanning ? 'Scanning...' : 'Scan'}
+          </button>
+
           <button
             onClick={refresh}
             className="px-3 py-1 rounded border border-[--border-subtle] text-[--text-secondary] hover:bg-white/5 hover:text-[--text-primary] transition-colors cursor-pointer"

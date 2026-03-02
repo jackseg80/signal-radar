@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from api.routes import signals, positions, performance, market, backtest
+from api.routes import signals, positions, performance, market, backtest, scanner, live
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
@@ -27,7 +27,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -36,6 +36,8 @@ app.include_router(positions.router, prefix="/api/positions", tags=["positions"]
 app.include_router(performance.router, prefix="/api/performance", tags=["performance"])
 app.include_router(market.router, prefix="/api/market", tags=["market"])
 app.include_router(backtest.router, prefix="/api/backtest", tags=["backtest"])
+app.include_router(scanner.router, prefix="/api/scanner", tags=["scanner"])
+app.include_router(live.router, prefix="/api/live", tags=["live"])
 
 
 @app.get("/api/health")

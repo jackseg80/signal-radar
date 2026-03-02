@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useApi } from '../hooks/useApi';
 import { useRefresh } from '../hooks/useRefresh.jsx';
 import { api } from '../api/client';
@@ -11,6 +12,9 @@ import OpenPositions from '../components/positions/OpenPositions';
 import ClosedTrades from '../components/positions/ClosedTrades';
 import EquityCurve from '../components/performance/EquityCurve';
 import MarketOverview from '../components/market/MarketOverview';
+import LivePositions from '../components/live/LivePositions';
+import PaperVsLive from '../components/live/PaperVsLive';
+import LiveTradeForm from '../components/live/LiveTradeForm';
 
 function SignalsPanel() {
   const { refreshKey } = useRefresh();
@@ -40,16 +44,29 @@ function SignalsPanel() {
 }
 
 export default function Dashboard() {
+  const [showTradeForm, setShowTradeForm] = useState(false);
+  const { refresh } = useRefresh();
+
   return (
     <div className="space-y-6">
       <StrategyBreakdown />
       <SignalsPanel />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <OpenPositions />
+        <OpenPositions onLogReal={(prefill) => setShowTradeForm(prefill || true)} />
         <ClosedTrades />
       </div>
+      <LivePositions />
+      <PaperVsLive />
       <EquityCurve />
       <MarketOverview />
+
+      {showTradeForm && (
+        <LiveTradeForm
+          prefill={typeof showTradeForm === 'object' ? showTradeForm : {}}
+          onDone={() => { setShowTradeForm(false); refresh(); }}
+          onCancel={() => setShowTradeForm(false)}
+        />
+      )}
     </div>
   );
 }

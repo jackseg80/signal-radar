@@ -16,16 +16,20 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /app
 
-# Dependencies (API-only -- no numpy/yfinance/pyarrow)
+# Dependencies (API + scanner deps)
 COPY requirements-api.txt ./
 RUN uv pip install --system --no-cache -r requirements-api.txt
 
-# API code
+# API code + scanner (for trigger endpoint)
 COPY api/ api/
-COPY data/__init__.py data/db.py data/
+COPY data/__init__.py data/base_loader.py data/yahoo_loader.py data/db.py data/
+COPY engine/ engine/
+COPY strategies/ strategies/
+COPY config/ config/
+COPY scripts/daily_scanner.py scripts/
 
-# production_params.yaml read by api/config.py
-COPY config/production_params.yaml config/
+# Directories for scanner runtime
+RUN mkdir -p data logs
 
 # Frontend build from stage 1
 COPY --from=frontend-builder /frontend/dist/ frontend/dist/
