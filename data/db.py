@@ -998,6 +998,12 @@ class SignalRadarDB:
             conn.row_factory = sqlite3.Row
             return [dict(r) for r in conn.execute(query, params).fetchall()]
 
+    def delete_live_trade(self, trade_id: int) -> bool:
+        """Supprime un live trade (open ou closed) par ID. Retourne True si supprime."""
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute("DELETE FROM live_trades WHERE id = ?", (trade_id,))
+            return cur.rowcount > 0
+
     def get_live_summary(self) -> dict:
         """Resume live : n_trades, win_rate, total_pnl, par strategie."""
         with sqlite3.connect(self.db_path) as conn:

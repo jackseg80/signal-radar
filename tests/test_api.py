@@ -238,6 +238,20 @@ class TestLive:
         assert r.status_code == 200
         assert r.json()["n_trades"] == 0
 
+    def test_delete_live_trade(self, client):
+        client.post("/api/live/open", params={
+            "strategy": "rsi2", "symbol": "META",
+            "entry_date": "2026-03-05", "entry_price": 612.30, "shares": 8.0,
+        })
+        trades = client.get("/api/live/open").json()["trades"]
+        r = client.delete(f"/api/live/{trades[0]['id']}")
+        assert r.status_code == 200
+        assert r.json()["deleted"] is True
+
+    def test_delete_nonexistent_live_trade(self, client):
+        r = client.delete("/api/live/9999")
+        assert r.status_code == 404
+
     def test_live_compare(self, client):
         r = client.get("/api/live/compare")
         assert r.status_code == 200

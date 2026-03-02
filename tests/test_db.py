@@ -568,6 +568,17 @@ class TestLiveTrades:
         assert len(trades) == 1
         assert trades[0]["symbol"] == "META"
 
+    def test_delete_live_trade(self, db: SignalRadarDB) -> None:
+        db.open_live_trade("rsi2", "META", "2026-03-05", 612.30, 8.0)
+        trades = db.get_open_live_trades()
+        assert len(trades) == 1
+        deleted = db.delete_live_trade(trades[0]["id"])
+        assert deleted is True
+        assert db.get_open_live_trades() == []
+
+    def test_delete_nonexistent_live_trade(self, db: SignalRadarDB) -> None:
+        assert db.delete_live_trade(9999) is False
+
     def test_paper_position_id_link(self, db: SignalRadarDB) -> None:
         db.open_live_trade(
             "rsi2", "META", "2026-03-05", 612.30, 8.0,

@@ -27,6 +27,16 @@ async function postJson(path, params = {}) {
   return resp.json();
 }
 
+async function deleteJson(path) {
+  const url = new URL(`${BASE}${path}`, window.location.origin);
+  const resp = await fetch(url, { method: 'DELETE' });
+  if (!resp.ok) {
+    const body = await resp.json().catch(() => ({}));
+    throw new Error(body.detail || `HTTP ${resp.status}`);
+  }
+  return resp.json();
+}
+
 export const api = {
   health:         ()       => fetchJson('/health'),
   signalsToday:   (p = {}) => fetchJson('/signals/today', p),
@@ -47,6 +57,7 @@ export const api = {
   // Live trades
   liveOpen:       (p)      => postJson('/live/open', p),
   liveClose:      (p)      => postJson('/live/close', p),
+  liveDelete:     (id)     => deleteJson(`/live/${id}`),
   liveOpenTrades: (p = {}) => fetchJson('/live/open', p),
   liveClosedTrades: (p = {}) => fetchJson('/live/closed', p),
   liveSummary:    ()       => fetchJson('/live/summary'),

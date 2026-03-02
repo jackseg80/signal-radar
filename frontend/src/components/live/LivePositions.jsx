@@ -13,6 +13,20 @@ export default function LivePositions() {
   const { refreshKey, refresh } = useRefresh();
   const { data, loading, error, refetch } = useApi(() => api.liveOpenTrades(), [refreshKey]);
   const [closingTrade, setClosingTrade] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+
+  const handleDelete = async (trade) => {
+    if (!window.confirm(`Delete ${trade.strategy}/${trade.symbol} trade?`)) return;
+    setDeleting(trade.id);
+    try {
+      await api.liveDelete(trade.id);
+      refresh();
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   if (loading) return <Card title="Live Positions"><LoadingState /></Card>;
   if (error) return <Card title="Live Positions"><ErrorState message={error} onRetry={refetch} /></Card>;
@@ -62,12 +76,20 @@ export default function LivePositions() {
                     <td className={`py-2.5 px-2 text-right ${pnlColor(t.unrealized_pct)}`}>
                       {formatPct(t.unrealized_pct)}
                     </td>
-                    <td className="py-2.5 px-2 text-right">
+                    <td className="py-2.5 px-2 text-right space-x-1">
                       <button
                         onClick={() => setClosingTrade(t)}
                         className="px-2 py-0.5 rounded text-xs border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                       >
                         Close
+                      </button>
+                      <button
+                        onClick={() => handleDelete(t)}
+                        disabled={deleting === t.id}
+                        className="px-2 py-0.5 rounded text-xs border border-[--border-subtle] text-[--text-muted] hover:text-red-400 hover:border-red-500/30 transition-colors cursor-pointer disabled:opacity-50"
+                        title="Delete trade"
+                      >
+                        {deleting === t.id ? '...' : 'Del'}
                       </button>
                     </td>
                   </tr>

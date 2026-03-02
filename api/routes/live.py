@@ -54,6 +54,17 @@ def close_live_trade(
     return {"status": "closed", "trade": trade}
 
 
+@router.delete("/{trade_id}")
+def delete_live_trade(
+    trade_id: int,
+    db: SignalRadarDB = Depends(get_db),
+) -> dict:
+    """Delete a live trade by ID."""
+    if not db.delete_live_trade(trade_id):
+        raise HTTPException(status_code=404, detail="Trade not found")
+    return {"deleted": True, "id": trade_id}
+
+
 @router.get("/open")
 def get_open_live_trades(
     strategy: str | None = None,
