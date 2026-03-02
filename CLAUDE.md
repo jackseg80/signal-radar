@@ -1,7 +1,7 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE.
+Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE.
 Framework backtest modulaire operationnel. 313 tests.
 Validated strategies : RSI(2) MR (10 stocks), IBS MR (13 stocks), TOM (21 stocks + 6 ETFs).
 Base SQLite unique (data/signal_radar.db) : prix OHLCV + resultats + paper trading.
@@ -25,7 +25,10 @@ Frontend : React 18, Vite, Tailwind CSS v4, Recharts, React Router
 - Docker build : `docker compose build`
 - Docker demarrer : `docker compose up -d`
 - Docker test scanner : `docker compose exec scanner python scripts/daily_scanner.py`
-- Docker logs : `docker compose logs -f scanner`
+- Docker logs scanner : `docker compose logs -f scanner`
+- Docker logs api : `docker compose logs -f api`
+- **Dashboard prod : `http://192.168.1.200:8000`** (LAN apres deploiement)
+- Deploy serveur : `bash deploy/deploy.sh` (git pull + npm build + docker compose)
 - **API Dashboard : `uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload`**
 - API health : `curl http://localhost:8000/api/health`
 - API docs : `http://localhost:8000/docs` (Swagger auto-genere)
@@ -246,7 +249,7 @@ config/
   assets_forex.yaml                    -- LEGACY -- 7 paires forex majeures
 
 api/                                   -- FastAPI Dashboard API (read-only)
-  app.py                               -- FastAPI app, CORS, lifespan, routes
+  app.py                               -- FastAPI app, CORS, lifespan, routes + StaticFiles SPA mount
   config.py                            -- Settings (DB_PATH, load_production_config)
   dependencies.py                      -- get_db() singleton
   routes/
@@ -256,10 +259,14 @@ api/                                   -- FastAPI Dashboard API (read-only)
     market.py                          -- GET /api/market/overview
     backtest.py                        -- GET /api/backtest/screens, /validations, /compare
 
+Dockerfile                             -- Scanner image (cron + uv + python:3.12-slim)
+Dockerfile.api                         -- API image (uvicorn + frontend/dist/, sans cron/numpy/yfinance)
+requirements-api.txt                   -- Deps legeres API (fastapi, uvicorn, pandas, pyyaml)
+
 deploy/
   entrypoint.sh                        -- Ecrit env vars cron + passthrough CMD
   crontab                              -- 22h15 dim-ven (TZ=Europe/Zurich)
-  deploy.sh                            -- Script deploiement serveur Ubuntu
+  deploy.sh                            -- Script deploiement serveur Ubuntu (git pull + npm build + docker)
   README.md                            -- Instructions deploiement serveur
 
 docs/
@@ -327,7 +334,7 @@ Architecture :
 - `engine/notifier.py` — `send_telegram()` (urllib stdlib) + `format_signal_message()` + `format_weekly_summary()`
   - ⚠️ `r.notes` contient `<` et `>` (ex. "RSI=7.4 < 10.0") → toujours `html.escape(r.notes)` avec `parse_mode="HTML"`
 - `Dockerfile` — python:3.12-slim + uv + cron ; `ENTRYPOINT ["/entrypoint.sh"]` + `CMD []`
-- `docker-compose.yml` — service scanner, volumes data/logs/config:ro, restart unless-stopped
+- `docker-compose.yml` — 2 services : scanner (cron) + api (uvicorn :8000, data:ro)
 - `deploy/entrypoint.sh` — écrit env vars pour cron (`/app/.env.cron`) ; passthrough `if [ $# -gt 0 ]; then exec "$@"; fi` avant `exec cron -f`
   - Permet : `docker compose exec scanner python scripts/daily_scanner.py`
 - `deploy/crontab` — 22:15 dim-ven (TZ=Europe/Zurich)
@@ -491,3 +498,44 @@ Design system :
 Port dev : 3001 (ports 4654-5805 exclus par Hyper-V sur cette machine)
 
 Note : 313 tests Python (311 + 2 dedup tests DB).
+
+## Phase 4c -- Docker Packaging Scanner + API + Frontend (COMPLETE)
+
+Ajout service `api` dans Docker Compose. Le dashboard est accessible depuis le LAN apres deploiement.
+
+Architecture :
+
+```
+docker-compose.yml
+  scanner  -- cron 22:15, seul writer de la DB
+  api      -- uvicorn :8000, lit la DB en :ro, sert frontend/dist/ en static
+  └── shared volume ./data (SQLite)
+```
+
+Fichiers cles :
+
+- `Dockerfile.api` -- image legere (~230 MB) : fastapi + uvicorn + pandas + pyyaml
+  - COPY api/, data/__init__.py, data/db.py, config/production_params.yaml, frontend/dist/
+  - Pas de cron, pas de numpy/yfinance/pyarrow
+- `requirements-api.txt` -- deps API uniquement
+- `api/app.py` -- mount `StaticFiles(directory=frontend/dist, html=True)` APRES les routes API
+  - `html=True` : renvoie index.html pour les routes SPA (/backtest etc.)
+  - `if FRONTEND_DIR.is_dir()` : conditionnel -> tests et dev local non impactes
+- `Dockerfile` -- bug corrige : ajout `data/db.py` manquant (scanner l'importe)
+- `docker-compose.yml` -- service `api` : ports 8000:8000, data:ro, config:ro
+
+Notes :
+
+- SQLite journal mode DELETE (defaut) : compatible avec volume :ro pour l'API
+  WAL ne marcherait PAS en :ro (les lecteurs ecrivent dans -wal/-shm)
+- Frontend build sur le serveur (`npm ci && npm run build`) avant `docker compose build`
+  Node.js >= 18 requis sur le serveur de deploy
+- Premier deploiement : lancer `docker compose exec scanner python scripts/daily_scanner.py` pour creer la DB
+
+Deploiement :
+
+```bash
+bash deploy/deploy.sh
+# -> git pull + npm build + docker compose build + up -d
+# -> Dashboard : http://192.168.1.200:8000
+```

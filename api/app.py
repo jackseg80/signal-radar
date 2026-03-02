@@ -1,11 +1,15 @@
 """Signal Radar -- FastAPI application."""
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from api.routes import signals, positions, performance, market, backtest
+
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 
 @asynccontextmanager
@@ -38,3 +42,8 @@ app.include_router(backtest.router, prefix="/api/backtest", tags=["backtest"])
 def health():
     """Health check."""
     return {"status": "ok"}
+
+
+# Serve frontend SPA (AFTER API routes so /api/* takes priority)
+if FRONTEND_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")

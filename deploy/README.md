@@ -1,22 +1,23 @@
-# Déploiement signal-radar
+# Deploiement signal-radar
 
-Scanner RSI(2) quotidien avec notifications Telegram, conteneurisé avec Docker.
+Scanner multi-strategie (RSI2 + IBS + TOM) avec notifications Telegram + dashboard web, conteneurise avec Docker.
 
-## Pré-requis
+## Pre-requis
 
 - Docker + Docker Compose sur le serveur (Ubuntu 22.04+)
-- Bot Telegram créé via @BotFather (optionnel)
+- Node.js >= 18 (pour le build frontend)
+- Bot Telegram cree via @BotFather (optionnel)
 
-## Créer le bot Telegram
+## Creer le bot Telegram
 
 1. Ouvre Telegram, cherche **@BotFather**
-2. `/newbot` → nom: "Signal Radar" → username: `signal_radar_xxx_bot`
+2. `/newbot` -> nom: "Signal Radar" -> username: `signal_radar_xxx_bot`
 3. Copie le token (format: `123456:ABC-DEF...`)
 4. Envoie un message au bot (n'importe quoi)
 5. Visite `https://api.telegram.org/bot<TOKEN>/getUpdates`
-6. Copie le `chat_id` depuis la réponse JSON (`result[0].message.chat.id`)
+6. Copie le `chat_id` depuis la reponse JSON (`result[0].message.chat.id`)
 
-## Déploiement
+## Deploiement
 
 ```bash
 # 1. Clone le repo sur le serveur
@@ -27,15 +28,42 @@ cd ~/signal-radar
 cp .env.example .env
 nano .env  # remplir TELEGRAM_BOT_TOKEN et TELEGRAM_CHAT_ID
 
-# 3. Déployer
+# 3. Deployer (build frontend + images Docker + start)
 bash deploy/deploy.sh
 ```
+
+## Dashboard
+
+Apres deploiement, le dashboard est accessible sur le LAN :
+
+```bash
+# Depuis le reseau local
+http://<server-ip>:8000
+
+# API docs (Swagger auto-genere)
+http://<server-ip>:8000/docs
+
+# Health check
+curl http://<server-ip>:8000/api/health
+```
+
+Le dashboard est read-only et affiche :
+- Signaux du jour (RSI2, IBS, TOM)
+- Positions paper trading ouvertes/fermees
+- Performance et equity curve
+- Market overview multi-strategie
+- Resultats backtest et validations
+
+Les donnees sont mises a jour par le scanner a 22h15.
 
 ## Test
 
 ```bash
-# Exécuter le scanner manuellement (sans attendre 22h15)
+# Executer le scanner manuellement (sans attendre 22h15)
 docker compose exec scanner python scripts/daily_scanner.py
+
+# Tester l'API
+curl http://localhost:8000/api/health
 
 # Tester l'envoi Telegram
 docker compose exec scanner python -c "
@@ -47,37 +75,40 @@ send_telegram('Test Signal Radar')
 ## Monitoring
 
 ```bash
-# Logs en temps réel
+# Logs en temps reel
 docker compose logs -f
 
-# Dernières lignes
-docker compose logs --tail 50
+# Logs d'un service
+docker compose logs -f scanner
+docker compose logs -f api
 
-# État des positions
-docker compose exec scanner cat data/positions.json
+# Etat des services
+docker compose ps
 
-# Historique des signaux
-docker compose exec scanner tail -20 data/signal_history.csv
+# Signaux du jour via API
+curl http://localhost:8000/api/signals/today
 ```
 
-## Mise à jour
+## Mise a jour
 
 ```bash
 cd ~/signal-radar
 bash deploy/deploy.sh
-# Le script fait: git pull → build → restart → vérification
+# Le script fait: git pull -> build frontend -> build images -> restart -> verification
 ```
 
-## Dépannage
+## Depannage
 
-**Le scanner ne tourne pas à 22h15 :**
-- Vérifier le timezone : `docker compose exec scanner date`
-- Vérifier le cron : `docker compose exec scanner crontab -l`
+**Le scanner ne tourne pas a 22h15 :**
+- Verifier le timezone : `docker compose exec scanner date`
+- Verifier le cron : `docker compose exec scanner crontab -l`
 
 **Telegram n'envoie pas :**
-- Vérifier les variables : `docker compose exec scanner env | grep TELEGRAM`
+- Verifier les variables : `docker compose exec scanner env | grep TELEGRAM`
 - Le scanner fonctionne sans Telegram (mode silencieux)
 
-**Données Yahoo obsolètes :**
-- Cache parquet dans `data/cache/` — supprimer pour forcer un re-téléchargement
-- `docker compose exec scanner rm -rf data/cache/*.parquet`
+**Le dashboard ne repond pas :**
+- Verifier le service : `docker compose ps api`
+- Logs API : `docker compose logs api --tail 20`
+- Au premier deploiement, lancer le scanner une fois pour creer la DB :
+  `docker compose exec scanner python scripts/daily_scanner.py`

@@ -9,3 +9,18 @@ services:
       - ./logs:/app/logs
       - ./config:/app/config:ro
     restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - TZ=${TZ:-Europe/Zurich}
+    volumes:
+      - ./data:/app/data:ro
+      - ./config:/app/config:ro
+    restart: unless-stopped
+    depends_on:
+      - scanner

@@ -13,7 +13,7 @@ RUN uv pip install --system --no-cache -r requirements.txt
 
 # Code projet
 COPY engine/ engine/
-COPY data/__init__.py data/base_loader.py data/yahoo_loader.py data/
+COPY data/__init__.py data/base_loader.py data/yahoo_loader.py data/db.py data/
 COPY scripts/daily_scanner.py scripts/
 COPY config/ config/
 
