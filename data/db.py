@@ -1,16 +1,29 @@
-"""Base SQLite pour les resultats de validation et screening.
+"""Base SQLite unique pour signal-radar.
 
-Tables:
-    validations -- resultats de validation complete par asset
-    screens -- resultats de screening rapide
-    pooled_results -- t-test poole par (strategy, universe)
+Stocke les prix OHLCV et tous les resultats d'analyse.
+Un seul fichier : data/signal_radar.db
 
 Usage:
-    from validation.results_db import ResultsDB
+    from data.db import SignalRadarDB
 
-    db = ResultsDB()
-    db.save_screen("rsi2", "us_stocks_large", results)
-    db.get_best_assets("rsi2", min_pf=1.2)
+    db = SignalRadarDB()
+
+    # Prix
+    db.save_ohlcv("AAPL", df)
+    db.get_ohlcv("AAPL", "2005-01-01", "2025-01-01")
+    db.has_ohlcv("AAPL")
+    db.ohlcv_date_range("AAPL")
+
+    # Resultats
+    db.save_screen(strategy, universe, results)
+    db.save_validation(report)
+    db.get_best_assets(strategy, min_pf=1.2)
+    db.compare_strategies(["rsi2", "ibs"], "us_stocks_large")
+    db.get_cross_strategy("META")
+
+    # Gestion
+    db.list_assets()
+    db.clear_ohlcv("AAPL")
 """
 
 from __future__ import annotations
@@ -19,11 +32,13 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-DB_PATH = Path("validation_results") / "results.db"
+import pandas as pd
+
+DB_PATH = Path(__file__).parent / "signal_radar.db"
 
 
-class ResultsDB:
-    """Base de donnees SQLite pour les resultats."""
+class SignalRadarDB:
+    """Base de donnees SQLite unique : prix OHLCV + resultats."""
 
     def __init__(self, db_path: Path | str = DB_PATH) -> None:
         self.db_path = Path(db_path)
@@ -33,6 +48,25 @@ class ResultsDB:
     def _init_db(self) -> None:
         """Cree les tables si elles n'existent pas."""
         with sqlite3.connect(self.db_path) as conn:
+            # -- Prix OHLCV --
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS ohlcv (
+                    symbol TEXT NOT NULL,
+                    date TEXT NOT NULL,
+                    open REAL NOT NULL,
+                    high REAL NOT NULL,
+                    low REAL NOT NULL,
+                    close REAL NOT NULL,
+                    volume REAL,
+                    PRIMARY KEY (symbol, date)
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_ohlcv_symbol
+                ON ohlcv(symbol)
+            """)
+
+            # -- Resultats de validation --
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS validations (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,6 +86,8 @@ class ResultsDB:
                     UNIQUE(strategy, universe, symbol, timestamp)
                 )
             """)
+
+            # -- Resultats de screening --
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS screens (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,6 +103,8 @@ class ResultsDB:
                     UNIQUE(strategy, universe, symbol, timestamp)
                 )
             """)
+
+            # -- T-test poole --
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS pooled_results (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -83,6 +121,161 @@ class ResultsDB:
                     UNIQUE(strategy, universe, result_type, timestamp)
                 )
             """)
+
+    # ------------------------------------------------------------------ #
+    # OHLCV
+    # ------------------------------------------------------------------ #
+
+    def save_ohlcv(self, symbol: str, df: pd.DataFrame) -> None:
+        """Sauvegarde un DataFrame OHLCV dans la DB.
+
+        Le DataFrame doit avoir un DatetimeIndex et des colonnes
+        Open, High, Low, Close, Volume (Adj_Close optionnel).
+        INSERT OR REPLACE -- les donnees existantes sont ecrasees.
+        """
+        if df.empty:
+            return
+
+        records = []
+        for date, row in df.iterrows():
+            date_str = pd.Timestamp(date).strftime("%Y-%m-%d")
+            records.append((
+                symbol, date_str,
+                float(row["Open"]), float(row["High"]),
+                float(row["Low"]), float(row["Close"]),
+                float(row.get("Volume", 0)),
+            ))
+
+        with sqlite3.connect(self.db_path) as conn:
+            conn.executemany("""
+                INSERT OR REPLACE INTO ohlcv
+                (symbol, date, open, high, low, close, volume)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, records)
+
+    def get_ohlcv(
+        self, symbol: str, start: str | None = None, end: str | None = None,
+    ) -> pd.DataFrame:
+        """Recupere les donnees OHLCV depuis la DB.
+
+        Returns:
+            DataFrame avec colonnes Open, High, Low, Close, Adj_Close, Volume.
+            Index: DatetimeIndex nomme "Date".
+            Vide si le symbol n'existe pas.
+        """
+        query = "SELECT date, open, high, low, close, volume FROM ohlcv WHERE symbol = ?"
+        params: list = [symbol]
+
+        if start:
+            query += " AND date >= ?"
+            params.append(start)
+        if end:
+            query += " AND date <= ?"
+            params.append(end)
+
+        query += " ORDER BY date"
+
+        with sqlite3.connect(self.db_path) as conn:
+            df = pd.read_sql_query(query, conn, params=params)
+
+        if df.empty:
+            return pd.DataFrame()
+
+        df["date"] = pd.to_datetime(df["date"])
+        df = df.set_index("date")
+        df.index.name = "Date"
+        df.columns = ["Open", "High", "Low", "Close", "Volume"]
+        # Adj_Close = Close (donnees deja ajustees pour splits)
+        df["Adj_Close"] = df["Close"]
+        return df
+
+    def has_ohlcv(self, symbol: str) -> bool:
+        """Verifie si un symbol a des donnees en DB."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM ohlcv WHERE symbol = ?", (symbol,)
+            ).fetchone()
+            return row[0] > 0
+
+    def ohlcv_date_range(self, symbol: str) -> tuple[str, str] | None:
+        """Retourne (min_date, max_date) pour un symbol. None si absent."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT MIN(date), MAX(date) FROM ohlcv WHERE symbol = ?",
+                (symbol,),
+            ).fetchone()
+            if row[0] is None:
+                return None
+            return (row[0], row[1])
+
+    def list_assets(self) -> list[dict]:
+        """Liste tous les assets en DB avec metadata."""
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute("""
+                SELECT symbol, COUNT(*) as rows,
+                       MIN(date) as start, MAX(date) as end
+                FROM ohlcv
+                GROUP BY symbol
+                ORDER BY symbol
+            """).fetchall()
+            return [
+                {"symbol": r[0], "rows": r[1], "start": r[2], "end": r[3]}
+                for r in rows
+            ]
+
+    def clear_ohlcv(self, symbol: str | None = None) -> None:
+        """Supprime les donnees OHLCV. Sans argument = tout."""
+        with sqlite3.connect(self.db_path) as conn:
+            if symbol:
+                conn.execute("DELETE FROM ohlcv WHERE symbol = ?", (symbol,))
+            else:
+                conn.execute("DELETE FROM ohlcv")
+
+    # ------------------------------------------------------------------ #
+    # SCREENS
+    # ------------------------------------------------------------------ #
+
+    def save_screen(
+        self,
+        strategy_name: str,
+        universe_name: str,
+        results: list[dict],
+        timestamp: str | None = None,
+    ) -> None:
+        """Sauvegarde les resultats d'un screening.
+
+        Args:
+            strategy_name: Nom de la strategie
+            universe_name: Nom de l'univers
+            results: Liste de dicts avec symbol, n_trades, win_rate,
+                     profit_factor, sharpe, net_return_pct
+            timestamp: Timestamp ISO (auto si None)
+        """
+        if timestamp is None:
+            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        with sqlite3.connect(self.db_path) as conn:
+            for r in results:
+                conn.execute("""
+                    INSERT OR REPLACE INTO screens
+                    (timestamp, strategy, universe, symbol, n_trades,
+                     win_rate, profit_factor, sharpe, net_return_pct)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    timestamp,
+                    strategy_name,
+                    universe_name,
+                    r["symbol"],
+                    r["n_trades"],
+                    r["win_rate"],
+                    r["profit_factor"],
+                    r["sharpe"],
+                    r["net_return_pct"],
+                ))
+
+    # ------------------------------------------------------------------ #
+    # VALIDATIONS
+    # ------------------------------------------------------------------ #
 
     def save_validation(self, report: object) -> None:
         """Sauvegarde un ValidationReport complet.
@@ -135,45 +328,9 @@ class ResultsDB:
                     len(report.rejected),  # type: ignore[attr-defined]
                 ))
 
-    def save_screen(
-        self,
-        strategy_name: str,
-        universe_name: str,
-        results: list[dict],
-        timestamp: str | None = None,
-    ) -> None:
-        """Sauvegarde les resultats d'un screening.
-
-        Args:
-            strategy_name: Nom de la strategie
-            universe_name: Nom de l'univers
-            results: Liste de dicts avec symbol, n_trades, win_rate,
-                     profit_factor, sharpe, net_return_pct
-            timestamp: Timestamp ISO (auto si None)
-        """
-        if timestamp is None:
-            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-        with sqlite3.connect(self.db_path) as conn:
-            for r in results:
-                conn.execute("""
-                    INSERT OR REPLACE INTO screens
-                    (timestamp, strategy, universe, symbol, n_trades,
-                     win_rate, profit_factor, sharpe, net_return_pct)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    timestamp,
-                    strategy_name,
-                    universe_name,
-                    r["symbol"],
-                    r["n_trades"],
-                    r["win_rate"],
-                    r["profit_factor"],
-                    r["sharpe"],
-                    r["net_return_pct"],
-                ))
-
-    # ---- Requetes ----
+    # ------------------------------------------------------------------ #
+    # REQUETES
+    # ------------------------------------------------------------------ #
 
     def get_best_assets(
         self,
@@ -182,17 +339,7 @@ class ResultsDB:
         min_pf: float = 1.0,
         source: str = "screens",
     ) -> list[dict]:
-        """Assets avec PF > min_pf, tries par PF desc.
-
-        Args:
-            strategy: Nom de la strategie
-            universe: Filtrer par univers (None = tous)
-            min_pf: Profit factor minimum
-            source: 'screens' ou 'validations'
-
-        Returns:
-            Liste de dicts avec symbol, n_trades, win_rate, etc.
-        """
+        """Assets avec PF > min_pf, tries par PF desc."""
         table = "screens" if source == "screens" else "validations"
 
         query = f"""
@@ -225,11 +372,7 @@ class ResultsDB:
         universe: str,
         source: str = "screens",
     ) -> list[dict]:
-        """Tableau croise symbol x strategie (PF).
-
-        Returns:
-            Liste de dicts : {symbol, strat1_pf, strat1_wr, strat2_pf, ...}
-        """
+        """Tableau croise symbol x strategie (PF)."""
         table = "screens" if source == "screens" else "validations"
         results: dict[str, dict] = {}
 

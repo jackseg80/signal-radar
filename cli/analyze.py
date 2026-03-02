@@ -18,10 +18,10 @@ from __future__ import annotations
 import argparse
 import sys
 
-from validation.results_db import ResultsDB
+from data.db import SignalRadarDB
 
 
-def cmd_best(db: ResultsDB, args: argparse.Namespace) -> None:
+def cmd_best(db: SignalRadarDB, args: argparse.Namespace) -> None:
     """Meilleurs assets pour une strategie."""
     source = args.source or "screens"
     rows = db.get_best_assets(
@@ -62,7 +62,7 @@ def cmd_best(db: ResultsDB, args: argparse.Namespace) -> None:
     print(sep)
 
 
-def cmd_compare(db: ResultsDB, args: argparse.Namespace) -> None:
+def cmd_compare(db: SignalRadarDB, args: argparse.Namespace) -> None:
     """Tableau croise strategies x assets."""
     if args.strategies:
         strategies = [s.strip() for s in args.strategies.split(",")]
@@ -122,7 +122,7 @@ def cmd_compare(db: ResultsDB, args: argparse.Namespace) -> None:
     print(sep)
 
 
-def cmd_asset(db: ResultsDB, args: argparse.Namespace) -> None:
+def cmd_asset(db: SignalRadarDB, args: argparse.Namespace) -> None:
     """Tous les resultats pour un symbol."""
     rows = db.get_cross_strategy(args.symbol)
 
@@ -163,7 +163,7 @@ def cmd_asset(db: ResultsDB, args: argparse.Namespace) -> None:
     print(sep)
 
 
-def cmd_summary(db: ResultsDB) -> None:
+def cmd_summary(db: SignalRadarDB) -> None:
     """Vue d'ensemble."""
     sep = "=" * 60
 
@@ -241,7 +241,7 @@ def main() -> None:
         parser.print_help()
         sys.exit(1)
 
-    db = ResultsDB()
+    db = SignalRadarDB()
 
     if args.command == "best":
         cmd_best(db, args)

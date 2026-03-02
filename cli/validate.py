@@ -155,9 +155,9 @@ def main() -> None:
         print(f"\n  Results saved to {path}")
 
         try:
-            from validation.results_db import ResultsDB
+            from data.db import SignalRadarDB
 
-            db = ResultsDB()
+            db = SignalRadarDB()
             db.save_validation(report)
             print(f"  Results saved to DB")
         except Exception as e:

@@ -86,21 +86,25 @@ class TestYahooLoaderValidation:
             assert "Adj_Close" in df.columns
             assert "Volume" in df.columns
 
-    def test_cache_parquet_written(self):
-        """Le cache parquet est créé après un téléchargement."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            loader = YahooLoader(cache_dir=tmpdir)
-            fake_df = _make_fake_df(n=50, start="2023-01-02")
+    def test_cache_db_written(self, tmp_path: Path):
+        """Les donnees sont sauvegardees dans la DB apres un telechargement."""
+        from data.db import SignalRadarDB
 
-            with patch("yfinance.Ticker") as mock_ticker:
-                instance = MagicMock()
-                instance.history.return_value = fake_df
-                mock_ticker.return_value = instance
+        test_db = SignalRadarDB(db_path=tmp_path / "test.db")
+        loader = YahooLoader()
+        fake_df = _make_fake_df(n=50, start="2023-01-02")
 
-                loader.get_daily_candles("FAKE", "2023-01-02", "2023-03-30")
+        with patch("data.yahoo_loader._db", test_db), \
+             patch("yfinance.Ticker") as mock_ticker:
+            instance = MagicMock()
+            instance.history.return_value = fake_df
+            mock_ticker.return_value = instance
 
-            parquets = list(Path(tmpdir).glob("*.parquet"))
-            assert len(parquets) == 1
+            loader.get_daily_candles("FAKE", "2023-01-02", "2023-03-30")
+
+        assert test_db.has_ohlcv("FAKE")
+        stored = test_db.get_ohlcv("FAKE")
+        assert len(stored) == 50
 
     def test_weekends_excluded(self):
         """Le DataFrame synthétique n'a pas de weekends (bdate_range)."""

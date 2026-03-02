@@ -1,10 +1,10 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- Data Cache + Results DB COMPLETE.
-Framework backtest modulaire operationnel. 247 tests.
+Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE.
+Framework backtest modulaire operationnel. 249 tests.
 Validated strategies : RSI(2) MR (4 stocks), IBS MR (6 stocks), TOM (4 stocks + 3 ETFs VALIDATED).
-Cache OHLCV local (Parquet), base SQLite resultats, CLI data + analyze.
+Base SQLite unique (data/signal_radar.db) : prix OHLCV + resultats screens/validations.
 
 ## Stack
 Python 3.12+, pytest, numpy, pandas, scipy, yfinance
@@ -24,13 +24,13 @@ Python 3.12+, pytest, numpy, pandas, scipy, yfinance
 - Docker test scanner : `docker compose exec scanner python scripts/daily_scanner.py`
 - Docker logs : `docker compose logs -f scanner`
 
-### Cache et analyse (nouveau)
+### Donnees et analyse
 
-- Cache info : `python -m cli.data info`
+- Lister assets en DB : `python -m cli.data info`
 - Telecharger univers : `python -m cli.data download us_stocks_large`
-- Mettre a jour cache : `python -m cli.data update us_stocks_large` (incremental)
+- Mettre a jour : `python -m cli.data update us_stocks_large` (incremental)
 - Mettre a jour tout : `python -m cli.data update --all`
-- Vider cache : `python -m cli.data clear [symbol]`
+- Vider donnees : `python -m cli.data clear [symbol]`
 - Meilleurs assets : `python -m cli.analyze best rsi2 --min-pf 1.3`
 - Tableau croise : `python -m cli.analyze compare us_stocks_large`
 - Detail symbol : `python -m cli.analyze asset META`
@@ -184,10 +184,13 @@ cli/                                   -- CLI
   validate.py                          -- python -m cli.validate <strategy> <universe>
   screen.py                            -- python -m cli.screen <strategy> <universe> (rapide, pas de robustesse)
   compare.py                           -- python -m cli.compare (tableau croise validation_results/)
+  data.py                              -- python -m cli.data info/download/update/clear
+  analyze.py                           -- python -m cli.analyze best/compare/asset/summary
 
 data/
+  db.py                                -- SignalRadarDB : base SQLite unique (prix OHLCV + resultats)
   base_loader.py                       -- BaseDataLoader + to_cache_arrays()
-  yahoo_loader.py                      -- YahooLoader, cache parquet, adj-close O/H/L
+  yahoo_loader.py                      -- YahooLoader, cache SQLite, adj-close O/H/L
 
 optimization/
   walk_forward.py                      -- WFO fenetres en barres (trading days)
@@ -210,6 +213,7 @@ tests/
   test_daily_scanner.py                -- Tests scanner (signaux, pending, watchlist)
   test_notifier.py                     -- Tests notifier Telegram
   test_data_loader.py                  -- Tests YahooLoader validation
+  test_db.py                           -- Tests SignalRadarDB (16 tests)
   conftest.py                          -- Fixtures partagees
 
 scripts/
@@ -366,3 +370,24 @@ python -m cli.compare                                   # compare les JSON sauve
 python -m cli.validate --list-universes                # lister les univers
 python -m cli.validate --list-strategies               # lister les strategies
 ```
+
+## SQLite Unified DB (COMPLETE)
+
+Migration de l'architecture duale (Parquet + SQLite resultats) vers une base SQLite unique.
+
+Architecture :
+
+- `data/db.py` -- `SignalRadarDB` : base unique `data/signal_radar.db`
+  - Table `ohlcv` : prix OHLCV de tous les assets (PRIMARY KEY symbol+date)
+  - Tables `screens`, `validations`, `pooled_results` : resultats d'analyse
+  - `get_ohlcv()` retourne Adj_Close = Close (donnees deja ajustees)
+- `data/yahoo_loader.py` -- Modifie : ecrit/lit depuis DB au lieu de parquet
+- `cli/data.py` -- Gestion donnees via SignalRadarDB (plus de CacheManager)
+- `cli/analyze.py` -- Analyse resultats via SignalRadarDB (plus de ResultsDB)
+
+Fichiers supprimes :
+
+- `data/cache_manager.py` -- remplace par data/db.py
+- `validation/results_db.py` -- fusionne dans data/db.py
+- `data/cache/*.parquet` -- donnees migrees dans SQLite
+- `validation_results/results.db` -- remplace par data/signal_radar.db

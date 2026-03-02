@@ -186,9 +186,9 @@ def main() -> None:
 
     # ── Sauvegarde DB ──
     try:
-        from validation.results_db import ResultsDB
+        from data.db import SignalRadarDB
 
-        db = ResultsDB()
+        db = SignalRadarDB()
         screen_records = [
             {
                 "symbol": r["symbol"],
