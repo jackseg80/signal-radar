@@ -1,4 +1,4 @@
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, CartesianGrid } from 'recharts';
 import { useApi } from '../../hooks/useApi';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { api } from '../../api/client';
@@ -45,10 +45,17 @@ export default function EquityCurve() {
         <AreaChart data={points} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
           <defs>
             <linearGradient id="pnlGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--accent-green)" stopOpacity={0.2} />
+              <stop offset="0%" stopColor="var(--accent-green)" stopOpacity={0.25} />
+              <stop offset="80%" stopColor="var(--accent-green)" stopOpacity={0.03} />
               <stop offset="100%" stopColor="var(--accent-green)" stopOpacity={0} />
             </linearGradient>
           </defs>
+          <CartesianGrid
+            stroke="var(--border-subtle)"
+            strokeDasharray="3 3"
+            vertical={false}
+            strokeOpacity={0.6}
+          />
           <XAxis
             dataKey="date"
             tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
@@ -60,6 +67,7 @@ export default function EquityCurve() {
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) => `$${v}`}
+            width={52}
           />
           <Tooltip content={<CustomTooltip />} />
           <ReferenceLine y={0} stroke="var(--border-subtle)" strokeDasharray="3 3" />
@@ -69,6 +77,8 @@ export default function EquityCurve() {
             stroke="var(--accent-green)"
             strokeWidth={2}
             fill="url(#pnlGradient)"
+            dot={false}
+            activeDot={{ r: 4, fill: 'var(--accent-green)', strokeWidth: 0 }}
           />
         </AreaChart>
       </ResponsiveContainer>

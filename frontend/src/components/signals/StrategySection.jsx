@@ -7,13 +7,15 @@ export default function StrategySection({ strategyKey, strategyData }) {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
-        <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors.bg} ${colors.text}`}>
+      <div className="flex items-center gap-3 mb-3">
+        <span
+          className={`px-2.5 py-1 rounded-md text-xs font-bold ${colors.bg} ${colors.text}`}
+          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+        >
           {strategyData.label}
         </span>
-        <span className="text-xs text-[--text-muted]">
-          {strategyData.signals.length} assets
-        </span>
+        <span className="text-xs text-[--text-muted]">{strategyData.signals.length} assets</span>
+        <div className="flex-1 h-px bg-[--border-subtle]"></div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
         {sorted.map((sig) => (
