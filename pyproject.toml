@@ -20,6 +20,10 @@ dev = [
 analysis = [
     "matplotlib>=3.8",
 ]
+api = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+]
 
 [build-system]
 requires = ["setuptools>=68.0"]

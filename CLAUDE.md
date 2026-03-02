@@ -1,14 +1,15 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE.
-Framework backtest modulaire operationnel. 280 tests.
+Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE.
+Framework backtest modulaire operationnel. 311 tests.
 Validated strategies : RSI(2) MR (10 stocks), IBS MR (13 stocks), TOM (21 stocks + 6 ETFs).
 Base SQLite unique (data/signal_radar.db) : prix OHLCV + resultats + paper trading.
 Scanner multi-strategie avec paper trading ($5k capital).
+API REST read-only (FastAPI) pour dashboard React (futur).
 
 ## Stack
-Python 3.12+, pytest, numpy, pandas, scipy, yfinance
+Python 3.12+, pytest, numpy, pandas, scipy, yfinance, fastapi, uvicorn
 
 ## Commandes
 - Tests : `pytest tests/ -v`
@@ -24,6 +25,9 @@ Python 3.12+, pytest, numpy, pandas, scipy, yfinance
 - Docker demarrer : `docker compose up -d`
 - Docker test scanner : `docker compose exec scanner python scripts/daily_scanner.py`
 - Docker logs : `docker compose logs -f scanner`
+- **API Dashboard : `uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload`**
+- API health : `curl http://localhost:8000/api/health`
+- API docs : `http://localhost:8000/docs` (Swagger auto-genere)
 
 ### Donnees et analyse
 
@@ -214,7 +218,8 @@ tests/
   test_daily_scanner.py                -- Tests scanner multi-strategie (RSI2+IBS+TOM, 33 tests)
   test_notifier.py                     -- Tests notifier Telegram
   test_data_loader.py                  -- Tests YahooLoader validation
-  test_db.py                           -- Tests SignalRadarDB + paper trading (27 tests)
+  test_db.py                           -- Tests SignalRadarDB + paper trading + API methods (35 tests)
+  test_api.py                          -- Tests FastAPI endpoints (13 tests)
   conftest.py                          -- Fixtures partagees
 
 scripts/
@@ -236,6 +241,17 @@ config/
     forex_majors.yaml                  -- 7 paires forex majeures
   assets_etf_us.yaml                   -- LEGACY -- ancien univers ETFs
   assets_forex.yaml                    -- LEGACY -- 7 paires forex majeures
+
+api/                                   -- FastAPI Dashboard API (read-only)
+  app.py                               -- FastAPI app, CORS, lifespan, routes
+  config.py                            -- Settings (DB_PATH, load_production_config)
+  dependencies.py                      -- get_db() singleton
+  routes/
+    signals.py                         -- GET /api/signals/today, /history
+    positions.py                       -- GET /api/positions/open, /closed
+    performance.py                     -- GET /api/performance/summary, /equity-curve
+    market.py                          -- GET /api/market/overview
+    backtest.py                        -- GET /api/backtest/screens, /validations, /compare
 
 deploy/
   entrypoint.sh                        -- Ecrit env vars cron + passthrough CMD
@@ -403,3 +419,34 @@ Fichiers supprimes :
 - `validation/results_db.py` -- fusionne dans data/db.py
 - `data/cache/*.parquet` -- donnees migrees dans SQLite
 - `validation_results/results.db` -- remplace par data/signal_radar.db
+
+## Phase 4a -- FastAPI Dashboard API (COMPLETE)
+
+API REST read-only pour alimenter un futur frontend React. Le scanner reste le seul writer.
+
+Architecture :
+
+- `api/app.py` -- FastAPI app (CORS, lifespan), GET-only
+- `api/config.py` -- DB_PATH + load_production_config()
+- `api/dependencies.py` -- get_db() singleton (overridable en test)
+- `api/routes/signals.py` -- /api/signals/today, /history
+- `api/routes/positions.py` -- /api/positions/open, /closed
+- `api/routes/performance.py` -- /api/performance/summary, /equity-curve
+- `api/routes/market.py` -- /api/market/overview (tous les assets + indicateurs actuels)
+- `api/routes/backtest.py` -- /api/backtest/screens, /validations, /compare
+
+Nouvelles methodes DB (data/db.py) :
+
+- `get_latest_signals(strategy=None)` -- (timestamp, signaux) du dernier run
+- `get_signal_history(strategy, symbol, signal_type, days)` -- historique N jours
+- `get_latest_price(symbol)` -- dernier close_price depuis signal_log
+- `get_latest_prices(symbols)` -- batch version
+- `get_screens_filtered(strategy, universe, min_pf)` -- screens tries par PF
+- `get_validations_filtered(strategy, universe, verdict)` -- validations filtrees
+
+Notes :
+
+- Prix latent = close_price du signal_log (pas de fetch Yahoo live)
+- market/overview lit production_params.yaml pour mapping universe/watchlist
+- TestClient + dependency override (get_db) pour tests isoles
+- 311 tests (280 existants + 8 DB + 13 API)

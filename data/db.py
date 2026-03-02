@@ -693,3 +693,134 @@ class SignalRadarDB:
                 (timestamp, strategy, symbol, signal, close_price,
                  indicator_value, notes),
             )
+
+    # ------------------------------------------------------------------ #
+    # API QUERY METHODS
+    # ------------------------------------------------------------------ #
+
+    def get_latest_signals(
+        self, strategy: str | None = None
+    ) -> tuple[str | None, list[dict]]:
+        """Retourne (timestamp, signaux) du dernier run du scanner.
+
+        Trouve le MAX(timestamp) dans signal_log, puis retourne
+        tous les signaux de ce timestamp.
+        Returns (None, []) si pas de signaux.
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+
+            row = conn.execute(
+                "SELECT MAX(timestamp) as ts FROM signal_log"
+            ).fetchone()
+            if not row or not row["ts"]:
+                return None, []
+
+            latest_ts = row["ts"]
+            query = "SELECT * FROM signal_log WHERE timestamp = ?"
+            params: list = [latest_ts]
+
+            if strategy:
+                query += " AND strategy = ?"
+                params.append(strategy)
+
+            query += " ORDER BY strategy, symbol"
+            return latest_ts, [dict(r) for r in conn.execute(query, params).fetchall()]
+
+    def get_signal_history(
+        self,
+        strategy: str | None = None,
+        symbol: str | None = None,
+        signal_type: str | None = None,
+        days: int = 7,
+    ) -> list[dict]:
+        """Retourne l'historique des signaux sur N jours."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+
+            query = "SELECT * FROM signal_log WHERE 1=1"
+            params: list = []
+
+            if strategy:
+                query += " AND strategy = ?"
+                params.append(strategy)
+            if symbol:
+                query += " AND symbol = ?"
+                params.append(symbol)
+            if signal_type:
+                query += " AND signal = ?"
+                params.append(signal_type)
+            if days:
+                query += " AND timestamp >= datetime('now', ?)"
+                params.append(f"-{days} days")
+
+            query += " ORDER BY timestamp DESC"
+            return [dict(r) for r in conn.execute(query, params).fetchall()]
+
+    def get_latest_price(self, symbol: str) -> float | None:
+        """Retourne le dernier close_price connu pour un symbol (depuis signal_log)."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT close_price FROM signal_log "
+                "WHERE symbol = ? AND close_price IS NOT NULL "
+                "ORDER BY timestamp DESC LIMIT 1",
+                (symbol,),
+            ).fetchone()
+            return row[0] if row else None
+
+    def get_latest_prices(self, symbols: list[str]) -> dict[str, float]:
+        """Retourne les derniers prix connus pour une liste de symbols."""
+        return {
+            sym: price
+            for sym in symbols
+            if (price := self.get_latest_price(sym)) is not None
+        }
+
+    def get_screens_filtered(
+        self,
+        strategy: str | None = None,
+        universe: str | None = None,
+        min_pf: float = 1.0,
+    ) -> list[dict]:
+        """Retourne les screens filtres, tries par PF desc."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+
+            query = "SELECT * FROM screens WHERE profit_factor >= ?"
+            params: list = [min_pf]
+
+            if strategy:
+                query += " AND strategy = ?"
+                params.append(strategy)
+            if universe:
+                query += " AND universe = ?"
+                params.append(universe)
+
+            query += " ORDER BY profit_factor DESC"
+            return [dict(r) for r in conn.execute(query, params).fetchall()]
+
+    def get_validations_filtered(
+        self,
+        strategy: str | None = None,
+        universe: str | None = None,
+        verdict: str | None = None,
+    ) -> list[dict]:
+        """Retourne les validations filtrees."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+
+            query = "SELECT * FROM validations WHERE 1=1"
+            params: list = []
+
+            if strategy:
+                query += " AND strategy = ?"
+                params.append(strategy)
+            if universe:
+                query += " AND universe = ?"
+                params.append(universe)
+            if verdict:
+                query += " AND verdict = ?"
+                params.append(verdict)
+
+            query += " ORDER BY profit_factor DESC"
+            return [dict(r) for r in conn.execute(query, params).fetchall()]

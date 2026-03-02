@@ -400,3 +400,64 @@ class TestSignalLog:
         with sqlite3.connect(db.db_path) as conn:
             count = conn.execute("SELECT COUNT(*) FROM signal_log").fetchone()[0]
         assert count == 3
+
+
+class TestAPIDBMethods:
+    """Tests pour les methodes DB utilisees par l'API."""
+
+    def test_get_latest_signals_empty(self, db: SignalRadarDB) -> None:
+        ts, signals = db.get_latest_signals()
+        assert ts is None
+        assert signals == []
+
+    def test_get_latest_signals(self, db: SignalRadarDB) -> None:
+        db.log_signal("2026-03-04 22:15:00", "rsi2", "META", "BUY", 600.0, 4.5, "")
+        db.log_signal("2026-03-04 22:15:00", "ibs", "META", "NO_SIGNAL", 600.0, 0.6, "")
+        db.log_signal("2026-03-05 22:15:00", "rsi2", "META", "SELL", 610.0, 55.0, "")
+        db.log_signal("2026-03-05 22:15:00", "ibs", "NVDA", "BUY", 130.0, 0.1, "")
+
+        ts, signals = db.get_latest_signals()
+        assert ts == "2026-03-05 22:15:00"
+        assert len(signals) == 2
+
+    def test_get_latest_signals_filter(self, db: SignalRadarDB) -> None:
+        db.log_signal("2026-03-05 22:15:00", "rsi2", "META", "SELL", 610.0, 55.0, "")
+        db.log_signal("2026-03-05 22:15:00", "ibs", "NVDA", "BUY", 130.0, 0.1, "")
+
+        ts, signals = db.get_latest_signals(strategy="rsi2")
+        assert len(signals) == 1
+        assert signals[0]["strategy"] == "rsi2"
+
+    def test_get_latest_price(self, db: SignalRadarDB) -> None:
+        db.log_signal("2026-03-04 22:15:00", "rsi2", "META", "BUY", 600.0, 4.5, "")
+        db.log_signal("2026-03-05 22:15:00", "rsi2", "META", "SELL", 610.0, 55.0, "")
+        assert db.get_latest_price("META") == 610.0
+        assert db.get_latest_price("UNKNOWN") is None
+
+    def test_get_latest_prices(self, db: SignalRadarDB) -> None:
+        db.log_signal("2026-03-05 22:15:00", "rsi2", "META", "SELL", 610.0, 55.0, "")
+        db.log_signal("2026-03-05 22:15:00", "rsi2", "NVDA", "BUY", 130.0, 4.0, "")
+
+        prices = db.get_latest_prices(["META", "NVDA", "UNKNOWN"])
+        assert prices["META"] == 610.0
+        assert prices["NVDA"] == 130.0
+        assert "UNKNOWN" not in prices
+
+    def test_get_signal_history(self, db: SignalRadarDB) -> None:
+        db.log_signal("2026-03-05 22:15:00", "rsi2", "META", "BUY", 610.0, 4.5, "")
+        db.log_signal("2026-03-05 22:15:00", "ibs", "META", "NO_SIGNAL", 610.0, 0.6, "")
+
+        all_sigs = db.get_signal_history(days=30)
+        assert len(all_sigs) == 2
+
+        buys = db.get_signal_history(signal_type="BUY", days=30)
+        assert len(buys) == 1
+        assert buys[0]["signal"] == "BUY"
+
+    def test_get_screens_filtered(self, db: SignalRadarDB) -> None:
+        results = db.get_screens_filtered(min_pf=1.0)
+        assert isinstance(results, list)
+
+    def test_get_validations_filtered(self, db: SignalRadarDB) -> None:
+        results = db.get_validations_filtered()
+        assert isinstance(results, list)
