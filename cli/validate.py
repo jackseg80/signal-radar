@@ -154,6 +154,15 @@ def main() -> None:
         path = save_report(report)
         print(f"\n  Results saved to {path}")
 
+        try:
+            from validation.results_db import ResultsDB
+
+            db = ResultsDB()
+            db.save_validation(report)
+            print(f"  Results saved to DB")
+        except Exception as e:
+            print(f"  Warning: could not save to DB ({e})")
+
 
 if __name__ == "__main__":
     main()

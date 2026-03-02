@@ -1,10 +1,10 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE.
-Framework backtest modulaire operationnel. 233 tests.
+Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- Data Cache + Results DB COMPLETE.
+Framework backtest modulaire operationnel. 247 tests.
 Validated strategies : RSI(2) MR (4 stocks), IBS MR (6 stocks), TOM (4 stocks + 3 ETFs VALIDATED).
-Univers YAML, screening batch, resultats JSON, compare CLI.
+Cache OHLCV local (Parquet), base SQLite resultats, CLI data + analyze.
 
 ## Stack
 Python 3.12+, pytest, numpy, pandas, scipy, yfinance
@@ -23,6 +23,18 @@ Python 3.12+, pytest, numpy, pandas, scipy, yfinance
 - Docker demarrer : `docker compose up -d`
 - Docker test scanner : `docker compose exec scanner python scripts/daily_scanner.py`
 - Docker logs : `docker compose logs -f scanner`
+
+### Cache et analyse (nouveau)
+
+- Cache info : `python -m cli.data info`
+- Telecharger univers : `python -m cli.data download us_stocks_large`
+- Mettre a jour cache : `python -m cli.data update us_stocks_large` (incremental)
+- Mettre a jour tout : `python -m cli.data update --all`
+- Vider cache : `python -m cli.data clear [symbol]`
+- Meilleurs assets : `python -m cli.analyze best rsi2 --min-pf 1.3`
+- Tableau croise : `python -m cli.analyze compare us_stocks_large`
+- Detail symbol : `python -m cli.analyze asset META`
+- Vue d'ensemble : `python -m cli.analyze summary`
 
 ## Règles
 - JAMAIS modifier scalp-radar (D:\Python\scalp-radar\ = lecture seule)

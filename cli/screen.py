@@ -183,6 +183,28 @@ def main() -> None:
     # ── Resume ──
     n_profitable = sum(1 for r in results if r["pf"] > 1.0)
     print(f"\n  {n_profitable}/{len(results)} assets with PF > 1.0")
+
+    # ── Sauvegarde DB ──
+    try:
+        from validation.results_db import ResultsDB
+
+        db = ResultsDB()
+        screen_records = [
+            {
+                "symbol": r["symbol"],
+                "n_trades": r["n_trades"],
+                "win_rate": r["win_rate"],
+                "profit_factor": r["pf"],
+                "sharpe": r["sharpe"],
+                "net_return_pct": r["net_pct"],
+            }
+            for r in results
+        ]
+        db.save_screen(args.strategy, args.universe, screen_records)
+        print(f"  Results saved to DB ({len(screen_records)} assets)")
+    except Exception as e:
+        print(f"  Warning: could not save to DB ({e})")
+
     print(sep)
 
 

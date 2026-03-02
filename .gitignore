@@ -17,3 +17,4 @@ logs/
 .claude/
 Untitled-1.txt
 validation_results/*.json
+validation_results/results.db
