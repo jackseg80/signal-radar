@@ -28,7 +28,7 @@ Frontend : React 18, Vite, Tailwind CSS v4, Recharts, React Router
 - Docker logs scanner : `docker compose logs -f scanner`
 - Docker logs api : `docker compose logs -f api`
 - **Dashboard prod : `http://192.168.1.200:8000`** (LAN apres deploiement)
-- Deploy serveur : `bash deploy/deploy.sh` (git pull + npm build + docker compose)
+- Deploy serveur : `bash deploy/deploy.sh` (git pull + docker compose build + up)
 - **API Dashboard : `uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload`**
 - API health : `curl http://localhost:8000/api/health`
 - API docs : `http://localhost:8000/docs` (Swagger auto-genere)
@@ -514,9 +514,10 @@ docker-compose.yml
 
 Fichiers cles :
 
-- `Dockerfile.api` -- image legere (~230 MB) : fastapi + uvicorn + pandas + pyyaml
-  - COPY api/, data/__init__.py, data/db.py, config/production_params.yaml, frontend/dist/
-  - Pas de cron, pas de numpy/yfinance/pyarrow
+- `Dockerfile.api` -- multi-stage build : stage 1 Node.js build frontend, stage 2 Python API
+  - Stage 1 `node:20-slim` : npm ci + npm run build -> frontend/dist/
+  - Stage 2 `python:3.12-slim` : fastapi + uvicorn + pandas + pyyaml + COPY dist/ depuis stage 1
+  - Pas de cron, pas de numpy/yfinance/pyarrow ; Node.js absent de l'image finale
 - `requirements-api.txt` -- deps API uniquement
 - `api/app.py` -- mount `StaticFiles(directory=frontend/dist, html=True)` APRES les routes API
   - `html=True` : renvoie index.html pour les routes SPA (/backtest etc.)
@@ -528,14 +529,14 @@ Notes :
 
 - SQLite journal mode DELETE (defaut) : compatible avec volume :ro pour l'API
   WAL ne marcherait PAS en :ro (les lecteurs ecrivent dans -wal/-shm)
-- Frontend build sur le serveur (`npm ci && npm run build`) avant `docker compose build`
-  Node.js >= 18 requis sur le serveur de deploy
+- Multi-stage build : Node.js absent de l'image finale, Node.js PAS requis sur le serveur
+  `docker compose build` seul suffit (le build frontend est encapsule dans le Dockerfile.api)
 - Premier deploiement : lancer `docker compose exec scanner python scripts/daily_scanner.py` pour creer la DB
 
 Deploiement :
 
 ```bash
 bash deploy/deploy.sh
-# -> git pull + npm build + docker compose build + up -d
+# -> git pull + docker compose build (inclut npm build) + up -d
 # -> Dashboard : http://192.168.1.200:8000
 ```

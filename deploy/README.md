@@ -5,7 +5,6 @@ Scanner multi-strategie (RSI2 + IBS + TOM) avec notifications Telegram + dashboa
 ## Pre-requis
 
 - Docker + Docker Compose sur le serveur (Ubuntu 22.04+)
-- Node.js >= 18 (pour le build frontend)
 - Bot Telegram cree via @BotFather (optionnel)
 
 ## Creer le bot Telegram
@@ -48,6 +47,7 @@ curl http://<server-ip>:8000/api/health
 ```
 
 Le dashboard est read-only et affiche :
+
 - Signaux du jour (RSI2, IBS, TOM)
 - Positions paper trading ouvertes/fermees
 - Performance et equity curve
@@ -94,20 +94,23 @@ curl http://localhost:8000/api/signals/today
 ```bash
 cd ~/signal-radar
 bash deploy/deploy.sh
-# Le script fait: git pull -> build frontend -> build images -> restart -> verification
+# Le script fait: git pull -> docker compose build (npm build inclus) -> restart -> verification
 ```
 
 ## Depannage
 
 **Le scanner ne tourne pas a 22h15 :**
+
 - Verifier le timezone : `docker compose exec scanner date`
 - Verifier le cron : `docker compose exec scanner crontab -l`
 
 **Telegram n'envoie pas :**
+
 - Verifier les variables : `docker compose exec scanner env | grep TELEGRAM`
 - Le scanner fonctionne sans Telegram (mode silencieux)
 
 **Le dashboard ne repond pas :**
+
 - Verifier le service : `docker compose ps api`
 - Logs API : `docker compose logs api --tail 20`
 - Au premier deploiement, lancer le scanner une fois pour creer la DB :

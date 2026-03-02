@@ -13,5 +13,5 @@ docs/
 tests/
 *.log
 frontend/node_modules/
-frontend/src/
+frontend/dist/
 validation_results/

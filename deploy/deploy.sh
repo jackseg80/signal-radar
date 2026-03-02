@@ -15,19 +15,7 @@ mkdir -p data logs
 echo "[*] Updating code..."
 git pull origin master
 
-# Build frontend (requires Node.js >= 18)
-echo "[*] Building frontend..."
-if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
-    cd frontend
-    npm ci --no-audit --no-fund
-    npm run build
-    cd "$DEPLOY_DIR"
-    echo "[OK] Frontend built -> frontend/dist/"
-else
-    echo "[WARN] No frontend found -- skipping build"
-fi
-
-# Build Docker images
+# Build Docker images (frontend built inside Dockerfile.api via multi-stage)
 echo "[*] Building images..."
 docker compose build
 
