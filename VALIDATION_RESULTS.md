@@ -248,7 +248,38 @@ Assets rejetés sur les 3 stratégies ou avec PF < 1.0 dominant.
 - IBS = (Close - Low) / (High - Low). Sur forex, les sessions (Londres, NY, Tokyo) créent des patterns H/L/C très différents des stocks.
 - L'entry IBS < 0.2 + SMA200 sur forex capte peut-être les sessions où le cours clôture proche des plus bas — ce qui sur des paires trendy (USDJPY 2014-2022 : YEN bear market) peut indiquer continuation, pas mean reversion.
 - Les Sharpe de 4-6 sont très élevés. Sur stocks, le meilleur est META RSI2 à 6.86. Des Sharpe similaires sur 7 paires différentes suggèrent soit un edge très robuste, soit un biais dans la construction du test.
-- **Prochaine étape obligatoire :** analyser la distribution des trades (date, durée, drawdown), comparer IS vs OOS en détail.
+- **Prochaine étape obligatoire :** ~~analyser la distribution des trades~~ — **FAIT**, voir verdict ci-dessous.
+
+#### Investigation Verdict: Momentum Disguised as Mean Reversion
+
+> **Date :** 2026-03-02
+> **Script :** `scripts/investigate_ibs_forex.py`
+
+The exceptional PF (2.5-3.8) with low WR (37-48%) reveals a fundamentally different mechanism than stock IBS:
+
+**Evidence :**
+
+1. **Asymmetric returns** — Mean skew +1.02, W/L ratio 4.15x, negative median returns. Opposite of stock MR profile (NVDA: WR 72%, W/L ratio 0.82, skew -0.55).
+2. **Distributed edge** — Top 20 trades = 17% of pooled profit. PF remains 1.68-2.84 even without top 10 trades. Not an outlier artifact.
+3. **Duration-return correlation** — r=0.25-0.41 (p<0.001). Longer trades (4-7d) return 2-3x more. Trades capture trend continuation, not quick bounces.
+4. **Temporal stability** — 92% of pair-years have PF > 1.0 (68/74). USDCAD: 0 negative years over 11 years.
+5. **No SMA200 slope dependency** — Near-zero correlation. Edge works in flat and rising trends equally.
+6. **Exit mechanism is key** — `prev_high_exit` (close > yesterday's high) yields PF 6-17x. This acts as a trailing exit that lets winners run in trend direction. `ibs_exit` alone has PF 1.5-2.7.
+
+**Mechanism :** On forex, IBS < 0.2 selects pullback days within a trend. The subsequent bounce is trend continuation, not mean reversion. The `close > high[j-1]` exit allows multi-day trend capture. On stocks, the same signal produces classic MR (frequent small wins).
+
+**Decision : DEFERRED TO PHASE 4**
+
+The edge is real and stable, but not suitable for immediate deployment:
+- Requires separate forex setup (Saxo CFDs, different sizing, swap costs)
+- Swap overnight costs not modeled (holding mean 1.5-2 days)
+- Momentum mechanism = regime change risk if forex becomes range-bound
+- Current focus: validate stock strategies with $5,000 capital first
+
+When capital grows and stock workflow is proven, revisit forex IBS with:
+- Swap cost modeling (Saxo rates)
+- Regime detection (range-bound vs trending)
+- Conservative position sizing (momentum = fatter tail risk)
 
 ---
 
@@ -349,7 +380,7 @@ Assets rejetés sur les 3 stratégies ou avec PF < 1.0 dominant.
 | SPY ou IVV | TOM | $100k (1 seul parmi SPY/VOO/IVV) |
 | DIA | RSI2 + TOM | $100k |
 
-**Ne pas trader (yet) :** Forex IBS — nécessite investigation du profil low-WR avant live.
+**Ne pas trader (yet) :** Forex IBS — investigation terminee (momentum deguise), deferred to Phase 4. Voir section 8.
 
 ### Sizing et capital
 
@@ -375,7 +406,7 @@ Assets rejetés sur les 3 stratégies ou avec PF < 1.0 dominant.
 1. **Scanner quotidien** : `python scripts/daily_scanner.py` — actuellement RSI2 only sur META, MSFT, GOOGL, NVDA. Étendre aux signaux IBS et TOM pour les assets Tier 1.
 2. **Dry run Saxo** : Paper trading sur META, V, NVDA pendant 2-3 mois. Vérifier la cohérence signaux vs executions.
 3. **Live avec capital réduit** : Démarrer avec 1-2 assets (META + QQQ), valider le workflow complet avant d'élargir.
-4. **Forex investigation** : Analyser les 324 trades USDJPY IBS en détail (dates, drawdowns, distribution) avant toute décision de trading.
+4. **Forex investigation** : ~~Analyser les 324 trades USDJPY IBS en detail~~ — **FAIT** (2026-03-02). Verdict : momentum deguise en MR, edge reel mais deferred to Phase 4 (swap costs, regime detection). Voir section 8.
 5. **Mise à jour annuelle** : Relancer les validations complètes en janvier de chaque année pour vérifier que les edges persistent.
 
 ---
