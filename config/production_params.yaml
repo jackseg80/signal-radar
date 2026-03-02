@@ -60,24 +60,24 @@ strategies:
       entry_days_before_eom: 5
       exit_day_of_new_month: 3
       position_fraction: 1.0
-    universe:  # sorted by PF desc (VALIDATION_RESULTS.md)
-      - META     # PF 1.89
-      - AAPL     # PF 1.40
-      - NVDA     # PF 1.29
-      - AMZN     # PF 1.29
-      - NFLX
-      - COST
-      - TSLA
-      - ORCL
-      - LLY
-      - AVGO
-      - V
-      - WMT
-      - MA
-      - HD
-      - ADBE
-      - UNH
-      - MSFT
+    universe:
+      - META      # PF 1.89
+      - NFLX      # PF 1.79
+      - COST      # PF 1.66
+      - TSLA      # PF 1.53
+      - ORCL      # PF 1.52
+      - LLY       # PF 1.51
+      - AVGO      # PF 1.45
+      - V         # PF 1.44
+      - AAPL      # PF 1.40
+      - WMT       # PF 1.40
+      - MA        # PF 1.37
+      - HD        # PF 1.36
+      - ADBE      # PF 1.31
+      - NVDA      # PF 1.29
+      - AMZN      # PF 1.29
+      - UNH       # PF 1.28
+      - MSFT      # PF 1.23
     watchlist: []
     fee_model: us_stocks_usd_account
 
