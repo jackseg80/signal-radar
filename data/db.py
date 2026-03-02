@@ -122,6 +122,38 @@ class SignalRadarDB:
                 )
             """)
 
+            # -- Paper trading positions --
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS paper_positions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    strategy TEXT NOT NULL,
+                    symbol TEXT NOT NULL,
+                    entry_date TEXT NOT NULL,
+                    entry_price REAL NOT NULL,
+                    shares REAL NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'open',
+                    exit_date TEXT,
+                    exit_price REAL,
+                    pnl_dollars REAL,
+                    pnl_pct REAL,
+                    UNIQUE(strategy, symbol, entry_date)
+                )
+            """)
+
+            # -- Signal log (audit trail) --
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS signal_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    strategy TEXT NOT NULL,
+                    symbol TEXT NOT NULL,
+                    signal TEXT NOT NULL,
+                    close_price REAL,
+                    indicator_value REAL,
+                    notes TEXT
+                )
+            """)
+
     # ------------------------------------------------------------------ #
     # OHLCV
     # ------------------------------------------------------------------ #
@@ -461,3 +493,188 @@ class SignalRadarDB:
         table = "screens" if source == "screens" else "validations"
         with sqlite3.connect(self.db_path) as conn:
             return conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+
+    # ------------------------------------------------------------------ #
+    # PAPER TRADING
+    # ------------------------------------------------------------------ #
+
+    def open_paper_position(
+        self,
+        strategy: str,
+        symbol: str,
+        entry_date: str,
+        entry_price: float,
+        shares: float,
+    ) -> bool:
+        """Ouvre une position paper. Retourne False si deja ouverte."""
+        with sqlite3.connect(self.db_path) as conn:
+            existing = conn.execute(
+                "SELECT id FROM paper_positions "
+                "WHERE strategy = ? AND symbol = ? AND status = 'open'",
+                (strategy, symbol),
+            ).fetchone()
+            if existing:
+                return False
+            conn.execute(
+                """
+                INSERT INTO paper_positions
+                (strategy, symbol, entry_date, entry_price, shares, status)
+                VALUES (?, ?, ?, ?, ?, 'open')
+                """,
+                (strategy, symbol, entry_date, entry_price, shares),
+            )
+            return True
+
+    def close_paper_position(
+        self,
+        strategy: str,
+        symbol: str,
+        exit_date: str,
+        exit_price: float,
+    ) -> dict | None:
+        """Ferme une position paper. Retourne le trade info ou None."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT * FROM paper_positions "
+                "WHERE strategy = ? AND symbol = ? AND status = 'open'",
+                (strategy, symbol),
+            ).fetchone()
+            if row is None:
+                return None
+
+            entry_price = row["entry_price"]
+            shares = row["shares"]
+            pnl_dollars = (exit_price - entry_price) * shares
+            pnl_pct = (
+                (exit_price - entry_price) / entry_price * 100
+                if entry_price > 0
+                else 0.0
+            )
+
+            conn.execute(
+                """
+                UPDATE paper_positions
+                SET status = 'closed', exit_date = ?, exit_price = ?,
+                    pnl_dollars = ?, pnl_pct = ?
+                WHERE id = ?
+                """,
+                (exit_date, exit_price, round(pnl_dollars, 2), round(pnl_pct, 2), row["id"]),
+            )
+
+            return {
+                "strategy": strategy,
+                "symbol": symbol,
+                "entry_date": row["entry_date"],
+                "entry_price": entry_price,
+                "exit_date": exit_date,
+                "exit_price": exit_price,
+                "shares": shares,
+                "pnl_dollars": round(pnl_dollars, 2),
+                "pnl_pct": round(pnl_pct, 2),
+            }
+
+    def get_open_positions(self, strategy: str | None = None) -> list[dict]:
+        """Retourne les positions paper ouvertes."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            if strategy:
+                rows = conn.execute(
+                    "SELECT * FROM paper_positions "
+                    "WHERE status = 'open' AND strategy = ? "
+                    "ORDER BY entry_date",
+                    (strategy,),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM paper_positions "
+                    "WHERE status = 'open' ORDER BY strategy, entry_date"
+                ).fetchall()
+            return [dict(r) for r in rows]
+
+    def get_closed_trades(
+        self,
+        strategy: str | None = None,
+        symbol: str | None = None,
+        limit: int = 20,
+    ) -> list[dict]:
+        """Retourne les trades paper fermes (plus recents en premier)."""
+        query = "SELECT * FROM paper_positions WHERE status = 'closed'"
+        params: list = []
+        if strategy:
+            query += " AND strategy = ?"
+            params.append(strategy)
+        if symbol:
+            query += " AND symbol = ?"
+            params.append(symbol)
+        query += " ORDER BY exit_date DESC LIMIT ?"
+        params.append(limit)
+
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            return [dict(r) for r in conn.execute(query, params).fetchall()]
+
+    def get_paper_summary(self) -> dict:
+        """Resume du paper trading : PnL total, win rate, par strategie."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+
+            closed = conn.execute(
+                "SELECT * FROM paper_positions WHERE status = 'closed'"
+            ).fetchall()
+
+            n_trades = len(closed)
+            wins = sum(1 for t in closed if t["pnl_dollars"] and t["pnl_dollars"] > 0)
+            total_pnl = sum(t["pnl_dollars"] or 0 for t in closed)
+
+            by_strategy: dict[str, dict] = {}
+            for t in closed:
+                strat = t["strategy"]
+                if strat not in by_strategy:
+                    by_strategy[strat] = {"trades": 0, "wins": 0, "pnl": 0.0}
+                by_strategy[strat]["trades"] += 1
+                if t["pnl_dollars"] and t["pnl_dollars"] > 0:
+                    by_strategy[strat]["wins"] += 1
+                by_strategy[strat]["pnl"] += t["pnl_dollars"] or 0
+            for strat in by_strategy:
+                by_strategy[strat]["pnl"] = round(by_strategy[strat]["pnl"], 2)
+
+            n_open = conn.execute(
+                "SELECT COUNT(*) FROM paper_positions WHERE status = 'open'"
+            ).fetchone()[0]
+
+            return {
+                "n_trades": n_trades,
+                "n_wins": wins,
+                "win_rate": round(wins / n_trades * 100, 1) if n_trades > 0 else 0.0,
+                "total_pnl": round(total_pnl, 2),
+                "n_open": n_open,
+                "by_strategy": by_strategy,
+            }
+
+    # ------------------------------------------------------------------ #
+    # SIGNAL LOG
+    # ------------------------------------------------------------------ #
+
+    def log_signal(
+        self,
+        timestamp: str,
+        strategy: str,
+        symbol: str,
+        signal: str,
+        close_price: float | None = None,
+        indicator_value: float | None = None,
+        notes: str = "",
+    ) -> None:
+        """Log un signal dans la table signal_log."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO signal_log
+                (timestamp, strategy, symbol, signal, close_price,
+                 indicator_value, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (timestamp, strategy, symbol, signal, close_price,
+                 indicator_value, notes),
+            )

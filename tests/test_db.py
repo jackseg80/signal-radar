@@ -240,3 +240,126 @@ class TestEmptyDB:
         assert db.count() == 0
         assert db.list_assets() == []
         assert db.has_ohlcv("AAPL") is False
+
+
+# ------------------------------------------------------------------ #
+# PAPER TRADING
+# ------------------------------------------------------------------ #
+
+
+class TestPaperPositions:
+    """Tests pour paper trading positions."""
+
+    def test_open_paper_position(self, db: SignalRadarDB) -> None:
+        opened = db.open_paper_position("rsi2", "META", "2026-03-01", 612.30, 8.0)
+        assert opened is True
+        positions = db.get_open_positions()
+        assert len(positions) == 1
+        assert positions[0]["symbol"] == "META"
+        assert positions[0]["strategy"] == "rsi2"
+        assert positions[0]["shares"] == 8.0
+        assert positions[0]["status"] == "open"
+
+    def test_close_paper_position(self, db: SignalRadarDB) -> None:
+        db.open_paper_position("rsi2", "META", "2026-03-01", 612.30, 8.0)
+        trade = db.close_paper_position("rsi2", "META", "2026-03-04", 620.00)
+        assert trade is not None
+        assert trade["symbol"] == "META"
+        assert trade["entry_price"] == 612.30
+        assert trade["exit_price"] == 620.00
+        assert trade["shares"] == 8.0
+        # PnL = (620 - 612.30) * 8 = 61.60
+        assert trade["pnl_dollars"] == pytest.approx(61.60, abs=0.01)
+        # Pct = (620 - 612.30) / 612.30 * 100 = 1.257%
+        assert trade["pnl_pct"] == pytest.approx(1.26, abs=0.1)
+        # Position should now be closed
+        assert db.get_open_positions() == []
+
+    def test_close_nonexistent_position(self, db: SignalRadarDB) -> None:
+        result = db.close_paper_position("rsi2", "META", "2026-03-04", 620.00)
+        assert result is None
+
+    def test_duplicate_position_rejected(self, db: SignalRadarDB) -> None:
+        db.open_paper_position("rsi2", "META", "2026-03-01", 612.30, 8.0)
+        opened = db.open_paper_position("rsi2", "META", "2026-03-02", 615.00, 7.0)
+        assert opened is False
+        # Only original position exists
+        positions = db.get_open_positions()
+        assert len(positions) == 1
+        assert positions[0]["entry_price"] == 612.30
+
+    def test_different_strategies_same_symbol(self, db: SignalRadarDB) -> None:
+        """Can have positions on same symbol from different strategies."""
+        db.open_paper_position("rsi2", "META", "2026-03-01", 612.30, 8.0)
+        opened = db.open_paper_position("ibs", "META", "2026-03-01", 612.30, 8.0)
+        assert opened is True
+        positions = db.get_open_positions()
+        assert len(positions) == 2
+
+    def test_get_open_positions_by_strategy(self, db: SignalRadarDB) -> None:
+        db.open_paper_position("rsi2", "META", "2026-03-01", 612.30, 8.0)
+        db.open_paper_position("ibs", "NVDA", "2026-03-01", 130.00, 38.0)
+        rsi2_pos = db.get_open_positions(strategy="rsi2")
+        assert len(rsi2_pos) == 1
+        assert rsi2_pos[0]["symbol"] == "META"
+
+    def test_get_closed_trades(self, db: SignalRadarDB) -> None:
+        db.open_paper_position("rsi2", "META", "2026-03-01", 100.0, 10.0)
+        db.close_paper_position("rsi2", "META", "2026-03-04", 110.0)
+        trades = db.get_closed_trades()
+        assert len(trades) == 1
+        assert trades[0]["pnl_dollars"] == 100.0
+
+    def test_paper_summary(self, db: SignalRadarDB) -> None:
+        # Trade 1: win (+100)
+        db.open_paper_position("rsi2", "META", "2026-03-01", 100.0, 10.0)
+        db.close_paper_position("rsi2", "META", "2026-03-04", 110.0)
+        # Trade 2: loss (-25)
+        db.open_paper_position("ibs", "NVDA", "2026-03-02", 130.0, 5.0)
+        db.close_paper_position("ibs", "NVDA", "2026-03-05", 125.0)
+        # Trade 3: open (not counted in summary)
+        db.open_paper_position("tom", "AAPL", "2026-03-03", 175.0, 28.0)
+
+        summary = db.get_paper_summary()
+        assert summary["n_trades"] == 2
+        assert summary["n_wins"] == 1
+        assert summary["win_rate"] == 50.0
+        assert summary["total_pnl"] == pytest.approx(75.0, abs=0.01)
+        assert summary["n_open"] == 1
+        assert "rsi2" in summary["by_strategy"]
+        assert summary["by_strategy"]["rsi2"]["pnl"] == 100.0
+        assert summary["by_strategy"]["ibs"]["pnl"] == -25.0
+
+    def test_paper_summary_empty(self, db: SignalRadarDB) -> None:
+        summary = db.get_paper_summary()
+        assert summary["n_trades"] == 0
+        assert summary["win_rate"] == 0.0
+        assert summary["total_pnl"] == 0.0
+        assert summary["n_open"] == 0
+
+
+class TestSignalLog:
+    """Tests pour signal_log."""
+
+    def test_log_signal(self, db: SignalRadarDB) -> None:
+        db.log_signal(
+            "2026-03-01 22:00:00", "rsi2", "META", "BUY",
+            612.30, 4.5, "RSI low",
+        )
+        # Verify it was written (query directly)
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute("SELECT * FROM signal_log").fetchall()
+        assert len(rows) == 1
+        assert rows[0]["strategy"] == "rsi2"
+        assert rows[0]["signal"] == "BUY"
+
+    def test_log_multiple_signals(self, db: SignalRadarDB) -> None:
+        db.log_signal("2026-03-01 22:00:00", "rsi2", "META", "BUY", 612.0, 4.5, "")
+        db.log_signal("2026-03-01 22:00:00", "ibs", "META", "NO_SIGNAL", 612.0, 0.6, "")
+        db.log_signal("2026-03-01 22:00:00", "tom", "META", "BUY", 612.0, 5.0, "")
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            count = conn.execute("SELECT COUNT(*) FROM signal_log").fetchone()[0]
+        assert count == 3

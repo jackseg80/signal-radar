@@ -1,66 +1,86 @@
-strategy:
-  name: rsi2_mean_reversion
-  version: "2.0"
-  validated_date: "2026-03-01"
+capital: 5000
+whole_shares: true
 
-universe:
-  - META
-  - MSFT
-  - GOOGL
+strategies:
+  rsi2:
+    enabled: true
+    params:
+      rsi_period: 2
+      rsi_entry_threshold: 10.0
+      sma_trend_period: 200
+      sma_exit_period: 5
+      sma_trend_buffer: 1.01
+      position_fraction: 1.0
+    universe:
+      - META
+      - V
+      - NVDA
+      - MA
+      - AVGO
+      - MSFT
+      - AAPL
+      - GOOGL
+      - ADBE
+    watchlist:
+      - UNH
+      - GE
+      - AMZN
+    fee_model: us_stocks_usd_account
 
-watchlist:
-  - NVDA
+  ibs:
+    enabled: true
+    params:
+      ibs_entry_threshold: 0.2
+      ibs_exit_threshold: 0.8
+      sma_trend_period: 200
+      position_fraction: 1.0
+    universe:
+      - META
+      - NVDA
+      - MSFT
+      - AAPL
+      - V
+      - AMZN
+      - AVGO
+      - MA
+      - ADBE
+      - GOOGL
+      - CSCO
+    watchlist:
+      - PYPL
+      - AMD
+    fee_model: us_stocks_usd_account
 
-params:
-  rsi_period: 2
-  rsi_entry_threshold: 10.0
-  sma_trend_period: 200
-  sma_exit_period: 5
-  rsi_exit_threshold: 0.0
-  sl_percent: 0.0
-  position_fraction: 0.2
-  cooldown_candles: 0
-  sma_trend_buffer: 1.01
-
-fee_model: us_stocks_usd_account
-
-validation_results:
-  # Phase 3 pipeline results -- OOS 2014-2025 ($10k whole shares)
-  pipeline_note: >
-    Results from Phase 3 pipeline (validation/pipeline.py).
-    Slightly different trade counts from Phase 2 scripts due to
-    improved indicator warmup. PnL per trade verified identical
-    via scripts/verify_migration.py.
-  oos_period: "2014-2025"
-  capital: 10000
-  whole_shares: true
-  pooled:
-    oos_trades: 508
-    ttest_t_stat: 4.27
-    ttest_p_value: 0.0000
-  per_asset:
-    META: { trades: 93, pf: 3.49, wr: "74%", robust_pct: 100, stable: true, significant: true, verdict: VALIDATED }
-    MSFT: { trades: 85, pf: 1.66, wr: "72%", robust_pct: 100, stable: true, significant: true, verdict: VALIDATED }
-    GOOGL: { trades: 90, pf: 1.72, wr: "67%", robust_pct: 100, stable: true, significant: true, verdict: VALIDATED }
-  watchlist_detail:
-    NVDA: { trades: 96, pf: 1.48, wr: "67%", robust_pct: 100, stable: true, significant: true, verdict: VALIDATED, note: "promoted from watchlist in Phase 3 pipeline -- keeping in watchlist for dry run" }
-  rejected:
-    AMZN: { trades: 74, pf: 1.39, wr: "65%", robust_pct: 88, stable: false, significant: false, verdict: REJECTED }
-    GS: { trades: 70, pf: 1.55, wr: "64%", robust_pct: 50, stable: true, significant: true, verdict: REJECTED }
-
-  # Previous ETF results for reference
-  previous_etf_validation:
-    universe: [SPY, QQQ, IWM, DIA, EFA]
-    capital: 100000
-    oos_trades: 380
-    oos_profit_factor: 1.36
-    oos_sharpe: 0.65
-    note: "Viable at $100k, not at $10k due to fixed commission impact"
+  tom:
+    enabled: true
+    params:
+      entry_days_before_eom: 5
+      exit_day_of_new_month: 3
+      position_fraction: 1.0
+    universe:
+      - META
+      - NFLX
+      - COST
+      - TSLA
+      - ORCL
+      - LLY
+      - AVGO
+      - V
+      - AAPL
+      - WMT
+      - MA
+      - HD
+      - NVDA
+      - AMZN
+      - ADBE
+      - UNH
+      - MSFT
+    watchlist: []
+    fee_model: us_stocks_usd_account
 
 notes:
-  - "Params Connors canonical, non-optimises"
-  - "Buffer 1.01 seul ajustement (anti-whipsaw)"
+  - "Paper trading mode -- position_fraction=1.0 pour chaque trade"
+  - "Capital $5k -- chaque trade utilise 100% du capital (pas de compounding)"
+  - "Univers = VALIDATED assets uniquement (VALIDATION_RESULTS.md)"
+  - "Watchlist = CONDITIONAL assets"
   - "Necessite compte USD sur Saxo (FX 0.25%/trade tue l'edge)"
-  - "NVDA VALIDATED par pipeline Phase 3 mais garde en watchlist pour dry run"
-  - "AMZN rejete -- instable en 2019-2025"
-  - "GS rejete -- 50% combos profitables (fragile)"

@@ -1,10 +1,11 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE.
-Framework backtest modulaire operationnel. 249 tests.
-Validated strategies : RSI(2) MR (4 stocks), IBS MR (6 stocks), TOM (4 stocks + 3 ETFs VALIDATED).
-Base SQLite unique (data/signal_radar.db) : prix OHLCV + resultats screens/validations.
+Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE.
+Framework backtest modulaire operationnel. 280 tests.
+Validated strategies : RSI(2) MR (10 stocks), IBS MR (13 stocks), TOM (21 stocks + 6 ETFs).
+Base SQLite unique (data/signal_radar.db) : prix OHLCV + resultats + paper trading.
+Scanner multi-strategie avec paper trading ($5k capital).
 
 ## Stack
 Python 3.12+, pytest, numpy, pandas, scipy, yfinance
@@ -188,7 +189,7 @@ cli/                                   -- CLI
   analyze.py                           -- python -m cli.analyze best/compare/asset/summary
 
 data/
-  db.py                                -- SignalRadarDB : base SQLite unique (prix OHLCV + resultats)
+  db.py                                -- SignalRadarDB : base SQLite unique (prix OHLCV + resultats + paper trading)
   base_loader.py                       -- BaseDataLoader + to_cache_arrays()
   yahoo_loader.py                      -- YahooLoader, cache SQLite, adj-close O/H/L
 
@@ -210,14 +211,14 @@ tests/
   test_fee_model.py                    -- Tests fee model
   test_indicator_cache.py              -- Tests cache indicateurs
   test_fast_backtest.py                -- Tests ancien engine trend following
-  test_daily_scanner.py                -- Tests scanner (signaux, pending, watchlist)
+  test_daily_scanner.py                -- Tests scanner multi-strategie (RSI2+IBS+TOM, 33 tests)
   test_notifier.py                     -- Tests notifier Telegram
   test_data_loader.py                  -- Tests YahooLoader validation
-  test_db.py                           -- Tests SignalRadarDB (16 tests)
+  test_db.py                           -- Tests SignalRadarDB + paper trading (27 tests)
   conftest.py                          -- Fixtures partagees
 
 scripts/
-  daily_scanner.py                     -- Scanner quotidien RSI(2) [PRODUCTION]
+  daily_scanner.py                     -- Scanner multi-strategie RSI2+IBS+TOM + paper trading [PRODUCTION]
   verify_migration.py                  -- Verification ancien moteur = nouveau framework
   validate_rsi2_*.py                   -- DEPRECATED -- anciens scripts validation Phase 1-2
   validate_donchian_forex.py           -- DEPRECATED -- Donchian forex (rejete)
@@ -225,7 +226,7 @@ scripts/
   optimize.py                          -- DEPRECATED -- Demo Donchian
 
 config/
-  production_params.yaml               -- Params production figes pour Phase 2
+  production_params.yaml               -- Config scanner multi-strategie ($5k, 3 strategies, paper trading)
   fee_models.yaml                      -- Modeles de frais
   universe_loader.py                   -- Charge les univers YAML (load_universe, list_universes)
   universes/                           -- Univers d'assets YAML
@@ -266,27 +267,38 @@ docs/
 - simulator.py est le seul moteur a utiliser pour tout nouveau backtest
 - start_idx/end_idx dans simulate() pour IS/OOS slicing (pas de reconstruction de cache)
 
-## Phase 2 — Scanner quotidien (COMPLETE)
+## Phase 2 — Scanner multi-strategie + Paper Trading (COMPLETE)
 
-`scripts/daily_scanner.py` — opérationnel depuis 2026-03-01.
+`scripts/daily_scanner.py` — multi-strategie depuis 2026-03-02.
 
 Architecture :
-- `evaluate_signal(rsi2, close, sma200, sma5, position, ..., watchlist=False)` → `SignalResult` — fonction pure, testable
+- `evaluate_signal()` (RSI2), `evaluate_ibs_signal()` (IBS), `evaluate_tom_signal()` (TOM) — fonctions pures, testables
 - Signaux : BUY / SELL / SAFETY_EXIT / HOLD / NO_SIGNAL / PENDING_VALID / PENDING_EXPIRED / WATCH
-- `data/positions.json` — state machine position : null → pending (auto) → open (manuel) → null (manuel)
-- `data/signal_history.csv` — log append-only (timestamp, symbol, signal, rsi2, close, sma200, sma5, entry_price, notes)
+- Paper trading auto : BUY → `db.open_paper_position()`, SELL → `db.close_paper_position()` avec PnL
+- Tables DB : `paper_positions` (open/closed), `signal_log` (audit trail)
+- `config/production_params.yaml` — 3 strategies, $5k capital, position_fraction=1.0
 - `logs/scanner.log` — log rotatif debug (loguru, 1 MB, 30 jours)
 
-Workflow manuel Saxo :
+Strategies evaluees :
+- RSI(2) : 9 universe + 3 watchlist — entry RSI<10 + close>SMA200*1.01, exit close>SMA5
+- IBS : 11 universe + 2 watchlist — entry IBS<0.2 + close>SMA200, exit IBS>0.8 ou close>high_yesterday
+- TOM : 17 universe — entry last 5 trading days, exit 3rd day of new month
 
-1. Lancer scanner après clôture US (~22h CET)
-2. Si BUY → pending écrit auto dans positions.json → exécuter au open du lendemain sur Saxo
-3. Mettre à jour positions.json manuellement : `"status": "open"`, ajouter `"entry_price"`
-4. Scanner détecte SELL/SAFETY_EXIT → exécuter manuellement → remettre null dans positions.json
+Paper trading :
+- Capital $5,000, position_fraction=1.0 (tout le capital par trade)
+- Positions independantes par (strategy, symbol) — RSI2+IBS sur META = 2 positions
+- PnL = (exit - entry) * shares (pas de fees en paper)
+- Pas de compounding — trade toujours sur capital initial
 
-Cohérence anti-look-ahead :
-- Entry : signal sur today (= backtest [i-1]), action demain au open (= [i]) ✓
-- Exit : évalué sur today's close, exécuté au open suivant (slippage documenté, intentionnel)
+Workflow :
+1. Lancer scanner apres cloture US (~22h CET)
+2. BUY → position paper ouverte automatiquement dans la DB
+3. SELL/SAFETY_EXIT → position fermee automatiquement, PnL calcule
+4. Dashboard multi-strategie + Telegram notification
+
+Coherence anti-look-ahead :
+- Entry : signal sur today (= backtest [i-1]), action demain au open (= [i])
+- Exit : evalue sur today's close, execute au open suivant (slippage documente, intentionnel)
 
 ## Phase 3a -- Deploiement Docker + Telegram (COMPLETE)
 
