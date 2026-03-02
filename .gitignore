@@ -18,3 +18,5 @@ logs/
 Untitled-1.txt
 validation_results/*.json
 data/signal_radar.db
+data/signal_history.csv
+data/signal_history_etfs_backup.csv
