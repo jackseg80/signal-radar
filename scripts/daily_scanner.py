@@ -10,10 +10,13 @@ Strategies:
 
 Usage:
     python scripts/daily_scanner.py
+    python scripts/daily_scanner.py --reset-paper       # clear all paper positions
+    python scripts/daily_scanner.py --reset-paper tom    # clear TOM positions only
 """
 
 from __future__ import annotations
 
+import argparse
 import html
 import math
 import sys
@@ -48,6 +51,7 @@ CONFIG_PATH = PROJECT_ROOT / "config" / "production_params.yaml"
 LOG_PATH = PROJECT_ROOT / "logs" / "scanner.log"
 
 LOOKBACK_CALENDAR_DAYS = 600  # ~400 trading days, enough for SMA(200) warmup
+MAX_DATA_AGE_DAYS = 2  # block BUY if last bar is older than this
 
 _STRATEGY_LABELS = {
     "rsi2": "RSI(2) Mean Reversion",
@@ -72,6 +76,7 @@ class Signal(str, Enum):
     PENDING_VALID = "PENDING_VALID"
     PENDING_EXPIRED = "PENDING_EXPIRED"
     WATCH = "WATCH"
+    SKIP = "SKIP"
 
 
 @dataclass
@@ -558,6 +563,7 @@ _SIGNAL_MARKERS = {
     Signal.PENDING_VALID: "pending OK",
     Signal.PENDING_EXPIRED: "pending X",
     Signal.WATCH: "watch",
+    Signal.SKIP: "SKIP(max)",
 }
 
 
@@ -909,9 +915,42 @@ def _configure_logging() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _is_data_stale(last_date: str) -> bool:
+    """Check if data is too old for BUY signals (> MAX_DATA_AGE_DAYS)."""
+    days_old = (datetime.now() - pd.Timestamp(last_date)).days
+    return days_old > MAX_DATA_AGE_DAYS
+
+
+def _parse_args() -> argparse.Namespace:
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description="Multi-Strategy Daily Scanner")
+    parser.add_argument(
+        "--reset-paper",
+        nargs="?",
+        const="__all__",
+        default=None,
+        metavar="STRATEGY",
+        help="Clear paper positions (all or specific strategy: rsi2, ibs, tom)",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
     """Run the multi-strategy daily signal scanner with paper trading."""
+    args = _parse_args()
     _configure_logging()
+
+    db = SignalRadarDB()
+
+    # --- Handle --reset-paper ---
+    if args.reset_paper is not None:
+        strategy = None if args.reset_paper == "__all__" else args.reset_paper
+        n_cleared = db.clear_paper_positions(strategy=strategy)
+        label = strategy.upper() if strategy else "ALL"
+        print(f"Cleared {n_cleared} paper positions ({label})")
+        logger.info("Reset paper positions: {} cleared ({})", n_cleared, label)
+        return
+
     logger.info("Starting multi-strategy scanner")
 
     config = load_config()
@@ -919,7 +958,6 @@ def main() -> None:
     whole_shares = config.get("whole_shares", True)
     strategies_config = config.get("strategies", {})
 
-    db = SignalRadarDB()
     loader = YahooLoader()
 
     # --- Collect all unique symbols across strategies ---
@@ -933,6 +971,7 @@ def main() -> None:
     # --- Fetch data & compute indicators for each symbol (once) ---
     indicators_by_symbol: dict[str, dict] = {}
     last_dates: dict[str, str] = {}
+    stale_symbols: set[str] = set()
 
     for sym in sorted(all_symbols):
         logger.debug("Fetching {}", sym)
@@ -940,12 +979,13 @@ def main() -> None:
             df, last_date = fetch_data(sym, loader)
             last_dates[sym] = last_date
 
-            days_old = (datetime.now() - pd.Timestamp(last_date)).days
-            if days_old > 3:
+            if _is_data_stale(last_date):
+                days_old = (datetime.now() - pd.Timestamp(last_date)).days
                 logger.warning(
-                    "{}: data is {} days old (last bar: {})",
+                    "{}: data is {} days old (last bar: {}) -- BUY blocked",
                     sym, days_old, last_date,
                 )
+                stale_symbols.add(sym)
 
             ind = compute_indicators(df)
 
@@ -975,6 +1015,7 @@ def main() -> None:
         universe = strat_cfg.get("universe", [])
         watchlist = strat_cfg.get("watchlist", [])
         params = strat_cfg.get("params", {})
+        max_positions = strat_cfg.get("max_positions", 1)
         strat_symbols = universe + watchlist
         watchlist_set = set(watchlist)
         position_fraction = params.get("position_fraction", 1.0)
@@ -1040,6 +1081,37 @@ def main() -> None:
 
             result.symbol = sym
             result.strategy = strat_name
+
+            # --- max_positions guard: convert BUY -> SKIP ---
+            if result.signal == Signal.BUY and not is_watch:
+                n_open = len(db.get_open_positions(strategy=strat_name))
+                if n_open >= max_positions:
+                    result = SignalResult(
+                        signal=Signal.SKIP,
+                        symbol=sym,
+                        strategy=strat_name,
+                        notes=(
+                            f"BUY blocked: {n_open}/{max_positions} positions open"
+                            f" (max_positions={max_positions})"
+                        ),
+                        details=result.details,
+                    )
+
+            # --- stale data guard: convert BUY -> SKIP ---
+            if result.signal == Signal.BUY and sym in stale_symbols:
+                last_date = last_dates.get(sym, "?")
+                days_old = (datetime.now() - pd.Timestamp(last_date)).days
+                result = SignalResult(
+                    signal=Signal.SKIP,
+                    symbol=sym,
+                    strategy=strat_name,
+                    notes=(
+                        f"BUY blocked: data stale ({last_date},"
+                        f" {days_old}d old, max {MAX_DATA_AGE_DAYS}d)"
+                    ),
+                    details=result.details,
+                )
+
             results.append(result)
 
             # --- Paper trading ---
@@ -1112,6 +1184,12 @@ def main() -> None:
         all_results, last_dates, open_positions, closed_trades,
         paper_summary, config, indicators_by_symbol,
     )
+
+    # --- Stale data warning ---
+    if stale_symbols:
+        print(f"  WARNING: stale data for {', '.join(sorted(stale_symbols))}")
+        print(f"  (BUY signals blocked -- data older than {MAX_DATA_AGE_DAYS} days)")
+        print()
 
     # --- Telegram ---
     from engine.notifier import send_telegram  # noqa: E402

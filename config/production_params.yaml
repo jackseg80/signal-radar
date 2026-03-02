@@ -4,6 +4,7 @@ whole_shares: true
 strategies:
   rsi2:
     enabled: true
+    max_positions: 1
     params:
       rsi_period: 2
       rsi_entry_threshold: 10.0
@@ -11,15 +12,15 @@ strategies:
       sma_exit_period: 5
       sma_trend_buffer: 1.01
       position_fraction: 1.0
-    universe:
-      - META
+    universe:  # sorted by PF desc (VALIDATION_RESULTS.md)
+      - META     # PF 3.49
+      - GOOGL    # PF 1.72
+      - MSFT     # PF 1.66
+      - NVDA     # PF 1.48
       - V
-      - NVDA
       - MA
       - AVGO
-      - MSFT
       - AAPL
-      - GOOGL
       - ADBE
     watchlist:
       - UNH
@@ -29,22 +30,23 @@ strategies:
 
   ibs:
     enabled: true
+    max_positions: 1
     params:
       ibs_entry_threshold: 0.2
       ibs_exit_threshold: 0.8
       sma_trend_period: 200
       position_fraction: 1.0
-    universe:
-      - META
-      - NVDA
-      - MSFT
-      - AAPL
+    universe:  # sorted by PF desc (VALIDATION_RESULTS.md)
+      - NVDA     # PF 2.07
+      - META     # PF 1.68
+      - MSFT     # PF 1.52
+      - AAPL     # PF 1.51
+      - AMZN     # PF 1.46
+      - GOOGL    # PF 1.29
       - V
-      - AMZN
       - AVGO
       - MA
       - ADBE
-      - GOOGL
       - CSCO
     watchlist:
       - PYPL
@@ -53,12 +55,16 @@ strategies:
 
   tom:
     enabled: true
+    max_positions: 1
     params:
       entry_days_before_eom: 5
       exit_day_of_new_month: 3
       position_fraction: 1.0
-    universe:
-      - META
+    universe:  # sorted by PF desc (VALIDATION_RESULTS.md)
+      - META     # PF 1.89
+      - AAPL     # PF 1.40
+      - NVDA     # PF 1.29
+      - AMZN     # PF 1.29
       - NFLX
       - COST
       - TSLA
@@ -66,12 +72,9 @@ strategies:
       - LLY
       - AVGO
       - V
-      - AAPL
       - WMT
       - MA
       - HD
-      - NVDA
-      - AMZN
       - ADBE
       - UNH
       - MSFT
@@ -83,4 +86,6 @@ notes:
   - "Capital $5k -- chaque trade utilise 100% du capital (pas de compounding)"
   - "Univers = VALIDATED assets uniquement (VALIDATION_RESULTS.md)"
   - "Watchlist = CONDITIONAL assets"
+  - "max_positions=1 par strategie (evite sur-allocation TOM)"
+  - "Univers tries par PF desc -- priorite au meilleur asset"
   - "Necessite compte USD sur Saxo (FX 0.25%/trade tue l'edge)"

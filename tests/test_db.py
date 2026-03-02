@@ -338,6 +338,43 @@ class TestPaperPositions:
         assert summary["n_open"] == 0
 
 
+class TestClearPaperPositions:
+    """Tests pour clear_paper_positions."""
+
+    def test_clear_all_open(self, db: SignalRadarDB) -> None:
+        db.open_paper_position("rsi2", "META", "2026-03-01", 612.30, 8.0)
+        db.open_paper_position("ibs", "NVDA", "2026-03-01", 130.00, 38.0)
+        db.open_paper_position("tom", "AAPL", "2026-03-01", 175.00, 28.0)
+        n = db.clear_paper_positions()
+        assert n == 3
+        assert db.get_open_positions() == []
+
+    def test_clear_by_strategy(self, db: SignalRadarDB) -> None:
+        db.open_paper_position("rsi2", "META", "2026-03-01", 612.30, 8.0)
+        db.open_paper_position("tom", "AAPL", "2026-03-01", 175.00, 28.0)
+        db.open_paper_position("tom", "NVDA", "2026-03-01", 130.00, 38.0)
+        n = db.clear_paper_positions(strategy="tom")
+        assert n == 2
+        remaining = db.get_open_positions()
+        assert len(remaining) == 1
+        assert remaining[0]["strategy"] == "rsi2"
+
+    def test_clear_preserves_closed(self, db: SignalRadarDB) -> None:
+        """Closed trades should NOT be deleted."""
+        db.open_paper_position("rsi2", "META", "2026-03-01", 100.0, 10.0)
+        db.close_paper_position("rsi2", "META", "2026-03-04", 110.0)
+        db.open_paper_position("rsi2", "NVDA", "2026-03-01", 130.0, 5.0)
+        n = db.clear_paper_positions()
+        assert n == 1  # only open NVDA cleared
+        trades = db.get_closed_trades()
+        assert len(trades) == 1  # closed META preserved
+        assert trades[0]["symbol"] == "META"
+
+    def test_clear_empty(self, db: SignalRadarDB) -> None:
+        n = db.clear_paper_positions()
+        assert n == 0
+
+
 class TestSignalLog:
     """Tests pour signal_log."""
 

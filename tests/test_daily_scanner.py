@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scripts.daily_scanner import (
     Signal,
+    _is_data_stale,
     evaluate_signal,
     evaluate_ibs_signal,
     evaluate_tom_signal,
@@ -454,3 +455,54 @@ class TestTOMWatchlist:
             watchlist=True,
         )
         assert result.signal == Signal.WATCH
+
+
+# ---------------------------------------------------------------------------
+# Signal.SKIP enum
+# ---------------------------------------------------------------------------
+
+
+class TestSkipSignal:
+    """Tests for Signal.SKIP enum value."""
+
+    def test_skip_exists(self) -> None:
+        """Signal.SKIP should exist as a valid enum value."""
+        assert Signal.SKIP == "SKIP"
+        assert Signal.SKIP.value == "SKIP"
+
+    def test_skip_distinct_from_buy(self) -> None:
+        """SKIP is not BUY."""
+        assert Signal.SKIP != Signal.BUY
+
+
+# ---------------------------------------------------------------------------
+# Stale data check
+# ---------------------------------------------------------------------------
+
+
+class TestStaleDataCheck:
+    """Tests for _is_data_stale()."""
+
+    def test_fresh_data(self) -> None:
+        """Data from today -> not stale."""
+        from datetime import datetime
+        today = datetime.now().strftime("%Y-%m-%d")
+        assert _is_data_stale(today) is False
+
+    def test_stale_data(self) -> None:
+        """Data from 5 days ago -> stale."""
+        from datetime import datetime, timedelta
+        old_date = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d")
+        assert _is_data_stale(old_date) is True
+
+    def test_borderline_data(self) -> None:
+        """Data from 2 days ago -> not stale (exactly at threshold)."""
+        from datetime import datetime, timedelta
+        border_date = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
+        assert _is_data_stale(border_date) is False
+
+    def test_three_days_old(self) -> None:
+        """Data from 3 days ago -> stale (> 2)."""
+        from datetime import datetime, timedelta
+        old_date = (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")
+        assert _is_data_stale(old_date) is True

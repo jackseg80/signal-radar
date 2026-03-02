@@ -652,6 +652,21 @@ class SignalRadarDB:
                 "by_strategy": by_strategy,
             }
 
+    def clear_paper_positions(self, strategy: str | None = None) -> int:
+        """Supprime les positions paper ouvertes. Retourne le nombre supprime."""
+        with sqlite3.connect(self.db_path) as conn:
+            if strategy:
+                cur = conn.execute(
+                    "DELETE FROM paper_positions "
+                    "WHERE status = 'open' AND strategy = ?",
+                    (strategy,),
+                )
+            else:
+                cur = conn.execute(
+                    "DELETE FROM paper_positions WHERE status = 'open'"
+                )
+            return cur.rowcount
+
     # ------------------------------------------------------------------ #
     # SIGNAL LOG
     # ------------------------------------------------------------------ #
