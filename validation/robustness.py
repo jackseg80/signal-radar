@@ -75,6 +75,11 @@ def run_robustness(
         params = dict(defaults)
         params.update(zip(keys, combo))
 
+        # Skip si pas assez de données pour le warmup de cette combo
+        if start_idx < strategy.warmup(params):
+            profit_factors.append(0.0)
+            continue
+
         result = simulate(
             strategy, cache, params, config,
             start_idx=start_idx, end_idx=end_idx,
@@ -97,6 +102,6 @@ def run_robustness(
         best_pf=max(profit_factors) if profit_factors else 0.0,
         worst_pf=min(profit_factors) if profit_factors else 0.0,
         median_pf=median(profit_factors) if profit_factors else 0.0,
-        robust=pct >= min_profitable_pct,
+        robust=bool(pct >= min_profitable_pct),
         profit_factors=profit_factors,
     )

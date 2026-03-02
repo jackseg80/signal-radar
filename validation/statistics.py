@@ -72,6 +72,6 @@ def run_ttest(
         mean_return_pct=mean_ret * 100,
         t_stat=float(t_stat),
         p_value=p_value,
-        significant=p_value < alpha,
+        significant=bool(p_value < alpha),
         label=label,
     )

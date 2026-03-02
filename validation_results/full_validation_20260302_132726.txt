@@ -1,0 +1,1223 @@
+================================================================
+VALIDATION COMPLETE -- signal-radar
+Date: Mon Mar  2 13:27:26     2026
+================================================================
+
+################################################################
+# RSI2 -- us_stocks_large
+################################################################
+
+  Pipeline de validation : rsi2_mean_reversion / us_stocks_large
+  Universe: US Large Cap Stocks (47 assets)
+  Capital=10,000, whole_shares=True, fee_model=us_stocks_usd_account
+  OOS=2014-01-01 -> 2025-01-01
+
+  AAPL... [32m2026-03-02 13:27:28.139[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AAPL (2005-01-01 -> 2025-01-01): 5033 candles[0m
+94 trades, PF 1.33, CONDITIONAL
+  MSFT... [32m2026-03-02 13:27:28.271[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MSFT (2005-01-01 -> 2025-01-01): 5033 candles[0m
+85 trades, PF 1.66, VALIDATED
+  GOOGL... [32m2026-03-02 13:27:28.396[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour GOOGL (2005-01-01 -> 2025-01-01): 5033 candles[0m
+90 trades, PF 1.72, VALIDATED
+  AMZN... [32m2026-03-02 13:27:28.515[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AMZN (2005-01-01 -> 2025-01-01): 5033 candles[0m
+74 trades, PF 1.39, REJECTED
+  META... [32m2026-03-02 13:27:28.631[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour META (2012-06-01 -> 2025-01-01): 3166 candles[0m
+93 trades, PF 3.49, VALIDATED
+  NVDA... [32m2026-03-02 13:27:28.750[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour NVDA (2005-01-01 -> 2025-01-01): 5033 candles[0m
+96 trades, PF 1.48, VALIDATED
+  TSLA... [32m2026-03-02 13:27:28.869[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour TSLA (2010-07-01 -> 2025-01-01): 3650 candles[0m
+63 trades, PF 1.14, REJECTED
+  AMD... [32m2026-03-02 13:27:28.977[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AMD (2005-01-01 -> 2025-01-01): 5033 candles[0m
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: invalid value encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+80 trades, PF 1.29, REJECTED
+  AVGO... [32m2026-03-02 13:27:29.091[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AVGO (2009-08-01 -> 2025-01-01): 3877 candles[0m
+98 trades, PF 1.59, VALIDATED
+  CRM... [32m2026-03-02 13:27:29.206[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CRM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+76 trades, PF 1.23, REJECTED
+  ADBE... [32m2026-03-02 13:27:29.322[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour ADBE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+76 trades, PF 1.45, CONDITIONAL
+  NFLX... [32m2026-03-02 13:27:29.442[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour NFLX (2005-01-01 -> 2025-01-01): 5033 candles[0m
+89 trades, PF 0.87, REJECTED
+  ORCL... [32m2026-03-02 13:27:29.558[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour ORCL (2005-01-01 -> 2025-01-01): 5033 candles[0m
+82 trades, PF 1.58, VALIDATED
+  INTC... [32m2026-03-02 13:27:29.696[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour INTC (2005-01-01 -> 2025-01-01): 5033 candles[0m
+63 trades, PF 0.86, REJECTED
+  CSCO... [32m2026-03-02 13:27:29.810[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CSCO (2005-01-01 -> 2025-01-01): 5033 candles[0m
+66 trades, PF 0.57, REJECTED
+  JPM... [32m2026-03-02 13:27:29.928[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour JPM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+89 trades, PF 0.92, REJECTED
+  GS... [32m2026-03-02 13:27:30.058[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour GS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+70 trades, PF 1.55, REJECTED
+  BAC... [32m2026-03-02 13:27:30.180[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour BAC (2005-01-01 -> 2025-01-01): 5033 candles[0m
+68 trades, PF 0.76, REJECTED
+  MS... [32m2026-03-02 13:27:30.329[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+82 trades, PF 1.16, REJECTED
+  V... [32m2026-03-02 13:27:30.486[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement V (2008-03-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:27:31.259[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mV: ajustement O/H/L pour splits/dividendes (ratio min=0.8808, max=0.9909)[0m
+[32m2026-03-02 13:27:31.373[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mV: 4226 candles sauvegardees dans la DB[0m
+86 trades, PF 2.48, VALIDATED
+  MA... [32m2026-03-02 13:27:31.527[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement MA (2006-05-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:27:31.779[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mMA: ajustement O/H/L pour splits/dividendes (ratio min=0.9074, max=0.9928)[0m
+[32m2026-03-02 13:27:31.955[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mMA: 4682 candles sauvegardees dans la DB[0m
+91 trades, PF 1.86, VALIDATED
+  JNJ... [32m2026-03-02 13:27:32.149[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour JNJ (2005-01-01 -> 2025-01-01): 5033 candles[0m
+72 trades, PF 0.67, REJECTED
+  UNH... [32m2026-03-02 13:27:32.334[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour UNH (2005-01-01 -> 2025-01-01): 5033 candles[0m
+95 trades, PF 1.33, CONDITIONAL
+  PFE... [32m2026-03-02 13:27:32.500[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PFE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+71 trades, PF 0.58, REJECTED
+  ABBV... [32m2026-03-02 13:27:32.655[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour ABBV (2013-01-01 -> 2025-01-01): 3020 candles[0m
+80 trades, PF 0.88, REJECTED
+  LLY... [32m2026-03-02 13:27:32.791[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour LLY (2005-01-01 -> 2025-01-01): 5033 candles[0m
+90 trades, PF 0.92, REJECTED
+  MRK... [32m2026-03-02 13:27:32.992[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MRK (2005-01-01 -> 2025-01-01): 5033 candles[0m
+77 trades, PF 1.39, CONDITIONAL
+  KO... [32m2026-03-02 13:27:33.174[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour KO (2005-01-01 -> 2025-01-01): 5033 candles[0m
+71 trades, PF 0.95, REJECTED
+  PEP... [32m2026-03-02 13:27:33.340[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PEP (2005-01-01 -> 2025-01-01): 5033 candles[0m
+67 trades, PF 0.50, REJECTED
+  WMT... [32m2026-03-02 13:27:33.531[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour WMT (2005-01-01 -> 2025-01-01): 5033 candles[0m
+71 trades, PF 1.10, REJECTED
+  PG... [32m2026-03-02 13:27:33.691[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PG (2005-01-01 -> 2025-01-01): 5033 candles[0m
+79 trades, PF 1.31, CONDITIONAL
+  COST... [32m2026-03-02 13:27:33.937[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour COST (2005-01-01 -> 2025-01-01): 5033 candles[0m
+75 trades, PF 0.86, REJECTED
+  HD... [32m2026-03-02 13:27:34.162[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour HD (2005-01-01 -> 2025-01-01): 5033 candles[0m
+89 trades, PF 0.92, REJECTED
+  MCD... [32m2026-03-02 13:27:34.377[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MCD (2005-01-01 -> 2025-01-01): 5033 candles[0m
+75 trades, PF 1.02, REJECTED
+  NKE... [32m2026-03-02 13:27:34.572[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour NKE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+66 trades, PF 1.05, REJECTED
+  SBUX... [32m2026-03-02 13:27:34.702[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour SBUX (2005-01-01 -> 2025-01-01): 5033 candles[0m
+68 trades, PF 0.87, REJECTED
+  CAT... [32m2026-03-02 13:27:34.895[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CAT (2005-01-01 -> 2025-01-01): 5033 candles[0m
+74 trades, PF 1.00, REJECTED
+  BA... [32m2026-03-02 13:27:35.067[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour BA (2005-01-01 -> 2025-01-01): 5033 candles[0m
+64 trades, PF 0.82, REJECTED
+  XOM... [32m2026-03-02 13:27:35.274[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XOM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+54 trades, PF 0.95, REJECTED
+  CVX... [32m2026-03-02 13:27:35.449[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CVX (2005-01-01 -> 2025-01-01): 5033 candles[0m
+58 trades, PF 0.84, REJECTED
+  GE... [32m2026-03-02 13:27:35.632[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour GE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+63 trades, PF 1.99, VALIDATED
+  UPS... [32m2026-03-02 13:27:35.842[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour UPS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+60 trades, PF 0.57, REJECTED
+  DIS... [32m2026-03-02 13:27:36.039[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour DIS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+66 trades, PF 1.55, VALIDATED
+  PYPL... [32m2026-03-02 13:27:36.219[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PYPL (2015-07-01 -> 2025-01-01): 2390 candles[0m
+48 trades, PF 1.10, REJECTED
+  SQ... [32m2026-03-02 13:27:36.308[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement SQ (2015-11-01 -> 2025-01-01)...[0m
+$SQ: possibly delisted; no timezone found
+SKIP (Aucune donnee retournee pour SQ (2015-11-01 -> 2025-01-01))
+  UBER... [32m2026-03-02 13:27:36.882[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement UBER (2019-05-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:27:37.029[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mUBER: 1421 candles sauvegardees dans la DB[0m
+29 trades, PF 0.97, REJECTED
+  ABNB... [32m2026-03-02 13:27:37.068[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement ABNB (2020-12-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:27:37.193[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mABNB: 1020 candles sauvegardees dans la DB[0m
+17 trades, PF 0.30, REJECTED
+
+========================================================================
+  Validation : rsi2_mean_reversion
+========================================================================
+  Ticker   Trades     WR     PF  Sharpe    Net%   Robust  Stable  Signif  Verdict     
+  --------------------------------------------------------------------
+  AAPL         94   69%   1.33    1.75    5.1%      92%       v       x  CONDITIONAL 
+  MSFT         85   72%   1.66    2.78    6.6%     100%       v       v  VALIDATED   
+  GOOGL        90   67%   1.72    3.19    9.5%     100%       v       v  VALIDATED   
+  AMZN         74   65%   1.39    1.87    5.3%      88%       x       x  REJECTED    
+  META         93   74%   3.49    6.86   27.1%     100%       v       v  VALIDATED   
+  NVDA         96   67%   1.48    2.14   14.5%     100%       v       v  VALIDATED   
+  TSLA         63   63%   1.14    0.80    4.7%      67%       v       x  REJECTED    
+  AMD          80   62%   1.29    1.47    9.1%      94%       x       x  REJECTED    
+  AVGO         98   69%   1.59    2.72   12.3%      96%       v       v  VALIDATED   
+  CRM          76   72%   1.23    1.25    3.7%      50%       x       x  REJECTED    
+  ADBE         76   70%   1.45    2.19    5.6%      96%       v       x  CONDITIONAL 
+  NFLX         89   64%   0.87   -0.69   -3.8%      48%       x       x  REJECTED    
+  ORCL         82   65%   1.58    2.78    5.9%      92%       v       v  VALIDATED   
+  INTC         63   54%   0.86   -0.90   -2.0%      48%       x       x  REJECTED    
+  CSCO         66   55%   0.57   -3.05   -6.0%       0%       x       x  REJECTED    
+  JPM          89   61%   0.92   -0.40   -1.3%      62%       x       x  REJECTED    
+  GS           70   64%   1.55    2.62    5.2%      50%       v       v  REJECTED    
+  BAC          68   56%   0.76   -1.55   -3.7%       4%       x       x  REJECTED    
+  MS           82   66%   1.16    0.96    2.5%      71%       x       x  REJECTED    
+  V            86   77%   2.48    5.36   11.3%      96%       v       v  VALIDATED   
+  MA           91   74%   1.86    3.22    9.4%     100%       v       v  VALIDATED   
+  JNJ          72   56%   0.67   -2.21   -2.8%       0%       x       x  REJECTED    
+  UNH          95   68%   1.33    1.67    4.9%      96%       v       x  CONDITIONAL 
+  PFE          71   58%   0.58   -2.85   -6.2%       6%       x       x  REJECTED    
+  ABBV         80   65%   0.88   -0.51   -1.8%      23%       x       x  REJECTED    
+  LLY          90   62%   0.92   -0.40   -1.2%      67%       x       x  REJECTED    
+  MRK          77   58%   1.39    1.83    4.5%      81%       v       x  CONDITIONAL 
+  KO           71   65%   0.95   -0.26   -0.6%      12%       x       x  REJECTED    
+  PEP          67   58%   0.50   -3.51   -6.2%       6%       x       x  REJECTED    
+  WMT          71   70%   1.10    0.49    0.7%      58%       v       x  REJECTED    
+  PG           79   65%   1.31    1.50    2.4%      83%       v       x  CONDITIONAL 
+  COST         75   67%   0.86   -0.79   -2.0%      48%       x       x  REJECTED    
+  HD           89   63%   0.92   -0.52   -1.2%      17%       x       x  REJECTED    
+  MCD          75   68%   1.02    0.11    0.1%      88%       x       x  REJECTED    
+  NKE          66   59%   1.05    0.34    0.7%      62%       x       x  REJECTED    
+  SBUX         68   56%   0.87   -0.80   -1.5%      52%       x       x  REJECTED    
+  CAT          74   62%   1.00   -0.05   -0.0%      48%       x       x  REJECTED    
+  BA           64   64%   0.82   -0.94   -2.4%      10%       x       x  REJECTED    
+  XOM          54   59%   0.95   -0.26   -0.6%      38%       x       x  REJECTED    
+  CVX          58   62%   0.84   -0.91   -1.9%      17%       x       x  REJECTED    
+  GE           63   68%   1.99    3.70    9.9%      94%       v       v  VALIDATED   
+  UPS          60   53%   0.57   -2.92   -5.6%       0%       x       x  REJECTED    
+  DIS          66   65%   1.55    2.58    3.4%      83%       v       v  VALIDATED   
+  PYPL         48   50%   1.10    0.66    0.8%      62%       x       x  REJECTED    
+  UBER         29   62%   0.97   -0.10   -0.2%      42%       x       x  REJECTED    
+  ABNB         17   47%   0.30   -6.70   -5.5%       4%       x       x  REJECTED    
+
+  T-test poole : 3390 trades, t=2.90, p=0.0019 - OUI (p<0.05)
+
+  VALIDATED    : MSFT, GOOGL, META, NVDA, AVGO, ORCL, V, MA, GE, DIS
+  CONDITIONAL  : AAPL, ADBE, UNH, MRK, PG
+  REJECTED     : AMZN, TSLA, AMD, CRM, NFLX, INTC, CSCO, JPM, GS, BAC, MS, JNJ, PFE, ABBV, LLY, KO, PEP, WMT, COST, HD, MCD, NKE, SBUX, CAT, BA, XOM, CVX, UPS, PYPL, UBER, ABNB
+========================================================================
+
+  Results saved to validation_results\rsi2_mean_reversion_us_stocks_large_2026-03-02.json
+  Results saved to DB
+
+################################################################
+# IBS -- us_stocks_large
+################################################################
+
+  Pipeline de validation : ibs_mean_reversion / us_stocks_large
+  Universe: US Large Cap Stocks (47 assets)
+  Capital=10,000, whole_shares=True, fee_model=us_stocks_usd_account
+  OOS=2014-01-01 -> 2025-01-01
+
+  AAPL... [32m2026-03-02 13:27:38.645[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AAPL (2005-01-01 -> 2025-01-01): 5033 candles[0m
+289 trades, PF 1.51, VALIDATED
+  MSFT... [32m2026-03-02 13:27:38.765[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MSFT (2005-01-01 -> 2025-01-01): 5033 candles[0m
+309 trades, PF 1.54, VALIDATED
+  GOOGL... [32m2026-03-02 13:27:38.907[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour GOOGL (2005-01-01 -> 2025-01-01): 5033 candles[0m
+277 trades, PF 1.29, VALIDATED
+  AMZN... [32m2026-03-02 13:27:39.030[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AMZN (2005-01-01 -> 2025-01-01): 5033 candles[0m
+267 trades, PF 1.46, VALIDATED
+  META... [32m2026-03-02 13:27:39.150[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour META (2012-06-01 -> 2025-01-01): 3166 candles[0m
+302 trades, PF 1.68, VALIDATED
+  NVDA... [32m2026-03-02 13:27:39.270[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour NVDA (2005-01-01 -> 2025-01-01): 5033 candles[0m
+314 trades, PF 2.07, VALIDATED
+  TSLA... [32m2026-03-02 13:27:39.392[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour TSLA (2010-07-01 -> 2025-01-01): 3650 candles[0m
+216 trades, PF 0.86, REJECTED
+  AMD... [32m2026-03-02 13:27:39.499[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AMD (2005-01-01 -> 2025-01-01): 5033 candles[0m
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: invalid value encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+247 trades, PF 1.32, VALIDATED
+  AVGO... [32m2026-03-02 13:27:39.613[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AVGO (2009-08-01 -> 2025-01-01): 3877 candles[0m
+304 trades, PF 1.43, VALIDATED
+  CRM... [32m2026-03-02 13:27:39.733[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CRM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+252 trades, PF 0.96, REJECTED
+  ADBE... [32m2026-03-02 13:27:39.853[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour ADBE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+274 trades, PF 1.31, VALIDATED
+  NFLX... [32m2026-03-02 13:27:39.980[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour NFLX (2005-01-01 -> 2025-01-01): 5033 candles[0m
+270 trades, PF 1.17, CONDITIONAL
+  ORCL... [32m2026-03-02 13:27:40.118[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour ORCL (2005-01-01 -> 2025-01-01): 5033 candles[0m
+254 trades, PF 1.01, REJECTED
+  INTC... [32m2026-03-02 13:27:40.235[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour INTC (2005-01-01 -> 2025-01-01): 5033 candles[0m
+200 trades, PF 1.02, REJECTED
+  CSCO... [32m2026-03-02 13:27:40.338[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CSCO (2005-01-01 -> 2025-01-01): 5033 candles[0m
+217 trades, PF 1.37, VALIDATED
+  JPM... [32m2026-03-02 13:27:40.451[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour JPM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+272 trades, PF 1.01, REJECTED
+  GS... [32m2026-03-02 13:27:40.594[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour GS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+217 trades, PF 0.75, REJECTED
+  BAC... [32m2026-03-02 13:27:40.717[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour BAC (2005-01-01 -> 2025-01-01): 5033 candles[0m
+219 trades, PF 0.89, REJECTED
+  MS... [32m2026-03-02 13:27:40.860[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+244 trades, PF 0.99, REJECTED
+  V... [32m2026-03-02 13:27:41.054[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement V (2008-03-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:27:41.548[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mV: ajustement O/H/L pour splits/dividendes (ratio min=0.8808, max=0.9909)[0m
+[32m2026-03-02 13:27:41.657[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mV: 4226 candles sauvegardees dans la DB[0m
+315 trades, PF 1.46, VALIDATED
+  MA... [32m2026-03-02 13:27:41.814[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement MA (2006-05-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:27:42.120[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mMA: ajustement O/H/L pour splits/dividendes (ratio min=0.9074, max=0.9928)[0m
+[32m2026-03-02 13:27:42.272[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mMA: 4682 candles sauvegardees dans la DB[0m
+288 trades, PF 1.41, VALIDATED
+  JNJ... [32m2026-03-02 13:27:42.449[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour JNJ (2005-01-01 -> 2025-01-01): 5033 candles[0m
+204 trades, PF 0.59, REJECTED
+  UNH... [32m2026-03-02 13:27:42.595[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour UNH (2005-01-01 -> 2025-01-01): 5033 candles[0m
+279 trades, PF 1.21, CONDITIONAL
+  PFE... [32m2026-03-02 13:27:42.755[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PFE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+197 trades, PF 0.87, REJECTED
+  ABBV... [32m2026-03-02 13:27:42.893[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour ABBV (2013-01-01 -> 2025-01-01): 3020 candles[0m
+226 trades, PF 0.88, REJECTED
+  LLY... [32m2026-03-02 13:27:43.014[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour LLY (2005-01-01 -> 2025-01-01): 5033 candles[0m
+285 trades, PF 1.10, CONDITIONAL
+  MRK... [32m2026-03-02 13:27:43.216[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MRK (2005-01-01 -> 2025-01-01): 5033 candles[0m
+233 trades, PF 0.92, REJECTED
+  KO... [32m2026-03-02 13:27:43.364[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour KO (2005-01-01 -> 2025-01-01): 5033 candles[0m
+227 trades, PF 1.02, REJECTED
+  PEP... [32m2026-03-02 13:27:43.522[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PEP (2005-01-01 -> 2025-01-01): 5033 candles[0m
+257 trades, PF 0.79, REJECTED
+  WMT... [32m2026-03-02 13:27:43.698[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour WMT (2005-01-01 -> 2025-01-01): 5033 candles[0m
+251 trades, PF 0.89, REJECTED
+  PG... [32m2026-03-02 13:27:43.877[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PG (2005-01-01 -> 2025-01-01): 5033 candles[0m
+235 trades, PF 0.79, REJECTED
+  COST... [32m2026-03-02 13:27:44.095[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour COST (2005-01-01 -> 2025-01-01): 5033 candles[0m
+243 trades, PF 0.76, REJECTED
+  HD... [32m2026-03-02 13:27:44.303[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour HD (2005-01-01 -> 2025-01-01): 5033 candles[0m
+274 trades, PF 0.97, REJECTED
+  MCD... [32m2026-03-02 13:27:44.475[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MCD (2005-01-01 -> 2025-01-01): 5033 candles[0m
+264 trades, PF 0.91, REJECTED
+  NKE... [32m2026-03-02 13:27:44.656[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour NKE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+223 trades, PF 0.82, REJECTED
+  SBUX... [32m2026-03-02 13:27:44.805[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour SBUX (2005-01-01 -> 2025-01-01): 5033 candles[0m
+232 trades, PF 1.07, REJECTED
+  CAT... [32m2026-03-02 13:27:44.939[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CAT (2005-01-01 -> 2025-01-01): 5033 candles[0m
+234 trades, PF 0.70, REJECTED
+  BA... [32m2026-03-02 13:27:45.081[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour BA (2005-01-01 -> 2025-01-01): 5033 candles[0m
+190 trades, PF 0.64, REJECTED
+  XOM... [32m2026-03-02 13:27:45.223[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XOM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+197 trades, PF 1.03, REJECTED
+  CVX... [32m2026-03-02 13:27:45.345[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CVX (2005-01-01 -> 2025-01-01): 5033 candles[0m
+201 trades, PF 0.86, REJECTED
+  GE... [32m2026-03-02 13:27:45.516[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour GE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+185 trades, PF 1.38, VALIDATED
+  UPS... [32m2026-03-02 13:27:45.646[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour UPS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+195 trades, PF 0.79, REJECTED
+  DIS... [32m2026-03-02 13:27:45.778[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour DIS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+213 trades, PF 1.07, REJECTED
+  PYPL... [32m2026-03-02 13:27:45.910[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PYPL (2015-07-01 -> 2025-01-01): 2390 candles[0m
+178 trades, PF 1.45, REJECTED
+  SQ... [32m2026-03-02 13:27:46.003[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement SQ (2015-11-01 -> 2025-01-01)...[0m
+$SQ: possibly delisted; no timezone found
+SKIP (Aucune donnee retournee pour SQ (2015-11-01 -> 2025-01-01))
+  UBER... [32m2026-03-02 13:27:46.633[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement UBER (2019-05-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:27:46.732[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mUBER: 1421 candles sauvegardees dans la DB[0m
+83 trades, PF 0.76, REJECTED
+  ABNB... [32m2026-03-02 13:27:46.768[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement ABNB (2020-12-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:27:46.843[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mABNB: 1020 candles sauvegardees dans la DB[0m
+52 trades, PF 0.49, REJECTED
+
+========================================================================
+  Validation : ibs_mean_reversion
+========================================================================
+  Ticker   Trades     WR     PF  Sharpe    Net%   Robust  Stable  Signif  Verdict     
+  --------------------------------------------------------------------
+  AAPL        289   69%   1.51    2.50   20.0%     100%       v       v  VALIDATED   
+  MSFT        309   70%   1.54    2.46   18.5%     100%       v       v  VALIDATED   
+  GOOGL       277   66%   1.29    1.42   10.4%      97%       v       v  VALIDATED   
+  AMZN        267   63%   1.46    2.12   18.0%     100%       v       v  VALIDATED   
+  META        302   72%   1.68    2.71   30.4%     100%       v       v  VALIDATED   
+  NVDA        314   72%   2.07    3.96   72.6%     100%       v       v  VALIDATED   
+  TSLA        216   61%   0.86   -0.63  -12.0%       3%       x       x  REJECTED    
+  AMD         247   62%   1.32    1.68   27.1%     100%       v       v  VALIDATED   
+  AVGO        304   62%   1.43    2.18   22.1%     100%       v       v  VALIDATED   
+  CRM         252   64%   0.96   -0.14   -1.9%      39%       x       x  REJECTED    
+  ADBE        274   68%   1.31    1.62   13.4%     100%       v       v  VALIDATED   
+  NFLX        270   64%   1.17    0.86   10.3%      92%       v       x  CONDITIONAL 
+  ORCL        254   62%   1.01    0.10    0.4%      67%       v       x  REJECTED    
+  INTC        200   64%   1.02    0.15    0.7%      69%       x       x  REJECTED    
+  CSCO        217   67%   1.37    1.79    9.4%     100%       v       v  VALIDATED   
+  JPM         272   65%   1.01    0.04    0.2%       3%       x       x  REJECTED    
+  GS          217   60%   0.75   -1.47   -8.8%       0%       x       x  REJECTED    
+  BAC         219   65%   0.89   -0.59   -4.2%       8%       x       x  REJECTED    
+  MS          244   66%   0.99   -0.02   -0.5%      11%       x       x  REJECTED    
+  V           315   69%   1.46    2.26   16.3%     100%       v       v  VALIDATED   
+  MA          288   67%   1.41    1.82   13.0%     100%       v       v  VALIDATED   
+  JNJ         204   56%   0.59   -2.66  -11.4%       0%       x       x  REJECTED    
+  UNH         279   64%   1.21    1.06    8.4%      94%       v       x  CONDITIONAL 
+  PFE         197   60%   0.87   -0.71   -3.9%       0%       x       x  REJECTED    
+  ABBV        226   61%   0.88   -0.63   -4.7%       0%       x       x  REJECTED    
+  LLY         285   64%   1.10    0.60    4.5%     100%       v       x  CONDITIONAL 
+  MRK         233   55%   0.92   -0.48   -2.8%      33%       x       x  REJECTED    
+  KO          227   63%   1.02    0.12    0.5%      17%       x       x  REJECTED    
+  PEP         257   58%   0.79   -1.31   -6.6%       0%       x       x  REJECTED    
+  WMT         251   55%   0.89   -0.61   -3.2%      42%       x       x  REJECTED    
+  PG          235   57%   0.79   -1.29   -5.5%       8%       x       x  REJECTED    
+  COST        243   55%   0.76   -1.31   -7.4%       0%       x       x  REJECTED    
+  HD          274   65%   0.97   -0.19   -0.9%      19%       x       x  REJECTED    
+  MCD         264   59%   0.91   -0.48   -2.5%      47%       x       x  REJECTED    
+  NKE         223   61%   0.82   -1.01   -6.6%       0%       x       x  REJECTED    
+  SBUX        232   61%   1.07    0.40    2.3%      61%       v       x  REJECTED    
+  CAT         234   59%   0.70   -1.92  -12.5%       0%       x       x  REJECTED    
+  BA          190   59%   0.64   -2.37  -13.5%       0%       x       x  REJECTED    
+  XOM         197   61%   1.03    0.15    0.8%      67%       x       x  REJECTED    
+  CVX         201   63%   0.86   -0.76   -4.1%      25%       x       x  REJECTED    
+  GE          185   68%   1.38    1.79    9.8%      94%       v       v  VALIDATED   
+  UPS         195   63%   0.79   -1.18   -5.7%       0%       x       x  REJECTED    
+  DIS         213   59%   1.07    0.39    2.0%      36%       x       x  REJECTED    
+  PYPL        178   72%   1.45    2.25   13.9%      64%       v       v  REJECTED    
+  UBER         83   58%   0.76   -1.48   -5.7%       3%       x       x  REJECTED    
+  ABNB         52   48%   0.49   -4.32  -10.8%       0%       x       x  REJECTED    
+
+  T-test poole : 10905 trades, t=3.03, p=0.0012 - OUI (p<0.05)
+
+  VALIDATED    : AAPL, MSFT, GOOGL, AMZN, META, NVDA, AMD, AVGO, ADBE, CSCO, V, MA, GE
+  CONDITIONAL  : NFLX, UNH, LLY
+  REJECTED     : TSLA, CRM, ORCL, INTC, JPM, GS, BAC, MS, JNJ, PFE, ABBV, MRK, KO, PEP, WMT, PG, COST, HD, MCD, NKE, SBUX, CAT, BA, XOM, CVX, UPS, DIS, PYPL, UBER, ABNB
+========================================================================
+
+  Results saved to validation_results\ibs_mean_reversion_us_stocks_large_2026-03-02.json
+  Results saved to DB
+
+################################################################
+# TOM -- us_stocks_large
+################################################################
+
+  Pipeline de validation : turn_of_month / us_stocks_large
+  Universe: US Large Cap Stocks (47 assets)
+  Capital=10,000, whole_shares=True, fee_model=us_stocks_usd_account
+  OOS=2014-01-01 -> 2025-01-01
+
+  AAPL... [32m2026-03-02 13:27:48.361[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AAPL (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.40, VALIDATED
+  MSFT... [32m2026-03-02 13:27:48.421[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MSFT (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.23, CONDITIONAL
+  GOOGL... [32m2026-03-02 13:27:48.484[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour GOOGL (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.25, REJECTED
+  AMZN... [32m2026-03-02 13:27:48.544[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AMZN (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.29, VALIDATED
+  META... [32m2026-03-02 13:27:48.600[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour META (2012-06-01 -> 2025-01-01): 3166 candles[0m
+132 trades, PF 1.89, VALIDATED
+  NVDA... [32m2026-03-02 13:27:48.656[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour NVDA (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.29, VALIDATED
+  TSLA... [32m2026-03-02 13:27:48.714[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour TSLA (2010-07-01 -> 2025-01-01): 3650 candles[0m
+132 trades, PF 1.53, VALIDATED
+  AMD... [32m2026-03-02 13:27:48.770[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AMD (2005-01-01 -> 2025-01-01): 5033 candles[0m
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: invalid value encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+132 trades, PF 1.23, VALIDATED
+  AVGO... [32m2026-03-02 13:27:48.827[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AVGO (2009-08-01 -> 2025-01-01): 3877 candles[0m
+132 trades, PF 1.45, VALIDATED
+  CRM... [32m2026-03-02 13:27:48.886[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CRM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.10, REJECTED
+  ADBE... [32m2026-03-02 13:27:48.948[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour ADBE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.31, VALIDATED
+  NFLX... [32m2026-03-02 13:27:49.018[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour NFLX (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.79, VALIDATED
+  ORCL... [32m2026-03-02 13:27:49.080[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour ORCL (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.52, VALIDATED
+  INTC... [32m2026-03-02 13:27:49.168[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour INTC (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.07, REJECTED
+  CSCO... [32m2026-03-02 13:27:49.226[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CSCO (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.06, REJECTED
+  JPM... [32m2026-03-02 13:27:49.286[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour JPM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.30, VALIDATED
+  GS... [32m2026-03-02 13:27:49.344[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour GS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.33, VALIDATED
+  BAC... [32m2026-03-02 13:27:49.402[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour BAC (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.14, REJECTED
+  MS... [32m2026-03-02 13:27:49.460[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.12, CONDITIONAL
+  V... [32m2026-03-02 13:27:49.520[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement V (2008-03-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:27:50.030[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mV: ajustement O/H/L pour splits/dividendes (ratio min=0.8808, max=0.9909)[0m
+[32m2026-03-02 13:27:50.127[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mV: 4226 candles sauvegardees dans la DB[0m
+132 trades, PF 1.44, VALIDATED
+  MA... [32m2026-03-02 13:27:50.206[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement MA (2006-05-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:27:50.405[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mMA: ajustement O/H/L pour splits/dividendes (ratio min=0.9074, max=0.9928)[0m
+[32m2026-03-02 13:27:50.585[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mMA: 4682 candles sauvegardees dans la DB[0m
+132 trades, PF 1.37, VALIDATED
+  JNJ... [32m2026-03-02 13:27:50.674[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour JNJ (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.17, REJECTED
+  UNH... [32m2026-03-02 13:27:50.750[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour UNH (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.28, VALIDATED
+  PFE... [32m2026-03-02 13:27:50.848[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PFE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.12, REJECTED
+  ABBV... [32m2026-03-02 13:27:50.930[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour ABBV (2013-01-01 -> 2025-01-01): 3020 candles[0m
+132 trades, PF 1.33, VALIDATED
+  LLY... [32m2026-03-02 13:27:51.044[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour LLY (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.51, VALIDATED
+  MRK... [32m2026-03-02 13:27:51.127[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MRK (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.27, VALIDATED
+  KO... [32m2026-03-02 13:27:51.234[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour KO (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.08, REJECTED
+  PEP... [32m2026-03-02 13:27:51.307[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PEP (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.17, CONDITIONAL
+  WMT... [32m2026-03-02 13:27:51.418[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour WMT (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.40, VALIDATED
+  PG... [32m2026-03-02 13:27:51.482[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PG (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.09, CONDITIONAL
+  COST... [32m2026-03-02 13:27:51.596[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour COST (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.66, VALIDATED
+  HD... [32m2026-03-02 13:27:51.676[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour HD (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.36, VALIDATED
+  MCD... [32m2026-03-02 13:27:51.764[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MCD (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.15, REJECTED
+  NKE... [32m2026-03-02 13:27:51.828[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour NKE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.00, REJECTED
+  SBUX... [32m2026-03-02 13:27:51.907[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour SBUX (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 0.77, REJECTED
+  CAT... [32m2026-03-02 13:27:52.000[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CAT (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.25, CONDITIONAL
+  BA... [32m2026-03-02 13:27:52.098[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour BA (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.18, CONDITIONAL
+  XOM... [32m2026-03-02 13:27:52.184[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XOM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.17, REJECTED
+  CVX... [32m2026-03-02 13:27:52.282[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CVX (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 0.99, REJECTED
+  GE... [32m2026-03-02 13:27:52.359[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour GE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.07, REJECTED
+  UPS... [32m2026-03-02 13:27:52.431[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour UPS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.03, REJECTED
+  DIS... [32m2026-03-02 13:27:52.503[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour DIS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.20, REJECTED
+  PYPL... [32m2026-03-02 13:27:52.578[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PYPL (2015-07-01 -> 2025-01-01): 2390 candles[0m
+112 trades, PF 1.01, REJECTED
+  SQ... [32m2026-03-02 13:27:52.624[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement SQ (2015-11-01 -> 2025-01-01)...[0m
+$SQ: possibly delisted; no timezone found
+SKIP (Aucune donnee retournee pour SQ (2015-11-01 -> 2025-01-01))
+  UBER... [32m2026-03-02 13:27:53.232[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement UBER (2019-05-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:27:53.447[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mUBER: 1421 candles sauvegardees dans la DB[0m
+66 trades, PF 0.92, REJECTED
+  ABNB... [32m2026-03-02 13:27:53.500[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement ABNB (2020-12-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:27:53.612[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mABNB: 1020 candles sauvegardees dans la DB[0m
+47 trades, PF 0.90, REJECTED
+
+========================================================================
+  Validation : turn_of_month
+========================================================================
+  Ticker   Trades     WR     PF  Sharpe    Net%   Robust  Stable  Signif  Verdict     
+  --------------------------------------------------------------------
+  AAPL        132   59%   1.40    2.55  121.1%     100%       v       v  VALIDATED   
+  MSFT        132   53%   1.23    1.57   38.8%     100%       v       x  CONDITIONAL 
+  GOOGL       132   56%   1.25    1.57   50.2%     100%       x       x  REJECTED    
+  AMZN        132   58%   1.29    1.95  102.6%     100%       v       v  VALIDATED   
+  META        132   64%   1.89    3.19  320.5%     100%       v       v  VALIDATED   
+  NVDA        132   58%   1.29    2.22  136.1%     100%       v       v  VALIDATED   
+  TSLA        132   52%   1.53    3.12  430.7%     100%       v       v  VALIDATED   
+  AMD         132   51%   1.23    1.94  143.9%     100%       v       v  VALIDATED   
+  AVGO        132   61%   1.45    2.99  176.9%     100%       v       v  VALIDATED   
+  CRM         132   55%   1.10    1.16   35.8%     100%       x       x  REJECTED    
+  ADBE        132   61%   1.31    2.06   85.5%     100%       v       v  VALIDATED   
+  NFLX        132   61%   1.79    4.22  443.6%     100%       v       v  VALIDATED   
+  ORCL        132   55%   1.52    2.82   95.2%     100%       v       v  VALIDATED   
+  INTC        132   54%   1.07    1.06   29.5%      83%       x       x  REJECTED    
+  CSCO        132   52%   1.06    0.63    9.1%      83%       x       x  REJECTED    
+  JPM         132   56%   1.30    1.94   61.7%      92%       v       v  VALIDATED   
+  GS          132   59%   1.33    1.96   66.7%      92%       v       v  VALIDATED   
+  BAC         132   55%   1.14    1.21   36.4%      83%       x       x  REJECTED    
+  MS          132   55%   1.12    1.05   27.0%      83%       v       x  CONDITIONAL 
+  V           132   58%   1.44    2.29   75.0%      92%       v       v  VALIDATED   
+  MA          132   57%   1.37    2.38   91.0%     100%       v       v  VALIDATED   
+  JNJ         132   51%   1.17    1.25   25.3%     100%       x       x  REJECTED    
+  UNH         132   58%   1.28    1.83   54.0%      92%       v       v  VALIDATED   
+  PFE         132   57%   1.12    1.17   30.0%     100%       x       x  REJECTED    
+  ABBV        132   55%   1.33    2.05   81.1%     100%       v       v  VALIDATED   
+  LLY         132   59%   1.51    2.81  129.5%     100%       v       v  VALIDATED   
+  MRK         132   62%   1.27    2.07   75.5%     100%       v       v  VALIDATED   
+  KO          132   56%   1.08    0.68    9.2%     100%       x       x  REJECTED    
+  PEP         132   52%   1.17    1.23   22.1%      83%       v       x  CONDITIONAL 
+  WMT         132   55%   1.40    2.04   47.6%     100%       v       v  VALIDATED   
+  PG          132   54%   1.09    0.74   11.5%     100%       v       x  CONDITIONAL 
+  COST        132   58%   1.66    3.58  138.3%     100%       v       v  VALIDATED   
+  HD          132   54%   1.36    2.22   65.0%     100%       v       v  VALIDATED   
+  MCD         132   54%   1.15    1.17   21.5%      92%       x       x  REJECTED    
+  NKE         132   51%   1.00    0.37   -0.9%      67%       x       x  REJECTED    
+  SBUX        132   42%   0.77   -1.28  -38.9%      25%       x       x  REJECTED    
+  CAT         132   53%   1.25    1.73   66.2%      92%       v       x  CONDITIONAL 
+  BA          132   55%   1.18    1.33   49.2%     100%       v       x  CONDITIONAL 
+  XOM         132   48%   1.17    1.16   34.3%     100%       x       x  REJECTED    
+  CVX         132   47%   0.99    0.28   -1.6%      67%       x       x  REJECTED    
+  GE          132   47%   1.07    0.78   14.9%     100%       x       x  REJECTED    
+  UPS         132   47%   1.03    0.52    6.7%      67%       x       x  REJECTED    
+  DIS         132   55%   1.20    1.43   35.3%     100%       x       x  REJECTED    
+  PYPL        112   54%   1.01    0.57    0.4%      92%       x       x  REJECTED    
+  UBER         66   48%   0.92    0.24  -14.7%      83%       x       x  REJECTED    
+  ABNB         47   53%   0.90   -0.12  -13.4%      67%       x       x  REJECTED    
+
+  T-test poole : 5901 trades, t=7.74, p=0.0000 - OUI (p<0.05)
+
+  VALIDATED    : AAPL, AMZN, META, NVDA, TSLA, AMD, AVGO, ADBE, NFLX, ORCL, JPM, GS, V, MA, UNH, ABBV, LLY, MRK, WMT, COST, HD
+  CONDITIONAL  : MSFT, MS, PEP, PG, CAT, BA
+  REJECTED     : GOOGL, CRM, INTC, CSCO, BAC, JNJ, PFE, KO, MCD, NKE, SBUX, XOM, CVX, GE, UPS, DIS, PYPL, UBER, ABNB
+========================================================================
+
+  Results saved to validation_results\turn_of_month_us_stocks_large_2026-03-02.json
+  Results saved to DB
+
+################################################################
+# RSI2 -- us_etfs_broad
+################################################################
+
+  Pipeline de validation : rsi2_mean_reversion / us_etfs_broad
+  Universe: US Broad ETFs (10 assets)
+  Capital=100,000, whole_shares=False, fee_model=us_etfs_usd_account
+  OOS=2014-01-01 -> 2025-01-01
+
+  SPY... [32m2026-03-02 13:27:55.206[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour SPY (2005-01-01 -> 2025-01-01): 5033 candles[0m
+89 trades, PF 1.23, REJECTED
+  QQQ... [32m2026-03-02 13:27:55.327[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour QQQ (2005-01-01 -> 2025-01-01): 5033 candles[0m
+90 trades, PF 1.85, VALIDATED
+  IWM... [32m2026-03-02 13:27:55.448[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour IWM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+70 trades, PF 1.10, CONDITIONAL
+  DIA... [32m2026-03-02 13:27:55.563[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour DIA (2005-01-01 -> 2025-01-01): 5033 candles[0m
+97 trades, PF 1.56, VALIDATED
+  EFA... [32m2026-03-02 13:27:55.681[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour EFA (2005-01-01 -> 2025-01-01): 5033 candles[0m
+68 trades, PF 0.99, REJECTED
+  VTI... [32m2026-03-02 13:27:55.792[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour VTI (2005-01-01 -> 2025-01-01): 5033 candles[0m
+86 trades, PF 1.22, CONDITIONAL
+  VOO... [32m2026-03-02 13:27:55.913[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement VOO (2010-09-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:27:56.401[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mVOO: ajustement O/H/L pour splits/dividendes (ratio min=0.7578, max=0.9878)[0m
+[32m2026-03-02 13:27:56.483[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mVOO: 3602 candles sauvegardees dans la DB[0m
+91 trades, PF 1.29, REJECTED
+  IVV... [32m2026-03-02 13:27:56.602[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour IVV (2005-01-01 -> 2025-01-01): 5033 candles[0m
+90 trades, PF 1.20, REJECTED
+  MDY... [32m2026-03-02 13:27:56.758[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MDY (2005-01-01 -> 2025-01-01): 5033 candles[0m
+82 trades, PF 1.31, CONDITIONAL
+  IJR... [32m2026-03-02 13:27:56.880[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour IJR (2005-01-01 -> 2025-01-01): 5033 candles[0m
+80 trades, PF 1.77, VALIDATED
+
+========================================================================
+  Validation : rsi2_mean_reversion
+========================================================================
+  Ticker   Trades     WR     PF  Sharpe    Net%   Robust  Stable  Signif  Verdict     
+  --------------------------------------------------------------------
+  SPY          89   71%   1.23    1.15    2.1%      96%       x       x  REJECTED    
+  QQQ          90   66%   1.85    3.77    6.5%     100%       v       v  VALIDATED   
+  IWM          70   66%   1.10    0.56    0.9%      85%       v       x  CONDITIONAL 
+  DIA          97   72%   1.56    2.82    4.6%      81%       v       v  VALIDATED   
+  EFA          68   65%   0.99   -0.05   -0.1%      96%       x       x  REJECTED    
+  VTI          86   67%   1.22    1.05    1.7%      92%       v       x  CONDITIONAL 
+  VOO          91   71%   1.29    1.41    2.5%      94%       x       x  REJECTED    
+  IVV          90   70%   1.20    1.00    1.8%      94%       x       x  REJECTED    
+  MDY          82   76%   1.31    1.56    3.2%      88%       v       x  CONDITIONAL 
+  IJR          80   66%   1.77    3.23    5.7%      92%       v       v  VALIDATED   
+
+  T-test poole : 843 trades, t=3.02, p=0.0013 - OUI (p<0.05)
+
+  VALIDATED    : QQQ, DIA, IJR
+  CONDITIONAL  : IWM, VTI, MDY
+  REJECTED     : SPY, EFA, VOO, IVV
+========================================================================
+
+  Results saved to validation_results\rsi2_mean_reversion_us_etfs_broad_2026-03-02.json
+  Results saved to DB
+
+################################################################
+# IBS -- us_etfs_broad
+################################################################
+
+  Pipeline de validation : ibs_mean_reversion / us_etfs_broad
+  Universe: US Broad ETFs (10 assets)
+  Capital=100,000, whole_shares=False, fee_model=us_etfs_usd_account
+  OOS=2014-01-01 -> 2025-01-01
+
+  SPY... [32m2026-03-02 13:27:58.399[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour SPY (2005-01-01 -> 2025-01-01): 5033 candles[0m
+269 trades, PF 1.21, CONDITIONAL
+  QQQ... [32m2026-03-02 13:27:58.516[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour QQQ (2005-01-01 -> 2025-01-01): 5033 candles[0m
+265 trades, PF 1.45, VALIDATED
+  IWM... [32m2026-03-02 13:27:58.631[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour IWM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+217 trades, PF 0.99, REJECTED
+  DIA... [32m2026-03-02 13:27:58.740[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour DIA (2005-01-01 -> 2025-01-01): 5033 candles[0m
+264 trades, PF 0.95, REJECTED
+  EFA... [32m2026-03-02 13:27:58.853[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour EFA (2005-01-01 -> 2025-01-01): 5033 candles[0m
+226 trades, PF 1.41, CONDITIONAL
+  VTI... [32m2026-03-02 13:27:58.963[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour VTI (2005-01-01 -> 2025-01-01): 5033 candles[0m
+267 trades, PF 1.15, REJECTED
+  VOO... [32m2026-03-02 13:27:59.080[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement VOO (2010-09-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:27:59.561[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mVOO: ajustement O/H/L pour splits/dividendes (ratio min=0.7578, max=0.9878)[0m
+[32m2026-03-02 13:27:59.637[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mVOO: 3602 candles sauvegardees dans la DB[0m
+275 trades, PF 1.29, VALIDATED
+  IVV... [32m2026-03-02 13:27:59.782[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour IVV (2005-01-01 -> 2025-01-01): 5033 candles[0m
+271 trades, PF 1.26, VALIDATED
+  MDY... [32m2026-03-02 13:27:59.903[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MDY (2005-01-01 -> 2025-01-01): 5033 candles[0m
+259 trades, PF 1.07, CONDITIONAL
+  IJR... [32m2026-03-02 13:28:00.030[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour IJR (2005-01-01 -> 2025-01-01): 5033 candles[0m
+240 trades, PF 1.12, CONDITIONAL
+
+========================================================================
+  Validation : ibs_mean_reversion
+========================================================================
+  Ticker   Trades     WR     PF  Sharpe    Net%   Robust  Stable  Signif  Verdict     
+  --------------------------------------------------------------------
+  SPY         269   66%   1.21    1.03    4.0%     100%       v       x  CONDITIONAL 
+  QQQ         265   68%   1.45    2.15   10.4%     100%       v       v  VALIDATED   
+  IWM         217   64%   0.99   -0.01   -0.2%      56%       x       x  REJECTED    
+  DIA         264   66%   0.95   -0.28   -1.1%      25%       x       x  REJECTED    
+  EFA         226   72%   1.41    1.88    5.2%      81%       x       v  CONDITIONAL 
+  VTI         267   64%   1.15    0.79    2.8%      83%       x       x  REJECTED    
+  VOO         275   66%   1.29    1.43    5.3%     100%       v       v  VALIDATED   
+  IVV         271   66%   1.26    1.28    4.6%     100%       v       v  VALIDATED   
+  MDY         259   66%   1.07    0.39    1.7%      83%       v       x  CONDITIONAL 
+  IJR         240   62%   1.12    0.71    3.2%     100%       v       x  CONDITIONAL 
+
+  T-test poole : 2553 trades, t=2.82, p=0.0024 - OUI (p<0.05)
+
+  VALIDATED    : QQQ, VOO, IVV
+  CONDITIONAL  : SPY, EFA, MDY, IJR
+  REJECTED     : IWM, DIA, VTI
+========================================================================
+
+  Results saved to validation_results\ibs_mean_reversion_us_etfs_broad_2026-03-02.json
+  Results saved to DB
+
+################################################################
+# TOM -- us_etfs_broad
+################################################################
+
+  Pipeline de validation : turn_of_month / us_etfs_broad
+  Universe: US Broad ETFs (10 assets)
+  Capital=100,000, whole_shares=False, fee_model=us_etfs_usd_account
+  OOS=2014-01-01 -> 2025-01-01
+
+  SPY... [32m2026-03-02 13:28:01.520[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour SPY (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.52, VALIDATED
+  QQQ... [32m2026-03-02 13:28:01.579[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour QQQ (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.47, VALIDATED
+  IWM... [32m2026-03-02 13:28:01.637[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour IWM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.06, REJECTED
+  DIA... [32m2026-03-02 13:28:01.697[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour DIA (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.42, VALIDATED
+  EFA... [32m2026-03-02 13:28:01.754[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour EFA (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 0.95, REJECTED
+  VTI... [32m2026-03-02 13:28:01.813[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour VTI (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.43, VALIDATED
+  VOO... [32m2026-03-02 13:28:01.867[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement VOO (2010-09-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:28:02.366[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mVOO: ajustement O/H/L pour splits/dividendes (ratio min=0.7578, max=0.9878)[0m
+[32m2026-03-02 13:28:02.439[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mVOO: 3602 candles sauvegardees dans la DB[0m
+132 trades, PF 1.51, VALIDATED
+  IVV... [32m2026-03-02 13:28:02.496[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour IVV (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.52, VALIDATED
+  MDY... [32m2026-03-02 13:28:02.585[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MDY (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.25, CONDITIONAL
+  IJR... [32m2026-03-02 13:28:02.646[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour IJR (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.14, CONDITIONAL
+
+========================================================================
+  Validation : turn_of_month
+========================================================================
+  Ticker   Trades     WR     PF  Sharpe    Net%   Robust  Stable  Signif  Verdict     
+  --------------------------------------------------------------------
+  SPY         132   61%   1.52    2.61   52.0%     100%       v       v  VALIDATED   
+  QQQ         132   62%   1.47    2.61   71.9%     100%       v       v  VALIDATED   
+  IWM         132   50%   1.06    0.60    8.8%      92%       x       x  REJECTED    
+  DIA         132   58%   1.42    2.16   39.5%     100%       v       v  VALIDATED   
+  EFA         132   52%   0.95   -0.11   -6.5%      42%       x       x  REJECTED    
+  VTI         132   58%   1.43    2.27   44.7%     100%       v       v  VALIDATED   
+  VOO         132   61%   1.51    2.59   51.5%     100%       v       v  VALIDATED   
+  IVV         132   61%   1.52    2.63   52.6%     100%       v       v  VALIDATED   
+  MDY         132   56%   1.25    1.59   35.3%     100%       v       x  CONDITIONAL 
+  IJR         132   52%   1.14    1.06   22.4%      83%       v       x  CONDITIONAL 
+
+  T-test poole : 1320 trades, t=3.91, p=0.0000 - OUI (p<0.05)
+
+  VALIDATED    : SPY, QQQ, DIA, VTI, VOO, IVV
+  CONDITIONAL  : MDY, IJR
+  REJECTED     : IWM, EFA
+========================================================================
+
+  Results saved to validation_results\turn_of_month_us_etfs_broad_2026-03-02.json
+  Results saved to DB
+
+################################################################
+# RSI2 -- us_etfs_sector
+################################################################
+
+  Pipeline de validation : rsi2_mean_reversion / us_etfs_sector
+  Universe: US Sector ETFs (11 assets)
+  Capital=100,000, whole_shares=False, fee_model=us_etfs_usd_account
+  OOS=2014-01-01 -> 2025-01-01
+
+  XLK... [32m2026-03-02 13:28:04.087[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLK (2005-01-01 -> 2025-01-01): 5033 candles[0m
+80 trades, PF 1.42, CONDITIONAL
+  XLF... [32m2026-03-02 13:28:04.212[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLF (2005-01-01 -> 2025-01-01): 5033 candles[0m
+80 trades, PF 1.35, CONDITIONAL
+  XLE... [32m2026-03-02 13:28:04.332[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+65 trades, PF 0.98, REJECTED
+  XLV... [32m2026-03-02 13:28:04.445[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLV (2005-01-01 -> 2025-01-01): 5033 candles[0m
+88 trades, PF 1.22, CONDITIONAL
+  XLY... [32m2026-03-02 13:28:04.565[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLY (2005-01-01 -> 2025-01-01): 5033 candles[0m
+98 trades, PF 1.63, VALIDATED
+  XLP... [32m2026-03-02 13:28:04.687[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLP (2005-01-01 -> 2025-01-01): 5033 candles[0m
+88 trades, PF 0.86, REJECTED
+  XLI... [32m2026-03-02 13:28:04.803[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLI (2005-01-01 -> 2025-01-01): 5033 candles[0m
+86 trades, PF 1.36, CONDITIONAL
+  XLB... [32m2026-03-02 13:28:04.922[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLB (2005-01-01 -> 2025-01-01): 5033 candles[0m
+80 trades, PF 1.12, REJECTED
+  XLU... [32m2026-03-02 13:28:05.044[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLU (2005-01-01 -> 2025-01-01): 5033 candles[0m
+63 trades, PF 0.76, REJECTED
+  XLRE... [32m2026-03-02 13:28:05.163[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLRE (2015-10-01 -> 2025-01-01): 2323 candles[0m
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: invalid value encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+48 trades, PF 0.70, REJECTED
+  XLC... [32m2026-03-02 13:28:05.224[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement XLC (2018-06-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:28:05.763[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mXLC: ajustement O/H/L pour splits/dividendes (ratio min=0.9302, max=0.9880)[0m
+[32m2026-03-02 13:28:05.796[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mXLC: 1645 candles sauvegardees dans la DB[0m
+47 trades, PF 2.65, REJECTED
+
+========================================================================
+  Validation : rsi2_mean_reversion
+========================================================================
+  Ticker   Trades     WR     PF  Sharpe    Net%   Robust  Stable  Signif  Verdict     
+  --------------------------------------------------------------------
+  XLK          80   65%   1.42    2.10    3.9%      96%       v       x  CONDITIONAL 
+  XLF          80   69%   1.35    1.73    3.3%      94%       v       x  CONDITIONAL 
+  XLE          65   62%   0.98   -0.06   -0.3%      58%       x       x  REJECTED    
+  XLV          88   65%   1.22    1.21    1.9%      83%       v       x  CONDITIONAL 
+  XLY          98   72%   1.63    2.59    6.0%     100%       v       v  VALIDATED   
+  XLP          88   65%   0.86   -0.77   -1.3%      25%       x       x  REJECTED    
+  XLI          86   66%   1.36    1.89    3.3%      94%       v       x  CONDITIONAL 
+  XLB          80   64%   1.12    0.67    1.1%      65%       x       x  REJECTED    
+  XLU          63   60%   0.76   -1.41   -2.3%      12%       x       x  REJECTED    
+  XLRE         48   62%   0.70   -1.76   -2.5%       0%       x       x  REJECTED    
+  XLC          47   79%   2.65    5.88    6.3%      67%       x       v  REJECTED    
+
+  T-test poole : 823 trades, t=1.73, p=0.0416 - OUI (p<0.05)
+
+  VALIDATED    : XLY
+  CONDITIONAL  : XLK, XLF, XLV, XLI
+  REJECTED     : XLE, XLP, XLB, XLU, XLRE, XLC
+========================================================================
+
+  Results saved to validation_results\rsi2_mean_reversion_us_etfs_sector_2026-03-02.json
+  Results saved to DB
+
+################################################################
+# IBS -- us_etfs_sector
+################################################################
+
+  Pipeline de validation : ibs_mean_reversion / us_etfs_sector
+  Universe: US Sector ETFs (11 assets)
+  Capital=100,000, whole_shares=False, fee_model=us_etfs_usd_account
+  OOS=2014-01-01 -> 2025-01-01
+
+  XLK... [32m2026-03-02 13:28:07.395[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLK (2005-01-01 -> 2025-01-01): 5033 candles[0m
+302 trades, PF 1.72, VALIDATED
+  XLF... [32m2026-03-02 13:28:07.520[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLF (2005-01-01 -> 2025-01-01): 5033 candles[0m
+245 trades, PF 1.01, REJECTED
+  XLE... [32m2026-03-02 13:28:07.638[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+201 trades, PF 1.10, CONDITIONAL
+  XLV... [32m2026-03-02 13:28:07.750[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLV (2005-01-01 -> 2025-01-01): 5033 candles[0m
+263 trades, PF 1.08, REJECTED
+  XLY... [32m2026-03-02 13:28:07.870[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLY (2005-01-01 -> 2025-01-01): 5033 candles[0m
+291 trades, PF 1.07, REJECTED
+  XLP... [32m2026-03-02 13:28:07.996[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLP (2005-01-01 -> 2025-01-01): 5033 candles[0m
+257 trades, PF 1.00, REJECTED
+  XLI... [32m2026-03-02 13:28:08.119[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLI (2005-01-01 -> 2025-01-01): 5033 candles[0m
+275 trades, PF 1.05, REJECTED
+  XLB... [32m2026-03-02 13:28:08.246[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLB (2005-01-01 -> 2025-01-01): 5033 candles[0m
+264 trades, PF 1.03, REJECTED
+  XLU... [32m2026-03-02 13:28:08.365[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLU (2005-01-01 -> 2025-01-01): 5033 candles[0m
+233 trades, PF 1.12, REJECTED
+  XLRE... [32m2026-03-02 13:28:08.473[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLRE (2015-10-01 -> 2025-01-01): 2323 candles[0m
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: invalid value encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+161 trades, PF 0.88, REJECTED
+  XLC... [32m2026-03-02 13:28:08.531[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement XLC (2018-06-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:28:08.921[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mXLC: ajustement O/H/L pour splits/dividendes (ratio min=0.9302, max=0.9880)[0m
+[32m2026-03-02 13:28:08.956[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mXLC: 1645 candles sauvegardees dans la DB[0m
+149 trades, PF 1.77, REJECTED
+
+========================================================================
+  Validation : ibs_mean_reversion
+========================================================================
+  Ticker   Trades     WR     PF  Sharpe    Net%   Robust  Stable  Signif  Verdict     
+  --------------------------------------------------------------------
+  XLK         302   72%   1.72    3.26   19.1%     100%       v       v  VALIDATED   
+  XLF         245   68%   1.01    0.05    0.1%      44%       x       x  REJECTED    
+  XLE         201   64%   1.10    0.55    3.2%     100%       v       x  CONDITIONAL 
+  XLV         263   68%   1.08    0.47    2.0%      44%       v       x  REJECTED    
+  XLY         291   66%   1.07    0.36    1.7%      89%       x       x  REJECTED    
+  XLP         257   64%   1.00    0.02   -0.0%      47%       x       x  REJECTED    
+  XLI         275   68%   1.05    0.27    1.2%      75%       v       x  REJECTED    
+  XLB         264   67%   1.03    0.20    0.8%      39%       x       x  REJECTED    
+  XLU         233   69%   1.12    0.60    3.0%      56%       v       x  REJECTED    
+  XLRE        161   65%   0.88   -0.70   -2.4%       3%       x       x  REJECTED    
+  XLC         149   74%   1.77    3.18    9.4%      67%       x       v  REJECTED    
+
+  T-test poole : 2641 trades, t=2.32, p=0.0101 - OUI (p<0.05)
+
+  VALIDATED    : XLK
+  CONDITIONAL  : XLE
+  REJECTED     : XLF, XLV, XLY, XLP, XLI, XLB, XLU, XLRE, XLC
+========================================================================
+
+  Results saved to validation_results\ibs_mean_reversion_us_etfs_sector_2026-03-02.json
+  Results saved to DB
+
+################################################################
+# TOM -- us_etfs_sector
+################################################################
+
+  Pipeline de validation : turn_of_month / us_etfs_sector
+  Universe: US Sector ETFs (11 assets)
+  Capital=100,000, whole_shares=False, fee_model=us_etfs_usd_account
+  OOS=2014-01-01 -> 2025-01-01
+
+  XLK... [32m2026-03-02 13:28:10.689[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLK (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.37, VALIDATED
+  XLF... [32m2026-03-02 13:28:10.752[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLF (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.34, VALIDATED
+  XLE... [32m2026-03-02 13:28:10.814[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.12, CONDITIONAL
+  XLV... [32m2026-03-02 13:28:10.872[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLV (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.39, VALIDATED
+  XLY... [32m2026-03-02 13:28:10.932[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLY (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.44, VALIDATED
+  XLP... [32m2026-03-02 13:28:10.992[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLP (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.25, CONDITIONAL
+  XLI... [32m2026-03-02 13:28:11.054[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLI (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.36, VALIDATED
+  XLB... [32m2026-03-02 13:28:11.114[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLB (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.36, VALIDATED
+  XLU... [32m2026-03-02 13:28:11.176[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLU (2005-01-01 -> 2025-01-01): 5033 candles[0m
+132 trades, PF 1.15, CONDITIONAL
+  XLRE... [32m2026-03-02 13:28:11.234[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XLRE (2015-10-01 -> 2025-01-01): 2323 candles[0m
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: invalid value encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+109 trades, PF 1.52, VALIDATED
+  XLC... [32m2026-03-02 13:28:11.277[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement XLC (2018-06-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:28:11.670[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mXLC: ajustement O/H/L pour splits/dividendes (ratio min=0.9302, max=0.9880)[0m
+[32m2026-03-02 13:28:11.714[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mXLC: 1645 candles sauvegardees dans la DB[0m
+77 trades, PF 1.91, VALIDATED
+
+========================================================================
+  Validation : turn_of_month
+========================================================================
+  Ticker   Trades     WR     PF  Sharpe    Net%   Robust  Stable  Signif  Verdict     
+  --------------------------------------------------------------------
+  XLK         132   57%   1.37    2.28   62.1%     100%       v       v  VALIDATED   
+  XLF         132   58%   1.34    1.98   49.2%     100%       v       v  VALIDATED   
+  XLE         132   50%   1.12    1.02   29.1%     100%       v       x  CONDITIONAL 
+  XLV         132   54%   1.39    2.39   50.0%     100%       v       v  VALIDATED   
+  XLY         132   54%   1.44    2.41   64.5%     100%       v       v  VALIDATED   
+  XLP         132   53%   1.25    1.53   23.5%     100%       v       x  CONDITIONAL 
+  XLI         132   54%   1.36    1.97   43.7%     100%       v       v  VALIDATED   
+  XLB         132   52%   1.36    2.06   53.8%     100%       v       v  VALIDATED   
+  XLU         132   55%   1.15    1.08   20.2%     100%       v       x  CONDITIONAL 
+  XLRE        109   61%   1.52    2.73   62.7%     100%       v       v  VALIDATED   
+  XLC          77   69%   1.91    4.08   73.2%     100%       v       v  VALIDATED   
+
+  T-test poole : 1374 trades, t=4.64, p=0.0000 - OUI (p<0.05)
+
+  VALIDATED    : XLK, XLF, XLV, XLY, XLI, XLB, XLRE, XLC
+  CONDITIONAL  : XLE, XLP, XLU
+  REJECTED     : -
+========================================================================
+
+  Results saved to validation_results\turn_of_month_us_etfs_sector_2026-03-02.json
+  Results saved to DB
+
+################################################################
+# IBS -- forex_majors
+################################################################
+
+  Pipeline de validation : ibs_mean_reversion / forex_majors
+  Universe: Forex Major Pairs (7 assets)
+  Capital=100,000, whole_shares=False, fee_model=forex_saxo
+  OOS=2014-01-01 -> 2025-01-01
+
+  EURUSD=X... [32m2026-03-02 13:28:13.246[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour EURUSD=X (2005-01-01 -> 2025-01-01): 5189 candles[0m
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: invalid value encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+192 trades, PF 2.55, VALIDATED
+  GBPUSD=X... [32m2026-03-02 13:28:13.356[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour GBPUSD=X (2005-01-01 -> 2025-01-01): 5201 candles[0m
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: invalid value encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+205 trades, PF 3.06, VALIDATED
+  USDJPY=X... [32m2026-03-02 13:28:13.468[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour USDJPY=X (2005-01-01 -> 2025-01-01): 5189 candles[0m
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: invalid value encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+324 trades, PF 3.80, VALIDATED
+  USDCHF=X... [32m2026-03-02 13:28:13.597[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour USDCHF=X (2005-01-01 -> 2025-01-01): 5202 candles[0m
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: invalid value encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+216 trades, PF 2.99, VALIDATED
+  AUDUSD=X... [32m2026-03-02 13:28:13.708[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement AUDUSD=X (2005-01-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:28:14.290[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mAUDUSD=X: 4849 candles sauvegardees dans la DB[0m
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: invalid value encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+155 trades, PF 3.34, VALIDATED
+  USDCAD=X... [32m2026-03-02 13:28:14.400[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour USDCAD=X (2005-01-01 -> 2025-01-01): 5204 candles[0m
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: invalid value encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+288 trades, PF 3.03, VALIDATED
+  NZDUSD=X... [32m2026-03-02 13:28:14.528[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour NZDUSD=X (2005-01-01 -> 2025-01-01): 5201 candles[0m
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: divide by zero encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: invalid value encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+201 trades, PF 2.51, VALIDATED
+
+========================================================================
+  Validation : ibs_mean_reversion
+========================================================================
+  Ticker   Trades     WR     PF  Sharpe    Net%   Robust  Stable  Signif  Verdict     
+  --------------------------------------------------------------------
+  EURUSD=X    192   37%   2.55    4.47    5.6%     100%       v       v  VALIDATED   
+  GBPUSD=X    205   41%   3.06    5.35    7.2%     100%       v       v  VALIDATED   
+  USDJPY=X    324   41%   3.80    5.51   12.2%     100%       v       v  VALIDATED   
+  USDCHF=X    216   44%   2.99    5.00    8.3%     100%       v       v  VALIDATED   
+  AUDUSD=X    155   43%   3.34    5.81    8.4%     100%       v       v  VALIDATED   
+  USDCAD=X    288   44%   3.03    5.33   10.9%     100%       v       v  VALIDATED   
+  NZDUSD=X    201   48%   2.51    4.34    9.0%     100%       v       v  VALIDATED   
+
+  T-test poole : 1581 trades, t=12.61, p=0.0000 - OUI (p<0.05)
+
+  VALIDATED    : EURUSD=X, GBPUSD=X, USDJPY=X, USDCHF=X, AUDUSD=X, USDCAD=X, NZDUSD=X
+  CONDITIONAL  : -
+  REJECTED     : -
+========================================================================
+
+  Results saved to validation_results\ibs_mean_reversion_forex_majors_2026-03-02.json
+  Results saved to DB
+
+================================================================
+ANALYSE DES RESULTATS
+================================================================
+
+--- analyze summary ---
+
+============================================================
+  Signal Radar -- Results Summary
+============================================================
+  Strategies tested: 6 (ibs, ibs_mean_reversion, rsi2, rsi2_mean_reversion, tom, turn_of_month)
+  Universes tested:  4 (forex_majors, us_etfs_broad, us_etfs_sector, us_stocks_large)
+  Total screens:     307 asset-strategy pairs
+  Total validations: 208 asset-strategy pairs
+
+  us_etfs_broad -- top assets (PF>1.2 in 2+ strategies):
+    QQQ, VOO, IVV, SPY, DIA, VTI, MDY
+  us_etfs_sector -- top assets (PF>1.2 in 2+ strategies):
+    XLC, XLK, XLY, XLI, XLV, XLF
+  us_stocks_large -- top assets (PF>1.2 in 2+ strategies):
+    META, V, NVDA, MA, AVGO, GE, MSFT, AAPL, GOOGL, AMZN
+============================================================
+
+--- analyze compare us_stocks_large ---
+
+==============================================
+  Strategy comparison -- us_stocks_large
+==============================================
+  Symbol            IBS     RSI2      TOM  Score
+  ------------------------------------------------
+  META             1.68     3.49     1.89  ***
+  V                1.47     2.48     1.44  ***
+  NVDA             2.07     1.48     1.29  ***
+  MA               1.40     1.86     1.37  ***
+  AVGO             1.43     1.59     1.45  ***
+  GE               1.38     1.99     1.07  **-
+  MSFT             1.54     1.66     1.23  ***
+  AAPL             1.51     1.33     1.40  ***
+  GOOGL            1.29     1.72     1.25  ***
+  AMZN             1.46     1.39     1.29  ***
+  ORCL             1.01     1.58     1.52  **-
+  ADBE             1.31     1.45     1.31  ***
+  AMD              1.32     1.29     1.23  ***
+  NFLX             1.17     0.87     1.79  *--
+  DIS              1.07     1.55     1.20  **-
+  UNH              1.21     1.33     1.28  ***
+  GS               0.75     1.55     1.33  **-
+  MRK              0.92     1.39     1.27  **-
+  PYPL             1.45     1.10     1.01  *--
+  LLY              1.10     0.92     1.51  *--
+  TSLA             0.86     1.14     1.53  *--
+  WMT              0.89     1.10     1.40  *--
+  CRM              0.96     1.23     1.10  *--
+  COST             0.76     0.86     1.66  *--
+  MS               0.99     1.16     1.12  ---
+  HD               0.97     0.92     1.36  *--
+  JPM              1.01     0.92     1.30  *--
+  PG               0.79     1.31     1.09  *--
+  XOM              1.03     0.95     1.17  ---
+  ABBV             0.88     0.88     1.33  *--
+  MCD              0.91     1.02     1.15  ---
+  KO               1.02     0.95     1.08  ---
+  CSCO             1.37     0.57     1.06  *--
+  CAT              0.70     1.00     1.25  *--
+  INTC             1.02     0.86     1.07  ---
+  NKE              0.82     1.05     1.00  ---
+  BAC              0.89     0.76     1.14  ---
+  SBUX             1.07     0.87     0.77  ---
+  CVX              0.86     0.84     0.99  ---
+  UBER             0.76     0.97     0.92  ---
+  BA               0.64     0.82     1.18  ---
+  PFE              0.87     0.58     1.12  ---
+  PEP              0.79     0.50     1.17  ---
+  JNJ              0.59     0.67     1.17  ---
+  UPS              0.79     0.57     1.03  ---
+  ABNB             0.49     0.30     0.90  ---
+
+  ibs: 15/46 assets with PF > 1.2
+  rsi2: 19/46 assets with PF > 1.2
+  tom: 25/46 assets with PF > 1.2
+==============================================
+
+--- analyze compare us_etfs_broad ---
+
+==============================================
+  Strategy comparison -- us_etfs_broad
+==============================================
+  Symbol            IBS     RSI2      TOM  Score
+  ------------------------------------------------
+  QQQ              1.45     1.85     1.47  ***
+  VOO              1.30     1.29     1.51  ***
+  IJR              1.12     1.77     1.14  *--
+  IVV              1.26     1.20     1.52  **-
+  SPY              1.21     1.23     1.52  ***
+  DIA              0.95     1.56     1.42  **-
+  VTI              1.15     1.22     1.43  **-
+  MDY              1.07     1.31     1.25  **-
+  EFA              1.41     0.99     0.95  *--
+  IWM              0.99     1.10     1.06  ---
+
+  ibs: 5/10 assets with PF > 1.2
+  rsi2: 7/10 assets with PF > 1.2
+  tom: 7/10 assets with PF > 1.2
+==============================================
+
+--- analyze compare us_etfs_sector ---
+
+==============================================
+  Strategy comparison -- us_etfs_sector
+==============================================
+  Symbol            IBS     RSI2      TOM  Score
+  ------------------------------------------------
+  XLC              1.77     2.65     1.91  ***
+  XLK              1.72     1.42     1.37  ***
+  XLY              1.07     1.63     1.44  **-
+  XLI              1.05     1.36     1.36  **-
+  XLV              1.08     1.22     1.39  **-
+  XLF              1.01     1.35     1.34  **-
+  XLB              1.03     1.12     1.36  *--
+  XLE              1.10     0.98     1.12  ---
+  XLP              1.00     0.86     1.25  *--
+  XLRE             0.88     0.70     1.52  *--
+  XLU              1.12     0.76     1.15  ---
+
+  ibs: 2/11 assets with PF > 1.2
+  rsi2: 6/11 assets with PF > 1.2
+  tom: 9/11 assets with PF > 1.2
+==============================================
+
+--- analyze asset META ---
+
+================================================================================
+  META -- All results
+================================================================================
+  Strategy   Universe             Trades     WR      PF  Sharpe     Net%  Source      
+  ----------------------------------------------------------------------------
+  ibs        us_stocks_large         302   72%    1.68    2.71   +30.4%  screen      
+  rsi2       us_stocks_large          93   74%    3.49    6.86   +27.1%  screen      
+  tom        us_stocks_large         132   64%    1.89    3.19  +320.5%  screen      
+  ibs_mean_reversion us_stocks_large         302   72%    1.68    2.71   +30.4%  validation [V]
+  rsi2_mean_reversion us_stocks_large          93   74%    3.49    6.86   +27.1%  validation [V]
+  turn_of_month us_stocks_large         132   64%    1.89    3.19  +320.5%  validation [V]
+================================================================================
+
+--- analyze asset NVDA ---
+
+================================================================================
+  NVDA -- All results
+================================================================================
+  Strategy   Universe             Trades     WR      PF  Sharpe     Net%  Source      
+  ----------------------------------------------------------------------------
+  ibs        us_stocks_large         314   72%    2.07    3.96   +72.6%  screen      
+  rsi2       us_stocks_large          96   67%    1.48    2.14   +14.5%  screen      
+  tom        us_stocks_large         132   58%    1.29    2.22  +136.1%  screen      
+  ibs_mean_reversion us_stocks_large         314   72%    2.07    3.96   +72.6%  validation [V]
+  rsi2_mean_reversion us_stocks_large          96   67%    1.48    2.14   +14.5%  validation [V]
+  turn_of_month us_stocks_large         132   58%    1.29    2.22  +136.1%  validation [V]
+================================================================================
+
+--- analyze asset AAPL ---
+
+================================================================================
+  AAPL -- All results
+================================================================================
+  Strategy   Universe             Trades     WR      PF  Sharpe     Net%  Source      
+  ----------------------------------------------------------------------------
+  ibs        us_stocks_large         289   69%    1.51    2.50   +20.0%  screen      
+  rsi2       us_stocks_large          94   69%    1.33    1.75    +5.1%  screen      
+  tom        us_stocks_large         132   59%    1.40    2.55  +121.1%  screen      
+  ibs_mean_reversion us_stocks_large         289   69%    1.51    2.50   +20.0%  validation [V]
+  rsi2_mean_reversion us_stocks_large          94   69%    1.33    1.75    +5.1%  validation [C]
+  turn_of_month us_stocks_large         132   59%    1.40    2.55  +121.1%  validation [V]
+================================================================================
+
+--- analyze asset MSFT ---
+
+================================================================================
+  MSFT -- All results
+================================================================================
+  Strategy   Universe             Trades     WR      PF  Sharpe     Net%  Source      
+  ----------------------------------------------------------------------------
+  ibs        us_stocks_large         309   70%    1.54    2.46   +18.5%  screen      
+  rsi2       us_stocks_large          85   72%    1.66    2.78    +6.6%  screen      
+  tom        us_stocks_large         132   53%    1.23    1.57   +38.8%  screen      
+  ibs_mean_reversion us_stocks_large         309   70%    1.54    2.46   +18.5%  validation [V]
+  rsi2_mean_reversion us_stocks_large          85   72%    1.66    2.78    +6.6%  validation [V]
+  turn_of_month us_stocks_large         132   53%    1.23    1.57   +38.8%  validation [C]
+================================================================================
+
+--- analyze asset GOOGL ---
+
+================================================================================
+  GOOGL -- All results
+================================================================================
+  Strategy   Universe             Trades     WR      PF  Sharpe     Net%  Source      
+  ----------------------------------------------------------------------------
+  ibs        us_stocks_large         277   66%    1.29    1.42   +10.4%  screen      
+  rsi2       us_stocks_large          90   67%    1.72    3.19    +9.5%  screen      
+  tom        us_stocks_large         132   56%    1.25    1.57   +50.2%  screen      
+  ibs_mean_reversion us_stocks_large         277   66%    1.29    1.42   +10.4%  validation [V]
+  rsi2_mean_reversion us_stocks_large          90   67%    1.72    3.19    +9.5%  validation [V]
+  turn_of_month us_stocks_large         132   56%    1.25    1.57   +50.2%  validation [R]
+================================================================================
+
+--- analyze asset AMZN ---
+
+================================================================================
+  AMZN -- All results
+================================================================================
+  Strategy   Universe             Trades     WR      PF  Sharpe     Net%  Source      
+  ----------------------------------------------------------------------------
+  ibs        us_stocks_large         267   63%    1.46    2.12   +18.0%  screen      
+  rsi2       us_stocks_large          74   65%    1.39    1.87    +5.3%  screen      
+  tom        us_stocks_large         132   58%    1.29    1.95  +102.6%  screen      
+  ibs_mean_reversion us_stocks_large         267   63%    1.46    2.12   +18.0%  validation [V]
+  rsi2_mean_reversion us_stocks_large          74   65%    1.39    1.87    +5.3%  validation [R]
+  turn_of_month us_stocks_large         132   58%    1.29    1.95  +102.6%  validation [V]
+================================================================================
+
+--- analyze asset V ---
+
+================================================================================
+  V -- All results
+================================================================================
+  Strategy   Universe             Trades     WR      PF  Sharpe     Net%  Source      
+  ----------------------------------------------------------------------------
+  ibs        us_stocks_large         315   69%    1.47    2.29   +16.5%  screen      
+  rsi2       us_stocks_large          86   77%    2.48    5.36   +11.3%  screen      
+  tom        us_stocks_large         132   58%    1.44    2.29   +75.0%  screen      
+  ibs_mean_reversion us_stocks_large         315   69%    1.46    2.26   +16.3%  validation [V]
+  rsi2_mean_reversion us_stocks_large          86   77%    2.48    5.36   +11.3%  validation [V]
+  turn_of_month us_stocks_large         132   58%    1.44    2.29   +75.0%  validation [V]
+================================================================================
+
+--- analyze asset QQQ ---
+
+================================================================================
+  QQQ -- All results
+================================================================================
+  Strategy   Universe             Trades     WR      PF  Sharpe     Net%  Source      
+  ----------------------------------------------------------------------------
+  ibs        us_etfs_broad           265   68%    1.45    2.15   +10.4%  screen      
+  rsi2       us_etfs_broad            90   66%    1.85    3.77    +6.5%  screen      
+  tom        us_etfs_broad           132   62%    1.47    2.61   +71.9%  screen      
+  ibs_mean_reversion us_etfs_broad           265   68%    1.45    2.15   +10.4%  validation [V]
+  rsi2_mean_reversion us_etfs_broad            90   66%    1.85    3.77    +6.5%  validation [V]
+  turn_of_month us_etfs_broad           132   62%    1.47    2.61   +71.9%  validation [V]
+================================================================================
+
+--- analyze asset SPY ---
+
+================================================================================
+  SPY -- All results
+================================================================================
+  Strategy   Universe             Trades     WR      PF  Sharpe     Net%  Source      
+  ----------------------------------------------------------------------------
+  ibs        us_etfs_broad           269   66%    1.21    1.03    +4.0%  screen      
+  rsi2       us_etfs_broad            89   71%    1.23    1.15    +2.1%  screen      
+  tom        us_etfs_broad           132   61%    1.52    2.61   +52.0%  screen      
+  ibs_mean_reversion us_etfs_broad           269   66%    1.21    1.03    +4.0%  validation [C]
+  rsi2_mean_reversion us_etfs_broad            89   71%    1.23    1.15    +2.1%  validation [R]
+  turn_of_month us_etfs_broad           132   61%    1.52    2.61   +52.0%  validation [V]
+================================================================================
+
+================================================================
+DONE: Mon Mar  2 13:28:21     2026
+================================================================

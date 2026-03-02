@@ -71,7 +71,11 @@ def validate(
         print(f"  {symbol}...", end=" ", flush=True)
 
         # 1. Charger données
-        df = loader.get_daily_candles(symbol, start_date, config.data_end)
+        try:
+            df = loader.get_daily_candles(symbol, start_date, config.data_end)
+        except ValueError as e:
+            print(f"SKIP ({e})")
+            continue
 
         # 2. Trouver les indices OOS
         oos_start_idx = int(df.index.searchsorted(pd.Timestamp(config.is_end)))
@@ -89,6 +93,10 @@ def validate(
         if config.oos_mid is not None:
             oos_mid_idx = int(df.index.searchsorted(pd.Timestamp(config.oos_mid)))
         else:
+            oos_mid_idx = None
+
+        # Fallback si oos_mid tombe avant l'OOS effectif (ex: asset récent)
+        if oos_mid_idx is None or oos_mid_idx <= oos_start_idx or oos_mid_idx >= oos_end_idx:
             oos_mid_idx = oos_start_idx + (oos_end_idx - oos_start_idx) // 2
 
         # 3. Build cache (full dataset, merged grid)

@@ -80,5 +80,5 @@ def run_sub_periods(
         n_trades_b=result_b.n_trades,
         pf_b=pf_b,
         sharpe_b=result_b.sharpe,
-        stable=pf_a > 1.0 and pf_b > 1.0,
+        stable=bool(pf_a > 1.0 and pf_b > 1.0),
     )
