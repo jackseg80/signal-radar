@@ -53,6 +53,7 @@ export default function Navbar() {
         <nav className="flex gap-1">
           <NavLink to="/" className={linkClass} end>Dashboard</NavLink>
           <NavLink to="/backtest" className={linkClass}>Backtest</NavLink>
+          <NavLink to="/journal" className={linkClass}>Journal</NavLink>
         </nav>
 
         <div className="ml-auto flex items-center gap-4 text-xs text-[--text-muted]">

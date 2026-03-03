@@ -171,6 +171,14 @@ class SignalRadarDB:
             except sqlite3.OperationalError:
                 pass  # colonne deja existante
 
+            # Migration : ajouter notes a paper_positions si absent
+            try:
+                conn.execute(
+                    "ALTER TABLE paper_positions ADD COLUMN notes TEXT DEFAULT ''"
+                )
+            except sqlite3.OperationalError:
+                pass  # colonne deja existante
+
             # -- Live trades (real trades logged by user) --
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS live_trades (
@@ -1117,4 +1125,273 @@ class SignalRadarDB:
                 "total_pnl": round(total_pnl, 2),
                 "n_open": n_open,
                 "by_strategy": by_strategy,
+            }
+
+    # ------------------------------------------------------------------ #
+    # TRADE JOURNAL
+    # ------------------------------------------------------------------ #
+
+    def update_paper_notes(self, position_id: int, notes: str) -> bool:
+        """Met a jour les notes d'une position paper. Retourne True si modifie."""
+        with self._connect() as conn:
+            cur = conn.execute(
+                "UPDATE paper_positions SET notes = ? WHERE id = ?",
+                (notes, position_id),
+            )
+            return cur.rowcount > 0
+
+    def update_live_notes(self, trade_id: int, notes: str) -> bool:
+        """Met a jour les notes d'un trade live. Retourne True si modifie."""
+        with self._connect() as conn:
+            cur = conn.execute(
+                "UPDATE live_trades SET notes = ? WHERE id = ?",
+                (notes, trade_id),
+            )
+            return cur.rowcount > 0
+
+    def get_journal_entries(
+        self,
+        strategy: str | None = None,
+        symbol: str | None = None,
+        source: str | None = None,
+        search: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> dict:
+        """Timeline unifiee paper + live trades avec contexte signal.
+
+        Args:
+            strategy: Filtre par strategie (rsi2, ibs, tom)
+            symbol: Filtre par symbole
+            source: "paper", "live", ou None (les deux)
+            search: Recherche texte dans les notes
+            limit: Nombre max d'entries
+            offset: Offset pour pagination
+
+        Returns:
+            {"entries": [...], "total": N, "stats": {...}}
+
+        Note: holding_days est en jours calendaires (pas de trading).
+        """
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            entries: list[dict] = []
+
+            # -- Paper positions --
+            if source is None or source == "paper":
+                p_query = "SELECT * FROM paper_positions WHERE 1=1"
+                p_params: list = []
+                if strategy:
+                    p_query += " AND strategy = ?"
+                    p_params.append(strategy)
+                if symbol:
+                    p_query += " AND symbol = ?"
+                    p_params.append(symbol)
+                for r in conn.execute(p_query, p_params).fetchall():
+                    d = dict(r)
+                    entries.append({
+                        "id": d["id"],
+                        "source": "paper",
+                        "strategy": d["strategy"],
+                        "symbol": d["symbol"],
+                        "status": d["status"],
+                        "entry_date": d["entry_date"],
+                        "entry_price": d["entry_price"],
+                        "exit_date": d.get("exit_date"),
+                        "exit_price": d.get("exit_price"),
+                        "shares": d["shares"],
+                        "fees": 0.0,
+                        "pnl_dollars": d.get("pnl_dollars"),
+                        "pnl_pct": d.get("pnl_pct"),
+                        "holding_days": self._holding_days(
+                            d["entry_date"], d.get("exit_date")
+                        ),
+                        "notes": d.get("notes") or "",
+                        "signal_details": None,
+                        "slippage": None,
+                    })
+
+            # -- Live trades --
+            if source is None or source == "live":
+                l_query = "SELECT * FROM live_trades WHERE 1=1"
+                l_params: list = []
+                if strategy:
+                    l_query += " AND strategy = ?"
+                    l_params.append(strategy)
+                if symbol:
+                    l_query += " AND symbol = ?"
+                    l_params.append(symbol)
+                for r in conn.execute(l_query, l_params).fetchall():
+                    d = dict(r)
+                    fees_total = (d.get("fees_entry") or 0) + (
+                        d.get("fees_exit") or 0
+                    )
+                    entries.append({
+                        "id": d["id"],
+                        "source": "live",
+                        "strategy": d["strategy"],
+                        "symbol": d["symbol"],
+                        "status": d["status"],
+                        "entry_date": d["entry_date"],
+                        "entry_price": d["entry_price"],
+                        "exit_date": d.get("exit_date"),
+                        "exit_price": d.get("exit_price"),
+                        "shares": d["shares"],
+                        "fees": round(fees_total, 2),
+                        "pnl_dollars": d.get("pnl_dollars"),
+                        "pnl_pct": d.get("pnl_pct"),
+                        "holding_days": self._holding_days(
+                            d["entry_date"], d.get("exit_date")
+                        ),
+                        "notes": d.get("notes") or "",
+                        "signal_details": None,
+                        "slippage": None,
+                        "paper_position_id": d.get("paper_position_id"),
+                    })
+
+            # -- Search filter (in Python, post-query) --
+            if search:
+                search_lower = search.lower()
+                entries = [
+                    e for e in entries
+                    if search_lower in (e["notes"] or "").lower()
+                ]
+
+            # -- Attach signal context (batch) --
+            self._attach_signal_context(conn, entries)
+
+            # -- Attach slippage for live trades linked to paper --
+            self._attach_slippage(conn, entries)
+
+            # -- Stats (computed on filtered set, before pagination) --
+            total = len(entries)
+            closed = [e for e in entries if e["status"] == "closed"]
+            n_open = total - len(closed)
+            wins = sum(1 for e in closed if (e["pnl_dollars"] or 0) > 0)
+            total_pnl = sum(e["pnl_dollars"] or 0 for e in closed)
+            avg_pnl = round(total_pnl / len(closed), 2) if closed else 0.0
+            holding_list = [
+                e["holding_days"] for e in entries
+                if e["holding_days"] is not None
+            ]
+            avg_holding = (
+                round(sum(holding_list) / len(holding_list), 1)
+                if holding_list else 0.0
+            )
+
+            stats = {
+                "total_trades": total,
+                "open_trades": n_open,
+                "closed_trades": len(closed),
+                "win_rate": round(wins / len(closed) * 100, 1) if closed else 0.0,
+                "total_pnl": round(total_pnl, 2),
+                "avg_pnl": avg_pnl,
+                "avg_holding_days": avg_holding,
+            }
+
+            # -- Sort: open first, then by entry_date desc --
+            entries.sort(
+                key=lambda e: (
+                    0 if e["status"] == "open" else 1,
+                    e["entry_date"],
+                ),
+                reverse=True,
+            )
+
+            # -- Paginate --
+            paginated = entries[offset : offset + limit]
+
+            return {"entries": paginated, "total": total, "stats": stats}
+
+    @staticmethod
+    def _holding_days(entry_date: str, exit_date: str | None) -> int | None:
+        """Jours calendaires entre entry et exit (ou aujourd'hui si open)."""
+        try:
+            entry_dt = datetime.strptime(entry_date, "%Y-%m-%d")
+        except (ValueError, TypeError):
+            return None
+        if exit_date:
+            try:
+                exit_dt = datetime.strptime(exit_date, "%Y-%m-%d")
+            except (ValueError, TypeError):
+                return None
+            return (exit_dt - entry_dt).days
+        return (datetime.now() - entry_dt).days
+
+    @staticmethod
+    def _attach_signal_context(
+        conn: sqlite3.Connection, entries: list[dict]
+    ) -> None:
+        """Attache le details_json du signal_log a chaque entry (batch)."""
+        if not entries:
+            return
+        import json as _json
+
+        seen: dict[tuple[str, str, str], dict | None] = {}
+        for e in entries:
+            key = (e["strategy"], e["symbol"], e["entry_date"])
+            if key in seen:
+                e["signal_details"] = seen[key]
+                continue
+            row = conn.execute(
+                """
+                SELECT details_json FROM signal_log
+                WHERE strategy = ? AND symbol = ?
+                AND timestamp >= ? AND timestamp < date(?, '+4 days')
+                ORDER BY timestamp LIMIT 1
+                """,
+                (key[0], key[1], key[2], key[2]),
+            ).fetchone()
+            detail = None
+            if row and row["details_json"]:
+                try:
+                    detail = _json.loads(row["details_json"])
+                except (ValueError, TypeError):
+                    pass
+            seen[key] = detail
+            e["signal_details"] = detail
+
+    @staticmethod
+    def _attach_slippage(
+        conn: sqlite3.Connection, entries: list[dict]
+    ) -> None:
+        """Attache le slippage paper vs live pour les live trades lies."""
+        paper_ids = [
+            e.get("paper_position_id")
+            for e in entries
+            if e["source"] == "live" and e.get("paper_position_id")
+        ]
+        if not paper_ids:
+            return
+
+        placeholders = ",".join("?" for _ in paper_ids)
+        rows = conn.execute(
+            f"SELECT * FROM paper_positions WHERE id IN ({placeholders})",
+            paper_ids,
+        ).fetchall()
+        paper_map = {r["id"]: dict(r) for r in rows}
+
+        for e in entries:
+            if e["source"] != "live" or not e.get("paper_position_id"):
+                continue
+            paper = paper_map.get(e["paper_position_id"])
+            if not paper:
+                continue
+            entry_diff = round(e["entry_price"] - paper["entry_price"], 2)
+            exit_diff = None
+            pnl_diff = None
+            if (
+                e["exit_price"] is not None
+                and paper.get("exit_price") is not None
+            ):
+                exit_diff = round(e["exit_price"] - paper["exit_price"], 2)
+            if (
+                e["pnl_dollars"] is not None
+                and paper.get("pnl_dollars") is not None
+            ):
+                pnl_diff = round(e["pnl_dollars"] - paper["pnl_dollars"], 2)
+            e["slippage"] = {
+                "entry_diff": entry_diff,
+                "exit_diff": exit_diff,
+                "pnl_diff": pnl_diff,
             }

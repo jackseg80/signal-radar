@@ -4,6 +4,7 @@ import Navbar from './components/layout/Navbar';
 import StatusBar from './components/layout/StatusBar';
 import Dashboard from './pages/Dashboard';
 import Backtest from './pages/Backtest';
+import Journal from './pages/Journal';
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/backtest" element={<Backtest />} />
+              <Route path="/journal" element={<Journal />} />
             </Routes>
           </main>
           <StatusBar />

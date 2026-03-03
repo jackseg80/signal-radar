@@ -378,3 +378,56 @@ class TestMarketProximity:
             for _strat_name, info in asset.get("strategies", {}).items():
                 if info.get("signal") == "BUY":
                     assert info.get("proximity") is None
+
+
+class TestJournal:
+    """Tests for the trade journal endpoints."""
+
+    def test_journal_entries_ok(self, client):
+        """GET /api/journal/entries returns entries from fixture DB."""
+        r = client.get("/api/journal/entries")
+        assert r.status_code == 200
+        data = r.json()
+        # Fixture DB has 2 open + 1 closed paper positions
+        assert data["total"] >= 3
+        assert "entries" in data
+        assert "stats" in data
+        assert data["stats"]["total_trades"] >= 3
+
+    def test_journal_entries_with_trades(self, client):
+        """Journal merges paper + live trades."""
+        r = client.get("/api/journal/entries")
+        assert r.status_code == 200
+        data = r.json()
+        # The test fixture creates paper positions and signal logs
+        # Should have paper entries (from db fixture: 2 open + 1 closed)
+        assert data["total"] >= 3
+        sources = {e["source"] for e in data["entries"]}
+        assert "paper" in sources
+
+    def test_patch_paper_notes(self, client):
+        """PATCH /api/journal/paper/{id}/notes updates notes."""
+        r = client.patch("/api/journal/paper/1/notes", params={"notes": "Test note"})
+        assert r.status_code == 200
+        assert r.json()["status"] == "updated"
+        # Verify note was saved
+        r2 = client.get("/api/journal/entries")
+        paper_1 = next(
+            (e for e in r2.json()["entries"] if e["source"] == "paper" and e["id"] == 1),
+            None,
+        )
+        assert paper_1 is not None
+        assert paper_1["notes"] == "Test note"
+
+    def test_patch_paper_notes_nonexistent(self, client):
+        """PATCH on nonexistent paper position returns 404."""
+        r = client.patch("/api/journal/paper/9999/notes", params={"notes": "x"})
+        assert r.status_code == 404
+
+    def test_journal_filter_strategy(self, client):
+        """Filter by strategy returns only matching trades."""
+        r = client.get("/api/journal/entries", params={"strategy": "rsi2"})
+        assert r.status_code == 200
+        data = r.json()
+        for e in data["entries"]:
+            assert e["strategy"] == "rsi2"

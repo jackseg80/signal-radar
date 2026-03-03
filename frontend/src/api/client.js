@@ -37,6 +37,21 @@ async function deleteJson(path) {
   return resp.json();
 }
 
+async function patchJson(path, params = {}) {
+  const url = new URL(`${BASE}${path}`, window.location.origin);
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') {
+      url.searchParams.set(k, v);
+    }
+  });
+  const resp = await fetch(url, { method: 'PATCH' });
+  if (!resp.ok) {
+    const body = await resp.json().catch(() => ({}));
+    throw new Error(body.detail || `HTTP ${resp.status}`);
+  }
+  return resp.json();
+}
+
 export const api = {
   health:         ()       => fetchJson('/health'),
   signalsToday:   (p = {}) => fetchJson('/signals/today', p),
@@ -62,4 +77,9 @@ export const api = {
   liveClosedTrades: (p = {}) => fetchJson('/live/closed', p),
   liveSummary:    ()       => fetchJson('/live/summary'),
   liveCompare:    ()       => fetchJson('/live/compare'),
+
+  // Journal
+  journalEntries:    (p = {}) => fetchJson('/journal/entries', p),
+  journalPaperNote:  (id, notes) => patchJson(`/journal/paper/${id}/notes`, { notes }),
+  journalLiveNote:   (id, notes) => patchJson(`/journal/live/${id}/notes`, { notes }),
 };

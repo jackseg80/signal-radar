@@ -1,14 +1,15 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE -- CLI Container COMPLETE -- Scanner Trigger COMPLETE -- Live Trades COMPLETE -- Hardening Audit COMPLETE -- Backtest Audit COMPLETE -- Proximity Alerts COMPLETE -- Monthly Refresh COMPLETE.
-Framework backtest modulaire operationnel. 397 tests.
+Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE -- CLI Container COMPLETE -- Scanner Trigger COMPLETE -- Live Trades COMPLETE -- Hardening Audit COMPLETE -- Backtest Audit COMPLETE -- Proximity Alerts COMPLETE -- Monthly Refresh COMPLETE -- Trade Journal COMPLETE.
+Framework backtest modulaire operationnel. 433 tests.
 Validated strategies : RSI(2) MR (10 stocks), IBS MR (13 stocks), TOM (21 stocks + 6 ETFs).
 Base SQLite unique (data/signal_radar.db) : prix OHLCV + resultats + paper trading + live trades.
 Scanner multi-strategie avec paper trading ($5k capital). Trigger manuel via dashboard.
 API REST (FastAPI) + Frontend React (Vite + Tailwind v4 + Recharts). Live trades logging + paper vs live compare.
 Proximity alerts : section "Approaching Trigger" dans le dashboard + mini-barres dans MarketOverview.
 Monthly refresh : cli/runner.py (run_screen/run_validate importables) + scripts/monthly_refresh.py (cron 1er du mois).
+Trade Journal : page /journal dans le dashboard -- timeline unifiee paper+live, signal context, slippage, notes editables.
 
 ## Stack
 Python 3.12+, pytest, numpy, pandas, scipy, yfinance, fastapi, uvicorn
@@ -228,8 +229,8 @@ tests/
   test_monthly_refresh.py              -- Tests monthly_refresh.py (verdict diff + Telegram format, 18 tests)
   test_notifier.py                     -- Tests notifier Telegram
   test_data_loader.py                  -- Tests YahooLoader validation
-  test_db.py                           -- Tests SignalRadarDB + paper trading + live trades + API methods (51 tests)
-  test_api.py                          -- Tests FastAPI endpoints + scanner trigger + live trades + input validation (31 tests)
+  test_db.py                           -- Tests SignalRadarDB + paper trading + live trades + API methods + journal (57 tests)
+  test_api.py                          -- Tests FastAPI endpoints + scanner trigger + live trades + journal (36 tests)
   conftest.py                          -- Fixtures partagees
 
 scripts/
@@ -266,6 +267,7 @@ api/                                   -- FastAPI Dashboard API
     backtest.py                        -- GET /api/backtest/screens, /validations, /compare
     scanner.py                         -- POST /api/scanner/run, GET /api/scanner/status
     live.py                            -- POST /api/live/open, /close ; GET /api/live/open, /closed, /summary, /compare
+    journal.py                         -- GET /api/journal/entries ; PATCH /api/journal/paper/{id}/notes, /live/{id}/notes
 
 Dockerfile                             -- Scanner image (cron + uv + python:3.12-slim) -- inclut cli/ validation/ strategies/
 Dockerfile.api                         -- API image (uvicorn + frontend/dist/ + scanner code + numpy/yfinance/loguru + HEALTHCHECK)
@@ -778,3 +780,39 @@ docker compose exec scanner python scripts/monthly_refresh.py --dry-run
 - TestDefaultCombos (5 tests) : strategies valides, univers valides, count, no-forex, no-donchian
 - TestSnapshotValidations (1 test) : DB vide -> snapshot vide
 - Total : 358 -> 397 tests
+
+## Trade Journal (COMPLETE)
+
+Page /journal dans le dashboard : timeline unifiee des trades paper et live, avec contexte signal, comparaison slippage, et notes editables.
+
+### Fichiers crees/modifies
+
+- `data/db.py` : migration `paper_positions.notes` (ALTER TABLE safe) + 3 methodes publiques :
+  - `update_paper_notes(position_id, notes)` -> bool
+  - `update_live_notes(trade_id, notes)` -> bool
+  - `get_journal_entries(strategy, symbol, source, search, limit, offset)` -> dict
+  - helpers prives `_holding_days`, `_attach_signal_context` (batch, fenetre 4j), `_attach_slippage`
+- `api/routes/journal.py` : 3 endpoints (GET /entries, PATCH /paper/{id}/notes, PATCH /live/{id}/notes)
+- `api/app.py` : router journal + PATCH ajoute dans allow_methods CORS
+- `frontend/src/api/client.js` : `patchJson()` + `journalEntries`, `journalPaperNote`, `journalLiveNote`
+- `frontend/src/pages/Journal.jsx` : page principale, timeline groupee par date
+- `frontend/src/components/journal/` :
+  - `JournalFilters.jsx` -- dropdowns strategie/symbol/source + search (debounce 300ms)
+  - `JournalStats.jsx` -- total/WR/PnL/avg-hold (depuis stats API)
+  - `TradeCard.jsx` -- card par trade : badge PAPER/LIVE, signal context formate, slippage, notes
+  - `NoteEditor.jsx` -- editeur inline (click Edit -> textarea -> Save/Cancel)
+
+### Schema retourne par get_journal_entries
+
+- `source` : "paper" ou "live"
+- `holding_days` : jours calendaires (pas trading days -- intentionnel pour mesurer immobilisation capital)
+- `signal_details` : dict depuis `signal_log.details_json`, null si pas de signal dans les 4j suivant l'entree
+- `slippage` : {entry_diff, exit_diff, pnl_diff} pour les live trades avec `paper_position_id`, null sinon
+- Tri : open d'abord, puis par entry_date desc
+- Stats aggregees sur l'ensemble filtre (avant pagination)
+
+### Tests ajoutes (+11)
+
+- TestJournal DB (6 tests) : update_paper/live notes, nonexistent, entries empty, entries mixed
+- TestJournal API (5 tests) : entries ok, with trades, patch notes, nonexistent, filter strategy
+- Total : 422 -> 433 tests

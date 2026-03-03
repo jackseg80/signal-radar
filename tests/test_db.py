@@ -694,3 +694,86 @@ class TestDetailsJson:
         history = db.get_signal_history(strategy="rsi2", symbol="META", days=7)
         assert len(history) == 1
         assert history[0]["details_json"] is not None
+
+
+class TestJournal:
+    """Tests pour le trade journal (update notes + get_journal_entries)."""
+
+    def test_update_paper_notes(self, db: SignalRadarDB) -> None:
+        """Update notes on a paper position."""
+        db.open_paper_position("rsi2", "META", "2026-03-05", 612.30, 8.0)
+        assert db.update_paper_notes(1, "Strong bounce") is True
+        trades = db.get_open_positions()
+        assert trades[0]["notes"] == "Strong bounce"
+
+    def test_update_paper_notes_nonexistent(self, db: SignalRadarDB) -> None:
+        """Returns False for non-existent paper position."""
+        assert db.update_paper_notes(9999, "test") is False
+
+    def test_update_live_notes(self, db: SignalRadarDB) -> None:
+        """Update notes on a live trade."""
+        db.open_live_trade("rsi2", "META", "2026-03-05", 612.30, 8.0)
+        assert db.update_live_notes(1, "Wider spread at open") is True
+        trades = db.get_open_live_trades()
+        assert trades[0]["notes"] == "Wider spread at open"
+
+    def test_update_live_notes_nonexistent(self, db: SignalRadarDB) -> None:
+        """Returns False for non-existent live trade."""
+        assert db.update_live_notes(9999, "test") is False
+
+    def test_journal_entries_empty(self, db: SignalRadarDB) -> None:
+        """Empty DB returns empty entries and zero stats."""
+        result = db.get_journal_entries()
+        assert result["entries"] == []
+        assert result["total"] == 0
+        assert result["stats"]["total_trades"] == 0
+        assert result["stats"]["win_rate"] == 0.0
+
+    def test_journal_entries_mixed(self, db: SignalRadarDB) -> None:
+        """Paper + live trades merge correctly with stats."""
+        import json
+
+        # Paper: open
+        db.open_paper_position("rsi2", "META", "2026-03-05", 612.30, 8.0)
+        # Paper: closed winner
+        db.open_paper_position("ibs", "NVDA", "2026-03-01", 128.50, 38.0)
+        db.close_paper_position("ibs", "NVDA", "2026-03-04", 135.00)
+        # Live: closed loser
+        db.open_live_trade(
+            "rsi2", "MSFT", "2026-03-02", 420.00, 11.0,
+            fees=1.0, paper_position_id=1,
+        )
+        db.close_live_trade("rsi2", "MSFT", "2026-03-06", 415.00, fees=1.0)
+        # Signal log for context
+        db.log_signal(
+            "2026-03-05 22:15:00", "rsi2", "META", "BUY", 612.30, 8.2, "",
+            details_json=json.dumps({"rsi2": 8.2, "trend_ok": True}),
+        )
+
+        result = db.get_journal_entries()
+        entries = result["entries"]
+        stats = result["stats"]
+
+        # 3 trades total (1 paper open, 1 paper closed, 1 live closed)
+        assert result["total"] == 3
+        assert len(entries) == 3
+
+        # Stats
+        assert stats["total_trades"] == 3
+        assert stats["open_trades"] == 1
+        assert stats["closed_trades"] == 2
+
+        # Open paper should be first (open first, then sorted by date desc)
+        open_entries = [e for e in entries if e["status"] == "open"]
+        assert len(open_entries) == 1
+        assert open_entries[0]["source"] == "paper"
+        assert open_entries[0]["symbol"] == "META"
+
+        # Check sources present
+        sources = {e["source"] for e in entries}
+        assert sources == {"paper", "live"}
+
+        # Signal context for META should be attached
+        meta_entry = next(e for e in entries if e["symbol"] == "META")
+        assert meta_entry["signal_details"] is not None
+        assert meta_entry["signal_details"]["rsi2"] == 8.2
