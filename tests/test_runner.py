@@ -25,10 +25,11 @@ class TestConstants:
         assert "rsi2" in STRATEGIES
         assert "ibs" in STRATEGIES
         assert "tom" in STRATEGIES
+        assert "ibs_tom" in STRATEGIES
         assert "donchian" in STRATEGIES
 
     def test_strategies_count(self) -> None:
-        assert len(STRATEGIES) == 4
+        assert len(STRATEGIES) == 5
 
     def test_fee_models_keys(self) -> None:
         assert "us_stocks_usd_account" in FEE_MODELS

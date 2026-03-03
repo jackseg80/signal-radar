@@ -30,6 +30,7 @@ from engine.simulator import simulate
 from strategies.base import BaseStrategy
 from strategies.donchian_trend import DonchianTrend
 from strategies.ibs_mean_reversion import IBSMeanReversion
+from strategies.ibs_tom import IBSTurnOfMonth
 from strategies.rsi2_mean_reversion import RSI2MeanReversion
 from strategies.turn_of_month import TurnOfMonth
 from validation.config import ValidationConfig
@@ -42,6 +43,7 @@ STRATEGIES: dict[str, type[BaseStrategy]] = {
     "rsi2": RSI2MeanReversion,
     "ibs": IBSMeanReversion,
     "tom": TurnOfMonth,
+    "ibs_tom": IBSTurnOfMonth,
     "donchian": DonchianTrend,
 }
 
