@@ -116,7 +116,12 @@ class BacktestResult:
 
     @property
     def sharpe(self) -> float:
-        """Sharpe annualisé (approximation ~252 trading days)."""
+        """Sharpe annualisé basé sur la fréquence réelle des trades.
+
+        Annualise avec sqrt(trades_per_year) au lieu de sqrt(252),
+        car self.returns sont des per-trade returns, pas des daily returns.
+        La durée couverte est estimée depuis le premier entry au dernier exit.
+        """
         if len(self.returns) < 2:
             return 0.0
         import numpy as np
@@ -124,4 +129,12 @@ class BacktestResult:
         rets = np.array(self.returns)
         if rets.std() == 0:
             return 0.0
-        return float(rets.mean() / rets.std() * math.sqrt(252))
+
+        # Estimer trades/an depuis la durée couverte en trading days
+        first_entry = self.trades[0].entry_candle
+        last_exit = self.trades[-1].exit_candle
+        span_trading_days = max(last_exit - first_entry, 1)
+        span_years = span_trading_days / 252.0
+        trades_per_year = len(self.trades) / span_years
+
+        return float(rets.mean() / rets.std() * math.sqrt(trades_per_year))

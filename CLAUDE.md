@@ -1,7 +1,7 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE -- CLI Container COMPLETE -- Scanner Trigger COMPLETE -- Live Trades COMPLETE -- Hardening Audit COMPLETE.
+Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE -- CLI Container COMPLETE -- Scanner Trigger COMPLETE -- Live Trades COMPLETE -- Hardening Audit COMPLETE -- Backtest Audit COMPLETE.
 Framework backtest modulaire operationnel. 348 tests.
 Validated strategies : RSI(2) MR (10 stocks), IBS MR (13 stocks), TOM (21 stocks + 6 ETFs).
 Base SQLite unique (data/signal_radar.db) : prix OHLCV + resultats + paper trading + live trades.
@@ -230,6 +230,7 @@ tests/
 
 scripts/
   daily_scanner.py                     -- Scanner multi-strategie RSI2+IBS+TOM + paper trading [PRODUCTION]
+  compare_ibs_exit_timing.py           -- Compare IBS exit close[i] vs open[i+1] (audit biais)
   verify_migration.py                  -- Verification ancien moteur = nouveau framework
   validate_rsi2_*.py                   -- DEPRECATED -- anciens scripts validation Phase 1-2
   validate_donchian_forex.py           -- DEPRECATED -- Donchian forex (rejete)
@@ -280,8 +281,11 @@ docs/
 
 ## Conventions techniques
 
-- Anti-look-ahead : signal sur [i-1], action sur open[i]
-- Gap-aware exits : verifier open vs SL avant le intraday
+- Anti-look-ahead entry : signal sur [i-1], action sur open[i]
+- Exit close-based MR : signal sur close[i], exit a close[i] (mesure CONSERVATEUR vs open[i+1])
+- SMA5 exit : close[i] > SMA5[i] ⟺ close[i] > mean(close[i-4:i]) (pas de look-ahead circulaire)
+- Sharpe annualise avec sqrt(trades_per_year) (pas sqrt(252) -- per-trade returns, pas daily)
+- Gap-aware exits : verifier open vs SL avant intraday
 - Force-close fin de donnees : EXCLU de trade_pnls (biais)
 - t-test pour signification statistique MR (block bootstrap teste l'ordre, pas la selection)
 - `to_cache_arrays(df)` : fonction module-level dans `data/base_loader.py`
@@ -642,3 +646,53 @@ Audit securite, integrite, performance, et qualite du code. 348 tests.
 - TestInputValidation (10 tests) : prix negatifs, shares=0, fees negatifs, limit invalide
 - TestLiveTrades edge cases (7 tests) : loss, breakeven, zero fees, pnl_pct net, batch prices
 - Total : 329 -> 348 tests
+
+## Backtest Audit (COMPLETE)
+
+Audit systematique du moteur de backtest (simulator.py, strategies/, indicators.py).
+Objectif : identifier les biais communs (look-ahead, execution, annualisation).
+
+### Resultats de l'audit
+
+1. **RSI2 SMA exit : pas de look-ahead circulaire** (prouve algebriquement)
+   - `close[i] > SMA5[i]` se reduit a `close[i] > mean(close[i-4:i])`
+   - L'auto-reference de close[i] dans SMA5 s'annule : 5*C > C+sum(prev4) ⟺ 4*C > sum(prev4)
+   - Le signal RSI2 est mathematiquement propre. Seul l'execution timing (close vs next open) est une approximation, symetrique et non biaisee.
+
+2. **IBS exit : biais inverse a l'hypothese** (mesure empiriquement)
+   - Hypothese initiale : IBS > 0.8 (close pres du high) = exit optimiste, open[i+1] serait plus bas
+   - Resultat mesure (`scripts/compare_ibs_exit_timing.py`) : open[i+1] est PLUS HAUT en moyenne
+   - PF moyen : 1.53 (close) → 1.68 (open[i+1]) = +9.4%. PnL total : +37.1%
+   - Cause : premium overnight sur clotures fortes (Lou, Polk & Skouras 2019)
+   - Conclusion : le backtest IBS est CONSERVATEUR, pas optimiste
+
+3. **TOM exit : pas de biais** — date de sortie calendaire connue d'avance
+
+4. **Sharpe annualise corrige** — ancien calcul sqrt(252) sur per-trade returns surestimait ~5x
+   - Nouveau calcul : `sqrt(trades_per_year)` base sur la duree reelle couverte
+   - Impact : affichage uniquement, aucun impact sur les verdicts (PF/robustesse/t-test)
+
+### IBS exit timing -- resultats detailles
+
+OOS 2014-2025, $10k whole shares, fee_model=us_stocks_usd_account :
+
+| Ticker | Trades | PF close | PF open[i+1] | Delta |
+| ------ | ------ | -------- | ------------ | ----- |
+| META   | 331    | 1.72     | 1.93         | +12.5%|
+| MSFT   | 325    | 1.53     | 1.73         | +13.7%|
+| GOOGL  | 300    | 1.29     | 1.41         | +9.0% |
+| NVDA   | 332    | 1.86     | 2.08         | +12.0%|
+| AMZN   | 296    | 1.41     | 1.45         | +2.7% |
+| AAPL   | 301    | 1.40     | 1.46         | +4.4% |
+
+Delta positif sur les 6 assets sans exception. Pas d'outlier dominant.
+Breakdown : ibs_exit +$2.69/trade, prev_high_exit +$5.93/trade, trend_break +$1.46/trade.
+
+### Conventions backtest confirmees
+
+- Entry anti-look-ahead : signal sur [i-1], action sur open[i] -- CORRECT
+- Exit close-based MR : signal sur close[i], exit a close[i] -- CONSERVATEUR (mesure)
+- Gap-aware SL : check open vs SL avant intraday -- CORRECT
+- Force-close exclu des resultats -- CORRECT
+- Fee model complet (commission + spread + FX + overnight) -- CORRECT
+- Entry fee non double-comptee -- CORRECT (bug Phase 1 corrige)
