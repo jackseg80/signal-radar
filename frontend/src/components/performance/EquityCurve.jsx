@@ -12,7 +12,7 @@ function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div className="bg-[--bg-card] border border-[--border-subtle] rounded-lg p-3 text-xs shadow-xl">
+    <div className="glass-card rounded-lg p-3 text-xs shadow-xl border border-[--glass-border]">
       <div className="text-[--text-secondary] mb-1">{d.date}</div>
       <div className="font-medium">Cumulative: {formatPnl(d.cumulative_pnl)}</div>
       <div className="text-[--text-muted]">
@@ -42,12 +42,17 @@ export default function EquityCurve() {
   return (
     <Card title="Equity Curve">
       <ResponsiveContainer width="100%" height={250}>
-        <AreaChart data={points} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+        <AreaChart data={points} margin={{ top: 5, right: 5, bottom: 5, left: 5 }} style={{ cursor: 'crosshair' }}>
           <defs>
             <linearGradient id="pnlGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--accent-green)" stopOpacity={0.25} />
               <stop offset="80%" stopColor="var(--accent-green)" stopOpacity={0.03} />
               <stop offset="100%" stopColor="var(--accent-green)" stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="pnlGradientNeg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--accent-red)" stopOpacity={0} />
+              <stop offset="20%" stopColor="var(--accent-red)" stopOpacity={0.03} />
+              <stop offset="100%" stopColor="var(--accent-red)" stopOpacity={0.2} />
             </linearGradient>
           </defs>
           <CartesianGrid
@@ -78,7 +83,7 @@ export default function EquityCurve() {
             strokeWidth={2}
             fill="url(#pnlGradient)"
             dot={false}
-            activeDot={{ r: 4, fill: 'var(--accent-green)', strokeWidth: 0 }}
+            activeDot={{ r: 5, fill: 'var(--accent-green)', stroke: 'rgba(34, 197, 94, 0.3)', strokeWidth: 6 }}
           />
         </AreaChart>
       </ResponsiveContainer>

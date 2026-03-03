@@ -5,6 +5,8 @@ import { formatPnl, formatPct, pnlColor, STRATEGY_COLORS, STRATEGY_LABELS } from
 import Card from '../ui/Card';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
+import AnimatedNumber from '../ui/AnimatedNumber';
+import ProgressRing from '../ui/ProgressRing';
 
 export default function StrategyBreakdown() {
   const { refreshKey } = useRefresh();
@@ -31,30 +33,33 @@ export default function StrategyBreakdown() {
     },
     {
       label: 'Realized',
-      value: formatPnl(total_realized_pnl),
+      animated: true,
+      rawValue: total_realized_pnl,
       sub: formatPct(realizedPct),
       color: pnlColor(total_realized_pnl),
-      glow: total_realized_pnl > 0 ? 'glow-green' : total_realized_pnl < 0 ? 'glow-red' : 'shadow-card',
+      glow: total_realized_pnl > 0 ? 'glow-green' : total_realized_pnl < 0 ? 'glow-red' : '',
     },
     {
       label: 'Unrealized',
-      value: formatPnl(total_unrealized_pnl),
+      animated: true,
+      rawValue: total_unrealized_pnl,
       sub: formatPct(unrealizedPct),
       color: pnlColor(total_unrealized_pnl),
-      glow: total_unrealized_pnl > 0 ? 'glow-green' : total_unrealized_pnl < 0 ? 'glow-red' : 'shadow-card',
+      glow: total_unrealized_pnl > 0 ? 'glow-green' : total_unrealized_pnl < 0 ? 'glow-red' : '',
     },
     {
       label: 'Win Rate',
-      value: win_rate != null ? `${win_rate.toFixed(1)}%` : '--',
+      isRing: true,
+      ringValue: win_rate,
       color: 'text-[--text-primary]',
-      glow: 'shadow-card',
+      glow: '',
     },
     {
       label: 'Trades',
       value: `${n_closed_trades} / ${n_open_positions}`,
       sub: 'closed / open',
       color: 'text-[--text-primary]',
-      glow: 'shadow-card',
+      glow: '',
     },
   ];
 
@@ -62,10 +67,11 @@ export default function StrategyBreakdown() {
     <div className="space-y-4">
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {kpis.map((kpi) => (
+        {kpis.map((kpi, idx) => (
           <div
             key={kpi.label}
-            className={`bg-[--bg-card] rounded-lg p-4 border border-[--border-subtle] ${kpi.glow || 'shadow-card'}`}
+            className={`glass-card rounded-lg p-4 animate-slide-up ${kpi.glow}`}
+            style={{ animationDelay: `${idx * 80}ms` }}
           >
             <div
               className="text-[10px] font-semibold uppercase tracking-widest text-[--text-muted] mb-2"
@@ -73,9 +79,39 @@ export default function StrategyBreakdown() {
             >
               {kpi.label}
             </div>
-            <div className={`text-2xl font-bold tabular-nums ${kpi.color}`}>{kpi.value}</div>
-            {kpi.sub && (
-              <div className="text-xs text-[--text-muted] mt-1">{kpi.sub}</div>
+
+            {kpi.isRing ? (
+              <div className="flex items-center gap-3">
+                <ProgressRing
+                  value={kpi.ringValue || 0}
+                  size={44}
+                  strokeWidth={3.5}
+                  color={
+                    kpi.ringValue >= 60 ? 'var(--accent-green)' :
+                    kpi.ringValue >= 50 ? 'var(--accent-amber)' :
+                    'var(--accent-red)'
+                  }
+                  label={kpi.ringValue != null ? `${kpi.ringValue.toFixed(0)}%` : '--'}
+                />
+              </div>
+            ) : kpi.animated ? (
+              <>
+                <AnimatedNumber
+                  value={kpi.rawValue}
+                  format={formatPnl}
+                  className={`text-2xl font-bold ${kpi.color}`}
+                />
+                {kpi.sub && (
+                  <div className="text-xs text-[--text-muted] mt-1">{kpi.sub}</div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className={`text-2xl font-bold tabular-nums ${kpi.color}`}>{kpi.value}</div>
+                {kpi.sub && (
+                  <div className="text-xs text-[--text-muted] mt-1">{kpi.sub}</div>
+                )}
+              </>
             )}
           </div>
         ))}
@@ -89,7 +125,7 @@ export default function StrategyBreakdown() {
             return (
               <div
                 key={strat}
-                className={`bg-[--bg-card] rounded-lg p-4 border border-[--border-subtle] border-t-2 ${colors.border} shadow-card`}
+                className={`glass-card rounded-lg p-4 border-t-2 ${colors.border} animate-fade-in`}
               >
                 <div className="flex items-center gap-2 mb-3">
                   <span
@@ -111,7 +147,11 @@ export default function StrategyBreakdown() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[--text-muted] text-xs">PnL</span>
-                    <span className={`font-bold ${pnlColor(stats.pnl)}`}>{formatPnl(stats.pnl)}</span>
+                    <AnimatedNumber
+                      value={stats.pnl}
+                      format={formatPnl}
+                      className={`font-bold ${pnlColor(stats.pnl)}`}
+                    />
                   </div>
                 </div>
               </div>

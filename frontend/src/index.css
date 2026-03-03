@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  /* Base palette */
   --bg-primary: #0d0f17;
   --bg-card: #161921;
   --bg-card-hover: #1c1f2e;
@@ -13,6 +14,12 @@
   --accent-blue: #3b82f6;
   --accent-amber: #f59e0b;
   --accent-purple: #a855f7;
+
+  /* Glassmorphism */
+  --glass-bg: rgba(22, 25, 33, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-highlight: rgba(255, 255, 255, 0.03);
+  --glass-blur: 12px;
 }
 
 body {
@@ -22,6 +29,18 @@ body {
   font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', ui-monospace, monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle noise texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  pointer-events: none;
 }
 
 *, *::before, *::after {
@@ -34,19 +53,91 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-/* Ombres et profondeur */
+/* ===================== Keyframes ===================== */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.5; }
+}
+
+@keyframes border-glow {
+  0%, 100% { border-color: rgba(34, 197, 94, 0.3); }
+  50% { border-color: rgba(34, 197, 94, 0.7); }
+}
+
+/* ===================== Utilities ===================== */
+
+/* Glassmorphism card */
+@utility glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.4),
+    0 1px 0 var(--glass-highlight) inset;
+}
+
+/* Legacy shadow */
 @utility shadow-card {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
 }
 
+/* Enhanced glows */
 @utility glow-green {
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.55), 0 0 22px rgba(34, 197, 94, 0.2), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 30px rgba(34, 197, 94, 0.15), 0 0 8px rgba(34, 197, 94, 0.1), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
 }
 
 @utility glow-red {
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.55), 0 0 22px rgba(239, 68, 68, 0.2), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 30px rgba(239, 68, 68, 0.15), 0 0 8px rgba(239, 68, 68, 0.1), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
 }
 
 @utility glow-amber {
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.55), 0 0 22px rgba(245, 158, 11, 0.16), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 30px rgba(245, 158, 11, 0.12), 0 0 8px rgba(245, 158, 11, 0.08), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+@utility glow-blue {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 30px rgba(59, 130, 246, 0.12), 0 0 8px rgba(59, 130, 246, 0.08), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+@utility glow-purple {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 30px rgba(168, 85, 247, 0.12), 0 0 8px rgba(168, 85, 247, 0.08), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+/* Animations */
+@utility animate-fade-in {
+  animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@utility animate-slide-up {
+  animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@utility animate-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@utility animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@utility animate-border-glow {
+  animation: border-glow 2s ease-in-out infinite;
 }

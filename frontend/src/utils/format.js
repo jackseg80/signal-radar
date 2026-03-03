@@ -108,3 +108,24 @@ export function sortSignals(signals) {
     (a, b) => (SIGNAL_ORDER[a.signal] ?? 9) - (SIGNAL_ORDER[b.signal] ?? 9)
   );
 }
+
+// -- Heatmap helpers --
+
+export function heatColor(value, min, max, scale = 'diverging') {
+  if (value == null || isNaN(value) || min === max) return 'transparent';
+  const t = Math.max(0, Math.min(1, (value - min) / (max - min)));
+  if (scale === 'diverging') {
+    if (t < 0.5) {
+      const s = t / 0.5;
+      return `rgba(239, 68, 68, ${(0.25 * (1 - s)).toFixed(3)})`;
+    }
+    const s = (t - 0.5) / 0.5;
+    return `rgba(34, 197, 94, ${(0.25 * s).toFixed(3)})`;
+  }
+  return `rgba(34, 197, 94, ${(0.3 * t).toFixed(3)})`;
+}
+
+export function pnlBarWidth(value, maxAbsValue) {
+  if (value == null || isNaN(value) || maxAbsValue === 0) return 0;
+  return Math.min(100, Math.abs(value) / maxAbsValue * 100);
+}

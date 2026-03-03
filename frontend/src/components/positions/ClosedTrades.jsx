@@ -6,6 +6,7 @@ import Card from '../ui/Card';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
+import PnlBar from '../ui/PnlBar';
 
 export default function ClosedTrades() {
   const { refreshKey } = useRefresh();
@@ -22,6 +23,8 @@ export default function ClosedTrades() {
   if (trades.length === 0) {
     return <Card title="Recent Trades"><EmptyState message="No closed trades yet" /></Card>;
   }
+
+  const maxAbsPnl = Math.max(1, ...trades.map((t) => Math.abs(t.pnl_dollars || 0)));
 
   return (
     <Card title="Recent Trades">
@@ -55,7 +58,8 @@ export default function ClosedTrades() {
                   <td className="py-2.5 px-2 text-right text-[--text-secondary]">{formatPrice(t.entry_price)}</td>
                   <td className="py-2.5 px-2 text-right text-[--text-secondary]">{formatPrice(t.exit_price)}</td>
                   <td className={`py-2.5 px-2 text-right font-medium ${pnlColor(t.pnl_dollars)}`}>
-                    {formatPnl(t.pnl_dollars)}
+                    <div>{formatPnl(t.pnl_dollars)}</div>
+                    <PnlBar value={t.pnl_dollars} maxAbs={maxAbsPnl} width={50} />
                   </td>
                   <td className={`py-2.5 px-2 text-right ${pnlColor(t.pnl_pct)}`}>
                     {formatPct(t.pnl_pct)}

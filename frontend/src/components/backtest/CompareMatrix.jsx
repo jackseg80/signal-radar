@@ -6,6 +6,7 @@ import Card from '../ui/Card';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
+import HeatCell from '../ui/HeatCell';
 
 export default function CompareMatrix() {
   const { refreshKey } = useRefresh();
@@ -56,12 +57,18 @@ export default function CompareMatrix() {
                   }
                   const vc = VERDICT_COLORS[cell.verdict] || {};
                   return (
-                    <td key={s} className="py-2.5 px-3 text-center">
+                    <HeatCell
+                      key={s}
+                      value={cell.pf}
+                      min={0.8}
+                      max={2.5}
+                      scale="sequential"
+                    >
                       <span className="font-mono font-medium">{formatPF(cell.pf)}</span>
                       <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold ${vc.bg || ''} ${vc.text || ''}`}>
                         {cell.verdict === 'VALIDATED' ? 'V' : cell.verdict === 'CONDITIONAL' ? '~' : 'X'}
                       </span>
-                    </td>
+                    </HeatCell>
                   );
                 })}
               </tr>

@@ -21,7 +21,6 @@ export default function MarketOverview() {
     return <Card title="Market Overview"><EmptyState message="No market data" /></Card>;
   }
 
-  // Determine which strategies are present
   const activeStrategies = STRATEGY_ORDER.filter((s) =>
     assets.some((a) => a.strategies[s])
   );
@@ -61,15 +60,36 @@ export default function MarketOverview() {
                     return <td key={s} className="py-2 px-2 text-center text-[--text-muted]">--</td>;
                   }
                   const sig = SIGNAL_COLORS[strat.signal] || SIGNAL_COLORS.NO_SIGNAL;
+
+                  let barPct = 0;
+                  let barColor = 'var(--text-muted)';
+                  if (s === 'rsi2' && strat.indicator_value != null) {
+                    barPct = Math.max(0, Math.min(100, (1 - strat.indicator_value / 30) * 100));
+                    barColor = strat.indicator_value < 10 ? 'var(--accent-green)' : strat.indicator_value < 20 ? 'var(--accent-amber)' : 'var(--text-muted)';
+                  } else if (s === 'ibs' && strat.indicator_value != null) {
+                    barPct = Math.max(0, Math.min(100, (1 - strat.indicator_value / 0.5) * 100));
+                    barColor = strat.indicator_value < 0.2 ? 'var(--accent-green)' : strat.indicator_value < 0.35 ? 'var(--accent-amber)' : 'var(--text-muted)';
+                  }
+
                   return (
                     <td key={s} className="py-2 px-2 text-center">
                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${sig.bg} ${sig.text}`}>
                         {strat.signal === 'NO_SIGNAL' ? '--' : strat.signal}
                       </span>
                       {strat.indicator_value != null && (
-                        <span className="ml-1 text-[10px] text-[--text-muted]">
-                          {Number(strat.indicator_value).toFixed(s === 'ibs' ? 2 : s === 'rsi2' ? 1 : 0)}
-                        </span>
+                        <div className="mt-1 flex items-center gap-1 justify-center">
+                          <span className="text-[10px] text-[--text-muted] tabular-nums">
+                            {Number(strat.indicator_value).toFixed(s === 'ibs' ? 2 : s === 'rsi2' ? 1 : 0)}
+                          </span>
+                          {(s === 'rsi2' || s === 'ibs') && (
+                            <div className="w-8 h-1 rounded-full bg-white/5 overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{ width: `${barPct}%`, backgroundColor: barColor }}
+                              />
+                            </div>
+                          )}
+                        </div>
                       )}
                     </td>
                   );

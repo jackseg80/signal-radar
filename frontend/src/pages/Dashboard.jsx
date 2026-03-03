@@ -49,16 +49,28 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <StrategyBreakdown />
-      <SignalsPanel />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="animate-slide-up" style={{ animationDelay: '0ms' }}>
+        <StrategyBreakdown />
+      </div>
+      <div className="animate-slide-up" style={{ animationDelay: '80ms' }}>
+        <SignalsPanel />
+      </div>
+      <div className="animate-slide-up grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ animationDelay: '160ms' }}>
         <OpenPositions onLogReal={(prefill) => setShowTradeForm(prefill || true)} />
         <ClosedTrades />
       </div>
-      <LivePositions />
-      <PaperVsLive />
-      <EquityCurve />
-      <MarketOverview />
+      <div className="animate-slide-up" style={{ animationDelay: '240ms' }}>
+        <LivePositions />
+      </div>
+      <div className="animate-slide-up" style={{ animationDelay: '320ms' }}>
+        <PaperVsLive />
+      </div>
+      <div className="animate-slide-up" style={{ animationDelay: '400ms' }}>
+        <EquityCurve />
+      </div>
+      <div className="animate-slide-up" style={{ animationDelay: '480ms' }}>
+        <MarketOverview />
+      </div>
 
       {showTradeForm && (
         <LiveTradeForm

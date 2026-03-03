@@ -6,6 +6,7 @@ import Card from '../ui/Card';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
+import PnlBar from '../ui/PnlBar';
 
 export default function OpenPositions({ onLogReal }) {
   const { refreshKey } = useRefresh();
@@ -19,6 +20,8 @@ export default function OpenPositions({ onLogReal }) {
   if (positions.length === 0) {
     return <Card title="Open Positions"><EmptyState message="No open positions" /></Card>;
   }
+
+  const maxAbsPnl = Math.max(1, ...positions.map((p) => Math.abs(p.unrealized_pnl || 0)));
 
   return (
     <Card title="Open Positions">
@@ -53,7 +56,8 @@ export default function OpenPositions({ onLogReal }) {
                   <td className="py-2.5 px-2 text-right">{formatPrice(p.current_price)}</td>
                   <td className="py-2.5 px-2 text-right text-[--text-secondary]">{p.shares}</td>
                   <td className={`py-2.5 px-2 text-right font-medium ${pnlColor(p.unrealized_pnl)}`}>
-                    {formatPnl(p.unrealized_pnl)}
+                    <div>{formatPnl(p.unrealized_pnl)}</div>
+                    <PnlBar value={p.unrealized_pnl} maxAbs={maxAbsPnl} width={50} />
                   </td>
                   <td className={`py-2.5 px-2 text-right ${pnlColor(p.unrealized_pct)}`}>
                     {formatPct(p.unrealized_pct)}

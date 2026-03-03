@@ -15,12 +15,12 @@ export default function Backtest() {
   return (
     <div className="space-y-6">
       {/* Sub-tabs */}
-      <div className="flex gap-1">
+      <div className="flex gap-1 animate-fade-in">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-sm transition-all duration-200 cursor-pointer ${
               activeTab === tab.key
                 ? 'bg-white/10 text-[--text-primary] font-medium'
                 : 'text-[--text-muted] hover:text-[--text-secondary] hover:bg-white/5'
@@ -32,9 +32,11 @@ export default function Backtest() {
       </div>
 
       {/* Tab content */}
-      {activeTab === 'compare' && <CompareMatrix />}
-      {activeTab === 'validations' && <ValidationsTable />}
-      {activeTab === 'screens' && <ScreensTable />}
+      <div className="animate-slide-up">
+        {activeTab === 'compare' && <CompareMatrix />}
+        {activeTab === 'validations' && <ValidationsTable />}
+        {activeTab === 'screens' && <ScreensTable />}
+      </div>
     </div>
   );
 }

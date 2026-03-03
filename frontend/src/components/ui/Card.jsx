@@ -1,6 +1,6 @@
-export default function Card({ title, children, className = '' }) {
+export default function Card({ title, children, className = '', glow = '' }) {
   return (
-    <div className={`bg-[--bg-card] rounded-xl border border-[--border-subtle] p-5 shadow-card ${className}`}>
+    <div className={`glass-card rounded-xl p-5 animate-fade-in ${glow} ${className}`}>
       {title && (
         <h2
           className="text-xs font-semibold uppercase tracking-wider text-[--text-muted] mb-4"

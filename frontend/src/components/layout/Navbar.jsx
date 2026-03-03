@@ -43,9 +43,10 @@ export default function Navbar() {
     }`;
 
   return (
-    <header className="border-b border-[--border-subtle] bg-[--bg-card]">
+    <header className="border-b border-[--glass-border] bg-[--glass-bg] backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 flex items-center h-12 gap-6">
-        <span className="font-bold text-base tracking-tight text-green-400" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        <span className="font-bold text-base tracking-tight text-green-400 flex items-center gap-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse-dot" />
           SIGNAL RADAR
         </span>
 
@@ -56,26 +57,29 @@ export default function Navbar() {
 
         <div className="ml-auto flex items-center gap-4 text-xs text-[--text-muted]">
           {data?.scanner_timestamp && (
-            <span>Last scan: {formatTimestamp(data.scanner_timestamp)}</span>
+            <span className="animate-fade-in">Last scan: {formatTimestamp(data.scanner_timestamp)}</span>
           )}
 
           {scanResult && scanResult.status === 'completed' && (
-            <span className="text-green-400">Scan OK</span>
+            <span className="text-green-400 animate-fade-in">Scan OK</span>
           )}
           {scanResult && scanResult.status === 'error' && (
-            <span className="text-red-400">{scanResult.detail || 'Scan failed'}</span>
+            <span className="text-red-400 animate-fade-in">{scanResult.detail || 'Scan failed'}</span>
           )}
 
           <button
             onClick={runScanner}
             disabled={scanning}
-            className={`px-3 py-1 rounded border transition-colors cursor-pointer ${
+            className={`px-3 py-1 rounded border transition-all duration-300 cursor-pointer relative overflow-hidden ${
               scanning
-                ? 'border-amber-500/40 text-amber-400 opacity-70 cursor-wait'
-                : 'border-green-500/30 text-[--text-secondary] hover:bg-green-500/10 hover:text-green-400'
+                ? 'border-amber-500/40 text-amber-400'
+                : 'border-green-500/30 text-[--text-secondary] hover:bg-green-500/10 hover:text-green-400 hover:border-green-500/50'
             }`}
           >
-            {scanning ? 'Scanning...' : 'Scan'}
+            {scanning && (
+              <span className="absolute inset-0 animate-shimmer" />
+            )}
+            <span className="relative">{scanning ? 'Scanning...' : 'Scan'}</span>
           </button>
 
           <button
