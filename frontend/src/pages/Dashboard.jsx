@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApi } from '../hooks/useApi';
 import { useRefresh } from '../hooks/useRefresh.jsx';
 import { api } from '../api/client';
@@ -48,9 +48,62 @@ function SignalsPanel({ className }) {
 export default function Dashboard() {
   const [showTradeForm, setShowTradeForm] = useState(false);
   const { refresh } = useRefresh();
+  
+  // Dashboard columns resizing logic
+  const [splitRatio, setSplitRatio] = useState(
+    parseFloat(localStorage.getItem('dashboard-split')) || 40
+  );
+  const isResizing = useRef(false);
+  const containerRef = useRef(null);
 
-  // Flexible height: grow with content, but scroll if too long
-  const cardClass = "h-auto max-h-[600px] overflow-hidden flex flex-col animate-slide-up transition-all duration-300";
+  const startResizing = useCallback((e) => {
+    e.preventDefault();
+    isResizing.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    
+    const overlay = document.createElement('div');
+    overlay.id = 'dashboard-resize-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.zIndex = '9999';
+    overlay.style.cursor = 'col-resize';
+    document.body.appendChild(overlay);
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    if (!isResizing.current) return;
+    isResizing.current = false;
+    document.body.style.cursor = 'default';
+    document.body.style.userSelect = 'auto';
+    const overlay = document.getElementById('dashboard-resize-overlay');
+    if (overlay) overlay.remove();
+    localStorage.setItem('dashboard-split', splitRatio);
+  }, [splitRatio]);
+
+  const resize = useCallback((e) => {
+    if (isResizing.current && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const offset = e.clientX - rect.left;
+      const percentage = (offset / rect.width) * 100;
+      // Constraints: min 20%, max 70%
+      const newRatio = Math.min(Math.max(20, percentage), 70);
+      setSplitRatio(newRatio);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('mousemove', resize);
+    window.addEventListener('mouseup', stopResizing);
+    return () => {
+      window.removeEventListener('mousemove', resize);
+      window.removeEventListener('mouseup', stopResizing);
+    };
+  }, [resize, stopResizing]);
+
+  // Consistent styling for cards in this layout
+  const cardClass = "h-auto overflow-hidden flex flex-col animate-slide-up transition-all duration-300";
+  const tallCardClass = "h-auto max-h-[850px] overflow-hidden flex flex-col animate-slide-up transition-all duration-300";
 
   return (
     <div className="space-y-6">
@@ -83,32 +136,48 @@ export default function Dashboard() {
         <StrategyBreakdown />
       </div>
 
-      {/* 2. Main Grid - 3 Columns (Responsive) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        
-        {/* COL 1: ALERTS & MONITORING */}
-        <div className="space-y-6">
+      {/* 2. Main Layout - Resizable 2-Column Grid */}
+      <div 
+        ref={containerRef}
+        className="flex flex-col lg:flex-row gap-0 items-start min-h-[600px]"
+      >
+        {/* LEFT COLUMN: Intelligence & Signals */}
+        <div 
+          style={{ width: `${splitRatio}%` }} 
+          className="space-y-6 w-full lg:w-auto shrink-0 pr-0 lg:pr-3"
+        >
            <NearTrigger className={cardClass} />
-           <LivePositions className={cardClass} />
+           <SignalsPanel className={tallCardClass} />
         </div>
 
-        {/* COL 2: SIGNALS & ANALYTICS */}
-        <div className="space-y-6">
-           <SignalsPanel className={cardClass} />
-           <EquityCurve className={cardClass} />
+        {/* Resizer Handle (Hidden on mobile) */}
+        <div
+          onMouseDown={startResizing}
+          className="hidden lg:flex w-2 self-stretch hover:bg-green-500/10 cursor-col-resize items-center justify-center group z-10"
+        >
+          <div className="w-[1px] h-24 bg-white/5 group-hover:bg-green-500/40 transition-colors" />
         </div>
 
-        {/* COL 3: PORTFOLIO & HISTORY */}
-        <div className="space-y-6">
+        {/* RIGHT COLUMN: Portfolio & Execution */}
+        <div 
+          style={{ width: `${100 - splitRatio}%` }}
+          className="flex-1 space-y-6 w-full lg:w-auto pl-0 lg:pl-3 mt-6 lg:mt-0"
+        >
            <OpenPositions 
              onLogReal={(prefill) => setShowTradeForm(prefill || true)} 
              className={cardClass} 
            />
-           <ClosedTrades className={cardClass} />
+           
+           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <EquityCurve className={cardClass} />
+              <ClosedTrades className={cardClass} />
+           </div>
+
+           <LivePositions className={cardClass} />
         </div>
       </div>
 
-      {/* 3. Market Overview (Full Width) */}
+      {/* 3. Market Overview (Full Width - Bottom) */}
       <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
         <MarketOverview />
       </div>
