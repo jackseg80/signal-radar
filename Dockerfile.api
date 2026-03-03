@@ -26,7 +26,7 @@ COPY data/__init__.py data/base_loader.py data/yahoo_loader.py data/db.py data/
 COPY engine/ engine/
 COPY strategies/ strategies/
 COPY config/ config/
-COPY scripts/daily_scanner.py scripts/
+COPY scripts/daily_scanner.py scripts/monthly_refresh.py scripts/
 
 # Directories for scanner runtime
 RUN mkdir -p data logs

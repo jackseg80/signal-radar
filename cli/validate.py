@@ -18,47 +18,10 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import Any
 
-from config.universe_loader import list_universes, load_universe
-from engine.fee_model import (
-    FEE_MODEL_FOREX_SAXO,
-    FEE_MODEL_US_ETFS_USD,
-    FEE_MODEL_US_STOCKS_USD,
-    FeeModel,
-)
-from strategies.base import BaseStrategy
-from strategies.donchian_trend import DonchianTrend
-from strategies.ibs_mean_reversion import IBSMeanReversion
-from strategies.rsi2_mean_reversion import RSI2MeanReversion
-from strategies.turn_of_month import TurnOfMonth
-from validation.config import ValidationConfig
-from validation.pipeline import validate
-from validation.report import print_report, save_report
-
-# ── Registres ──
-
-STRATEGIES: dict[str, type[BaseStrategy]] = {
-    "rsi2": RSI2MeanReversion,
-    "ibs": IBSMeanReversion,
-    "tom": TurnOfMonth,
-    "donchian": DonchianTrend,
-}
-
-FEE_MODELS: dict[str, FeeModel] = {
-    "us_stocks_usd_account": FEE_MODEL_US_STOCKS_USD,
-    "us_etfs_usd_account": FEE_MODEL_US_ETFS_USD,
-    "forex_saxo": FEE_MODEL_FOREX_SAXO,
-    "default": FeeModel(),
-}
-
-# ── Defaults par marche ──
-
-MARKET_DEFAULTS: dict[str, dict[str, Any]] = {
-    "us_stocks": {"capital": 10_000.0, "whole_shares": True},
-    "us_etfs": {"capital": 100_000.0, "whole_shares": False},
-    "forex": {"capital": 100_000.0, "whole_shares": False},
-}
+from cli.runner import STRATEGIES, run_validate
+from config.universe_loader import list_universes
+from validation.report import print_report
 
 
 def main() -> None:
@@ -106,62 +69,26 @@ def main() -> None:
         print(f"  Available: {', '.join(STRATEGIES.keys())}")
         sys.exit(1)
 
-    # -- Charger univers --
+    # -- Run validation --
+    print(f"\n  Pipeline de validation : {args.strategy} / {args.universe}")
+
     try:
-        universe_config = load_universe(args.universe)
+        result = run_validate(
+            args.strategy,
+            args.universe,
+            capital=args.capital,
+            whole_shares=False if args.no_whole_shares else None,
+            fee_model_name=args.fee_model,
+            is_end=args.is_end,
+            data_end=args.data_end,
+            oos_mid=args.oos_mid,
+            save_json=not args.no_save,
+        )
     except FileNotFoundError as e:
         print(f"  Error: {e}")
         sys.exit(1)
 
-    # -- Resoudre fee model --
-    fee_model_name = args.fee_model or universe_config.default_fee_model
-    fee_model = FEE_MODELS.get(fee_model_name, FeeModel())
-
-    # -- Defaults par marche --
-    market_def = MARKET_DEFAULTS.get(universe_config.market, {"capital": 10_000.0, "whole_shares": True})
-    capital = args.capital if args.capital is not None else market_def["capital"]
-    whole_shares = not args.no_whole_shares and market_def["whole_shares"]
-
-    # -- Config --
-    val_config = ValidationConfig(
-        universe=universe_config.assets,
-        data_end=args.data_end,
-        is_end=args.is_end,
-        initial_capital=capital,
-        whole_shares=whole_shares,
-        slippage_pct=0.0003,
-        fee_model=fee_model,
-        oos_mid=args.oos_mid,
-    )
-
-    strategy = STRATEGIES[args.strategy]()
-
-    print(f"\n  Pipeline de validation : {strategy.name} / {args.universe}")
-    print(f"  Universe: {universe_config.name} ({len(universe_config.assets)} assets)")
-    print(f"  Capital={val_config.initial_capital:,.0f}, "
-          f"whole_shares={val_config.whole_shares}, "
-          f"fee_model={fee_model_name}")
-    print(f"  OOS={val_config.is_end} -> {val_config.data_end}\n")
-
-    # -- Lancer validation --
-    report = validate(strategy, val_config)
-    report.universe_name = args.universe
-
-    print_report(report)
-
-    # -- Sauvegarde --
-    if not args.no_save:
-        path = save_report(report)
-        print(f"\n  Results saved to {path}")
-
-        try:
-            from data.db import SignalRadarDB
-
-            db = SignalRadarDB()
-            db.save_validation(report)
-            print(f"  Results saved to DB")
-        except Exception as e:
-            print(f"  Warning: could not save to DB ({e})")
+    print_report(result.report)
 
 
 if __name__ == "__main__":

@@ -1,13 +1,14 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE -- CLI Container COMPLETE -- Scanner Trigger COMPLETE -- Live Trades COMPLETE -- Hardening Audit COMPLETE -- Backtest Audit COMPLETE -- Proximity Alerts COMPLETE.
-Framework backtest modulaire operationnel. 358 tests.
+Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE -- CLI Container COMPLETE -- Scanner Trigger COMPLETE -- Live Trades COMPLETE -- Hardening Audit COMPLETE -- Backtest Audit COMPLETE -- Proximity Alerts COMPLETE -- Monthly Refresh COMPLETE.
+Framework backtest modulaire operationnel. 397 tests.
 Validated strategies : RSI(2) MR (10 stocks), IBS MR (13 stocks), TOM (21 stocks + 6 ETFs).
 Base SQLite unique (data/signal_radar.db) : prix OHLCV + resultats + paper trading + live trades.
 Scanner multi-strategie avec paper trading ($5k capital). Trigger manuel via dashboard.
 API REST (FastAPI) + Frontend React (Vite + Tailwind v4 + Recharts). Live trades logging + paper vs live compare.
 Proximity alerts : section "Approaching Trigger" dans le dashboard + mini-barres dans MarketOverview.
+Monthly refresh : cli/runner.py (run_screen/run_validate importables) + scripts/monthly_refresh.py (cron 1er du mois).
 
 ## Stack
 Python 3.12+, pytest, numpy, pandas, scipy, yfinance, fastapi, uvicorn
@@ -223,6 +224,8 @@ tests/
   test_indicator_cache.py              -- Tests cache indicateurs
   test_fast_backtest.py                -- Tests ancien engine trend following
   test_daily_scanner.py                -- Tests scanner multi-strategie (RSI2+IBS+TOM, 33 tests)
+  test_runner.py                       -- Tests cli/runner.py (constantes + run_screen + run_validate, 21 tests)
+  test_monthly_refresh.py              -- Tests monthly_refresh.py (verdict diff + Telegram format, 18 tests)
   test_notifier.py                     -- Tests notifier Telegram
   test_data_loader.py                  -- Tests YahooLoader validation
   test_db.py                           -- Tests SignalRadarDB + paper trading + live trades + API methods (51 tests)
@@ -231,6 +234,7 @@ tests/
 
 scripts/
   daily_scanner.py                     -- Scanner multi-strategie RSI2+IBS+TOM + paper trading [PRODUCTION]
+  monthly_refresh.py                   -- Refresh backtests (screens+validations) mensuel [PRODUCTION]
   compare_ibs_exit_timing.py           -- Compare IBS exit close[i] vs open[i+1] (audit biais)
   verify_migration.py                  -- Verification ancien moteur = nouveau framework
   validate_rsi2_*.py                   -- DEPRECATED -- anciens scripts validation Phase 1-2
@@ -731,3 +735,46 @@ Section "Approaching Trigger" dans le dashboard : anticiper les BUY avant qu'ils
 - TestDetailsTrendOk (4 tests scanner) : trend_ok vrai/faux pour RSI2 et IBS
 - TestMarketProximity (2 tests API) : NO_SIGNAL a proximity != null, BUY n'en a pas
 - Total : 348 -> 358 tests
+
+## Monthly Refresh (COMPLETE)
+
+Refresh automatique mensuel des screens et validations. Garde le dashboard a jour quand les donnees de marche evoluent.
+
+### Implementation
+
+- `cli/runner.py` -- Source unique STRATEGIES/FEE_MODELS/MARKET_DEFAULTS + fonctions importables
+  - `run_screen(strategy_key, universe_name, *, capital, whole_shares, fee_model_name, is_end, data_end, db)` -> ScreenResult
+  - `run_validate(strategy_key, universe_name, *, ..., save_json, db)` -> ValidateResult
+  - `resolve_market_params(universe_config, ...)` -> (capital, whole_shares, fee_model, name)
+  - `_merge_grid_with_defaults(strategy)` -- copie locale (validation/pipeline.py garde la sienne)
+  - `data_end=None` -> `datetime.now()` (dynamique). CLI gardent `--data-end 2025-01-01` pour backward compat
+  - cli/screen.py et cli/validate.py deviennent des wrappers argparse (~80 lignes chacun)
+- `scripts/monthly_refresh.py` -- Orchestrateur du refresh mensuel [PRODUCTION]
+  - `DEFAULT_COMBOS` : 9 combos (rsi2/ibs/tom x us_stocks_large/us_etfs_broad/us_etfs_sector)
+  - Exclus : forex_majors (REJECTED), donchian (REJECTED sur tous les univers)
+  - `run_refresh(combos, mode, dry_run)` -> RefreshSummary (isolement erreurs par combo)
+  - `_snapshot_validations(db)` + `_compute_verdict_changes(before, after)` -> diff verdicts
+  - `format_refresh_telegram(summary)` -> message HTML Telegram
+  - `--mode screen` (defaut, ~45min) ou `--mode validate` (~6.5h)
+  - `--dry-run`, `--combos rsi2:us_etfs_broad` pour execution partielle
+- `deploy/crontab` -- cron mensuel ajout : 1er du mois a 04:00 (hors conflit scanner 22:15)
+
+### Commandes refresh
+
+```bash
+python scripts/monthly_refresh.py --dry-run           # liste les 9 combos
+python scripts/monthly_refresh.py                      # screen mode (~45 min)
+python scripts/monthly_refresh.py --mode validate      # validation complete (~6.5h)
+python scripts/monthly_refresh.py --combos rsi2:us_etfs_broad  # un seul combo
+docker compose exec scanner python scripts/monthly_refresh.py --dry-run
+```
+
+### Tests ajoutes (+39)
+
+- TestConstants/TestResolveMarketParams/TestMergeGridWithDefaults (13 tests cli/runner) : constantes + utilitaires
+- TestRunScreenValidation (8 tests cli/runner) : importabilite + erreurs input
+- TestVerdictChanges (7 tests) : upgrade/downgrade/new/removed/multiple/empty
+- TestTelegramFormat (5 tests) : screen/validate/failures/changes/HTML escape
+- TestDefaultCombos (5 tests) : strategies valides, univers valides, count, no-forex, no-donchian
+- TestSnapshotValidations (1 test) : DB vide -> snapshot vide
+- Total : 358 -> 397 tests

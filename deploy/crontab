@@ -2,4 +2,6 @@
 # Runs at 22:15 local time (TZ set in container, default Europe/Zurich)
 # Sun-Fri: Sunday for weekly report, Mon-Fri for daily scan
 15 22 * * 0-5 root . /app/.env.cron && cd /app && python scripts/daily_scanner.py >> /proc/1/fd/1 2>> /proc/1/fd/2
+# Monthly backtest refresh -- 1st of every month at 04:00
+0 4 1 * * root . /app/.env.cron && cd /app && python scripts/monthly_refresh.py >> /proc/1/fd/1 2>> /proc/1/fd/2
 # Empty line required by cron
