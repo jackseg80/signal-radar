@@ -1,3 +1,4 @@
+import React, { forwardRef } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { api } from '../../api/client';
@@ -7,19 +8,19 @@ import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import AnimatedNumber from '../ui/AnimatedNumber';
 import ProgressRing from '../ui/ProgressRing';
-import { Wallet, TrendingUp, BarChart3, PieChart, Info } from 'lucide-react';
+import { Wallet, TrendingUp, BarChart3, PieChart } from 'lucide-react';
 
-export default function StrategyBreakdown() {
+const StrategyBreakdown = forwardRef(({ style, className, onMouseDown, onMouseUp, onTouchEnd }, ref) => {
   const { refreshKey } = useRefresh();
   const { data, loading, error, refetch } = useApi(() => api.perfSummary(), [refreshKey]);
 
   if (loading) return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+    <div ref={ref} style={style} className={`grid grid-cols-2 md:grid-cols-5 gap-4 ${className}`}>
       {[...Array(5)].map((_, i) => <Card key={i}><LoadingState rows={1} /></Card>)}
     </div>
   );
   
-  if (error) return <Card><ErrorState message={error} onRetry={refetch} /></Card>;
+  if (error) return <Card ref={ref} style={style} className={className}><ErrorState message={error} onRetry={refetch} /></Card>;
   if (!data) return null;
 
   const {
@@ -74,9 +75,16 @@ export default function StrategyBreakdown() {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* KPI Row */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+    <div 
+      ref={ref} 
+      style={style} 
+      className={`space-y-6 ${className}`}
+      onMouseDown={onMouseDown}
+      onMouseUp={onMouseUp}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* KPI Row - Header is draggable area */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 cursor-grab active:cursor-grabbing">
         {kpis.map((kpi, idx) => (
           <div
             key={kpi.label}
@@ -192,7 +200,9 @@ export default function StrategyBreakdown() {
       )}
     </div>
   );
-}
+});
+
+StrategyBreakdown.displayName = "StrategyBreakdown";
 
 function ActivityIcon({ size }) {
   return (
@@ -210,3 +220,5 @@ function ActivityIcon({ size }) {
     </svg>
   );
 }
+
+export default StrategyBreakdown;

@@ -1,3 +1,4 @@
+import React, { forwardRef } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { api } from '../../api/client';
@@ -32,11 +33,20 @@ function StatCard({ label, data }) {
   );
 }
 
-export default function PaperVsLive() {
+const PaperVsLive = forwardRef(({ style, className, onMouseDown, onMouseUp, onTouchEnd, ...props }, ref) => {
   const { refreshKey } = useRefresh();
   const { data, loading } = useApi(() => api.liveCompare(), [refreshKey]);
 
-  if (loading) return <Card title="Paper vs Live"><LoadingState /></Card>;
+  if (loading) return (
+    <Card 
+      ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
+      title="Paper vs Live"
+      {...props}
+    >
+      <LoadingState />
+    </Card>
+  );
+  
   if (!data) return null;
 
   const hasPaper = data.paper?.n_trades > 0;
@@ -45,11 +55,19 @@ export default function PaperVsLive() {
   if (!hasPaper && !hasLive) return null;
 
   return (
-    <Card title="Paper vs Live">
+    <Card 
+      ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
+      title="Paper vs Live"
+      {...props}
+    >
       <div className="flex gap-4 flex-wrap">
         <StatCard label="Paper" data={data.paper} />
         <StatCard label="Live" data={data.live} />
       </div>
     </Card>
   );
-}
+});
+
+PaperVsLive.displayName = "PaperVsLive";
+
+export default PaperVsLive;

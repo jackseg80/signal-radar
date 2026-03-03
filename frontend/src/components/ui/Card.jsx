@@ -1,7 +1,6 @@
-import React, { forwardRef } from "react";
 import { cn } from "../../lib/utils";
 
-const Card = forwardRef(({ 
+export default function Card({ 
   title, 
   subtitle,
   children, 
@@ -9,27 +8,14 @@ const Card = forwardRef(({
   glow = '',
   headerAction,
   noPadding = false,
-  noScroll = false,
-  style,
-  onMouseDown,
-  onMouseUp,
-  onTouchEnd,
-  ...props
-}, ref) => {
+  noScroll = false
+}) {
   return (
-    <div 
-      ref={ref}
-      style={style}
-      onMouseDown={onMouseDown}
-      onMouseUp={onMouseUp}
-      onTouchEnd={onTouchEnd}
-      className={cn(
-        "glass-card rounded-xl border border-[--glass-border] flex flex-col overflow-hidden animate-fade-in transition-shadow duration-300",
-        glow,
-        className
-      )}
-      {...props}
-    >
+    <div className={cn(
+      "glass-card rounded-xl border border-[--glass-border] flex flex-col overflow-hidden animate-fade-in transition-shadow duration-300 h-full w-full",
+      glow,
+      className
+    )}>
       {(title || subtitle || headerAction) && (
         <div className="px-5 py-3 border-b border-[--glass-border] flex items-center justify-between bg-white/[0.01] shrink-0 cursor-grab active:cursor-grabbing select-none">
           <div>
@@ -63,8 +49,4 @@ const Card = forwardRef(({
       </div>
     </div>
   );
-});
-
-Card.displayName = "Card";
-
-export default Card;
+}

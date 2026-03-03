@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, forwardRef } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { api } from '../../api/client';
@@ -9,7 +9,7 @@ import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 import LiveTradeForm from './LiveTradeForm';
 
-export default function LivePositions({ className }) {
+const LivePositions = forwardRef(({ style, className, onMouseDown, onMouseUp, onTouchEnd }, ref) => {
   const { refreshKey, refresh } = useRefresh();
   const { data, loading, error, refetch } = useApi(() => api.liveOpenTrades(), [refreshKey]);
   const [closingTrade, setClosingTrade] = useState(null);
@@ -28,18 +28,43 @@ export default function LivePositions({ className }) {
     }
   };
 
-  if (loading) return <Card title="Live Positions" className={className}><LoadingState /></Card>;
-  if (error) return <Card title="Live Positions" className={className}><ErrorState message={error} onRetry={refetch} /></Card>;
+  if (loading) return (
+    <Card 
+      ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
+      title="Live Positions"
+    >
+      <LoadingState />
+    </Card>
+  );
+  
+  if (error) return (
+    <Card 
+      ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
+      title="Live Positions"
+    >
+      <ErrorState message={error} onRetry={refetch} />
+    </Card>
+  );
 
   const trades = data?.trades || [];
 
   if (trades.length === 0) {
-    return <Card title="Live Positions" className={className}><EmptyState message="No open live trades" /></Card>;
+    return (
+      <Card 
+        ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
+        title="Live Positions"
+      >
+        <EmptyState message="No open live trades" />
+      </Card>
+    );
   }
 
   return (
     <>
-      <Card title="Live Positions" className={className}>
+      <Card 
+        ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
+        title="Live Positions"
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -113,4 +138,8 @@ export default function LivePositions({ className }) {
       )}
     </>
   );
-}
+});
+
+LivePositions.displayName = "LivePositions";
+
+export default LivePositions;

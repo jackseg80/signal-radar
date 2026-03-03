@@ -1,3 +1,4 @@
+import React from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { api } from '../../api/client';
@@ -6,7 +7,7 @@ import Card from '../ui/Card';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
-import { Table, Layout } from 'lucide-react';
+import { Table } from 'lucide-react';
 
 const STRATEGY_ORDER = ['rsi2', 'ibs', 'tom'];
 
@@ -37,16 +38,16 @@ function ProximityBar({ proximity }) {
   );
 }
 
-export default function MarketOverview() {
+export default function MarketOverview({ className }) {
   const { refreshKey } = useRefresh();
   const { data, loading, error, refetch } = useApi(() => api.marketOverview(), [refreshKey]);
 
-  if (loading) return <Card title="Market Overview" subtitle="Real-time universe monitoring"><LoadingState rows={8} /></Card>;
-  if (error) return <Card title="Market Overview" subtitle="Real-time universe monitoring"><ErrorState message={error} onRetry={refetch} /></Card>;
+  if (loading) return <Card title="Market Overview" className={className}><LoadingState rows={8} /></Card>;
+  if (error) return <Card title="Market Overview" className={className}><ErrorState message={error} onRetry={refetch} /></Card>;
 
   const assets = data?.assets || [];
   if (assets.length === 0) {
-    return <Card title="Market Overview" subtitle="Real-time universe monitoring"><EmptyState message="No market data" /></Card>;
+    return <Card title="Market Overview" className={className}><EmptyState message="No market data" /></Card>;
   }
 
   const activeStrategies = STRATEGY_ORDER.filter((s) =>
@@ -59,6 +60,7 @@ export default function MarketOverview() {
       subtitle="Full universe status & indicator proximity"
       headerAction={<Table size={14} className="text-[--text-muted]" />}
       noPadding
+      className={className}
     >
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse">

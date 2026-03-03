@@ -17,7 +17,7 @@ import NearTrigger from '../components/signals/NearTrigger';
 import LivePositions from '../components/live/LivePositions';
 import PaperVsLive from '../components/live/PaperVsLive';
 import LiveTradeForm from '../components/live/LiveTradeForm';
-import { LayoutDashboard, Activity, RotateCcw, Save } from 'lucide-react';
+import { LayoutDashboard, Activity, RotateCcw } from 'lucide-react';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -180,11 +180,11 @@ export default function Dashboard() {
         </div>
 
         <div key="market">
-          <MarketOverview />
+          <MarketOverview className={cardClass} />
         </div>
 
         <div key="comparison">
-          <PaperVsLive />
+          <PaperVsLive className={cardClass} />
         </div>
       </ResponsiveGridLayout>
 

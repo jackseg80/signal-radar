@@ -1,3 +1,4 @@
+import React, { forwardRef } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { api } from '../../api/client';
@@ -8,23 +9,52 @@ import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 import PnlBar from '../ui/PnlBar';
 
-export default function OpenPositions({ onLogReal, className }) {
+const OpenPositions = forwardRef(({ onLogReal, style, className, onMouseDown, onMouseUp, onTouchEnd, ...props }, ref) => {
   const { refreshKey } = useRefresh();
   const { data, loading, error, refetch } = useApi(() => api.openPositions(), [refreshKey]);
 
-  if (loading) return <Card title="Open Positions" className={className}><LoadingState /></Card>;
-  if (error) return <Card title="Open Positions" className={className}><ErrorState message={error} onRetry={refetch} /></Card>;
+  if (loading) return (
+    <Card 
+      ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
+      title="Open Positions"
+      {...props}
+    >
+      <LoadingState />
+    </Card>
+  );
+  
+  if (error) return (
+    <Card 
+      ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
+      title="Open Positions"
+      {...props}
+    >
+      <ErrorState message={error} onRetry={refetch} />
+    </Card>
+  );
 
   const positions = data?.positions || [];
 
   if (positions.length === 0) {
-    return <Card title="Open Positions" className={className}><EmptyState message="No open positions" /></Card>;
+    return (
+      <Card 
+        ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
+        title="Open Positions"
+        {...props}
+      >
+        <EmptyState message="No open positions" />
+      </Card>
+    );
   }
 
   const maxAbsPnl = Math.max(1, ...positions.map((p) => Math.abs(p.unrealized_pnl || 0)));
 
   return (
-    <Card title="Open Positions" className={className}>
+    <Card 
+      ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
+      title="Open Positions"
+      {...props}
+    >
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -95,4 +125,8 @@ export default function OpenPositions({ onLogReal, className }) {
       </div>
     </Card>
   );
-}
+});
+
+OpenPositions.displayName = "OpenPositions";
+
+export default OpenPositions;

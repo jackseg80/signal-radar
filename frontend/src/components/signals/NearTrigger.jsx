@@ -1,9 +1,10 @@
+import React, { forwardRef } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { api } from '../../api/client';
 import { formatPrice, STRATEGY_COLORS, STRATEGY_LABELS } from '../../utils/format';
 import Card from '../ui/Card';
-import { Bell, ArrowRight } from 'lucide-react';
+import { Bell } from 'lucide-react';
 
 /**
  * Extract near-trigger alerts from market overview data.
@@ -78,12 +79,16 @@ function AlertRow({ alert }) {
   );
 }
 
-export default function NearTrigger({ className }) {
+const NearTrigger = forwardRef(({ style, className, onMouseDown, onMouseUp, onTouchEnd, ...props }, ref) => {
   const { refreshKey } = useRefresh();
   const { data, loading } = useApi(() => api.marketOverview(), [refreshKey]);
 
   if (loading) return (
-    <Card title="Approaching" icon={<Bell size={14} />} className={className}>
+    <Card 
+      ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
+      title="Approaching" icon={<Bell size={14} />}
+      {...props}
+    >
       <div className="animate-pulse space-y-3">
         <div className="h-16 bg-white/5 rounded-lg" />
         <div className="h-16 bg-white/5 rounded-lg" />
@@ -95,10 +100,11 @@ export default function NearTrigger({ className }) {
   
   return (
     <Card 
+      ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
       title="Approaching" 
       subtitle={`${alerts.length} assets near trigger`}
       headerAction={<Bell size={14} className={alerts.length > 0 ? "text-amber-400 animate-bounce" : "text-[--text-muted]"} />}
-      className={className}
+      {...props}
     >
       {alerts.length === 0 ? (
         <div className="py-8 text-center text-xs text-[--text-muted] italic bg-white/[0.01] rounded-lg border border-dashed border-white/5">
@@ -113,4 +119,8 @@ export default function NearTrigger({ className }) {
       )}
     </Card>
   );
-}
+});
+
+NearTrigger.displayName = "NearTrigger";
+
+export default NearTrigger;
