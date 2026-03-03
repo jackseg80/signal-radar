@@ -44,8 +44,8 @@ export default function Navbar() {
 
   return (
     <header className="border-b border-[--glass-border] bg-[--glass-bg] backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 flex items-center h-12 gap-6">
-        <span className="font-bold text-base tracking-tight text-green-400 flex items-center gap-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+      <div className="max-w-7xl mx-auto px-4 flex items-center min-h-12 gap-3 sm:gap-6 flex-wrap py-2 sm:py-0">
+        <span className="font-bold text-base tracking-tight text-green-400 flex items-center gap-2 shrink-0" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse-dot" />
           SIGNAL RADAR
         </span>
@@ -58,7 +58,7 @@ export default function Navbar() {
 
         <div className="ml-auto flex items-center gap-4 text-xs text-[--text-muted]">
           {data?.scanner_timestamp && (
-            <span className="animate-fade-in">Last scan: {formatTimestamp(data.scanner_timestamp)}</span>
+            <span className="animate-fade-in hidden sm:inline">Last scan: {formatTimestamp(data.scanner_timestamp)}</span>
           )}
 
           {scanResult && scanResult.status === 'completed' && (

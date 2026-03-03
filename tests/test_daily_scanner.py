@@ -13,6 +13,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scripts.daily_scanner import (
     Signal,
+    SignalResult,
+    _extract_approaching,
     _is_data_stale,
     evaluate_signal,
     evaluate_ibs_signal,
@@ -565,3 +567,74 @@ class TestDetailsTrendOk:
         )
         assert "trend_ok" in result.details
         assert result.details["trend_ok"] is False
+
+
+# ---------------------------------------------------------------------------
+# _extract_approaching tests
+# ---------------------------------------------------------------------------
+
+
+class TestExtractApproaching:
+    """Tests for _extract_approaching helper."""
+
+    def test_rsi_near_trigger(self) -> None:
+        """RSI in near zone with trend_ok produces alert."""
+        results = {
+            "rsi2": [
+                SignalResult(
+                    signal=Signal.NO_SIGNAL, symbol="MSFT", strategy="rsi2",
+                    notes="No conditions met",
+                    details={"rsi2": 15.0, "trend_ok": True},
+                ),
+            ],
+        }
+        config = {"rsi2": {"params": {"rsi_entry_threshold": 10.0}}}
+        alerts = _extract_approaching(results, config)
+        assert len(alerts) == 1
+        assert alerts[0]["symbol"] == "MSFT"
+        assert alerts[0]["pct"] == 50.0
+
+    def test_trend_blocked_excluded(self) -> None:
+        """RSI near threshold but trend_ok=False -> no alert."""
+        results = {
+            "rsi2": [
+                SignalResult(
+                    signal=Signal.NO_SIGNAL, symbol="MSFT", strategy="rsi2",
+                    notes="No conditions met",
+                    details={"rsi2": 15.0, "trend_ok": False},
+                ),
+            ],
+        }
+        config = {"rsi2": {"params": {"rsi_entry_threshold": 10.0}}}
+        alerts = _extract_approaching(results, config)
+        assert len(alerts) == 0
+
+    def test_buy_signal_excluded(self) -> None:
+        """BUY signals are not approaching (already triggered)."""
+        results = {
+            "rsi2": [
+                SignalResult(
+                    signal=Signal.BUY, symbol="META", strategy="rsi2",
+                    notes="buy", details={"rsi2": 5.0, "trend_ok": True},
+                ),
+            ],
+        }
+        config = {"rsi2": {"params": {"rsi_entry_threshold": 10.0}}}
+        alerts = _extract_approaching(results, config)
+        assert len(alerts) == 0
+
+    def test_ibs_near_trigger(self) -> None:
+        """IBS in near zone with trend_ok produces alert."""
+        results = {
+            "ibs": [
+                SignalResult(
+                    signal=Signal.NO_SIGNAL, symbol="AAPL", strategy="ibs",
+                    notes="No conditions met",
+                    details={"ibs": 0.3, "trend_ok": True},
+                ),
+            ],
+        }
+        config = {"ibs": {"params": {"ibs_entry_threshold": 0.2}}}
+        alerts = _extract_approaching(results, config)
+        assert len(alerts) == 1
+        assert alerts[0]["symbol"] == "AAPL"

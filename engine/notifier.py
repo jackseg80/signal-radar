@@ -191,3 +191,108 @@ def format_weekly_summary(
     lines.append("Scanner running normally. \u2705")
 
     return "\n".join(lines)
+
+
+def format_daily_summary(
+    all_results: dict[str, list[SignalResult]],
+    paper_summary: dict,
+    open_positions: list[dict],
+    current_prices: dict[str, float],
+    approaching: list[dict] | None = None,
+) -> str:
+    """Format a complete daily summary (sent every day after scan).
+
+    Always returns a string (never None). Includes signals, open positions
+    with unrealized PnL, paper trading stats, and approaching triggers.
+    """
+    today = datetime.now().strftime("%Y-%m-%d")
+    total_pnl = paper_summary.get("total_pnl", 0)
+    n_trades = paper_summary.get("n_trades", 0)
+    n_open = paper_summary.get("n_open", 0)
+    wr = paper_summary.get("win_rate", 0)
+    pnl_sign = "+" if total_pnl >= 0 else ""
+
+    # Count strategies and assets
+    n_strats = len(all_results)
+    n_assets = sum(len(v) for v in all_results.values())
+
+    lines: list[str] = [
+        f"\U0001f4ca <b>Signal Radar</b> -- {today}",
+        f"\u2705 Scan complete -- {n_strats} strategies, {n_assets} assets",
+        "",
+    ]
+
+    # --- Actionable signals ---
+    actionable: list[SignalResult] = []
+    watch_triggers: list[SignalResult] = []
+
+    for _strat_name, results in all_results.items():
+        for r in results:
+            sig_str = str(r.signal.value)
+            if sig_str in _ACTIONABLE_SIGNALS:
+                actionable.append(r)
+            elif sig_str == "WATCH" and "Would trigger BUY" in r.notes:
+                watch_triggers.append(r)
+
+    if actionable or watch_triggers:
+        lines.append("\U0001f4cb <b>Signals:</b>")
+        for r in actionable:
+            sig = str(r.signal.value)
+            emoji = _SIGNAL_EMOJI.get(sig, "\u2753")
+            label = "SAFETY EXIT" if sig == "SAFETY_EXIT" else sig
+            strat_label = r.strategy.upper()
+            lines.append(
+                f"  {emoji} <b>{label} {r.symbol}</b> ({strat_label})"
+            )
+            lines.append(f"    {html.escape(r.notes)}")
+
+        for r in watch_triggers:
+            strat_label = r.strategy.upper()
+            lines.append(
+                f"  \U0001f440 <b>WATCH {r.symbol}</b> ({strat_label})"
+            )
+            lines.append(f"    {html.escape(r.notes)}")
+        lines.append("")
+    else:
+        lines.append("No actionable signals today.")
+        lines.append("")
+
+    # --- Open positions with unrealized PnL ---
+    if open_positions:
+        lines.append("\U0001f4c2 <b>Positions ({} open):</b>".format(
+            len(open_positions),
+        ))
+        for pos in open_positions:
+            sym = pos["symbol"]
+            entry = pos["entry_price"]
+            shares = pos["shares"]
+            current = current_prices.get(sym, entry)
+            unrealized = (current - entry) * shares
+            u_pct = ((current - entry) / entry * 100) if entry > 0 else 0
+            u_sign = "+" if unrealized >= 0 else ""
+            pct_sign = "+" if u_pct >= 0 else ""
+            lines.append(
+                f"  {pos['strategy'].upper()} {sym}:"
+                f" ${entry:.2f} -> ${current:.2f}"
+                f" ({u_sign}${unrealized:.2f}, {pct_sign}{u_pct:.1f}%)"
+            )
+        lines.append("")
+
+    # --- Paper P&L summary ---
+    lines.append(
+        f"\U0001f4b0 Paper P&amp;L: {pnl_sign}${total_pnl:.2f}"
+        f" ({wr:.0f}% WR, {n_trades} closed)"
+    )
+    lines.append("")
+
+    # --- Approaching triggers ---
+    if approaching:
+        lines.append("\u26a1 <b>Approaching trigger:</b>")
+        for a in approaching[:5]:
+            lines.append(
+                f"  {a['strategy'].upper()} {a['symbol']}"
+                f" -- {a['label']}"
+            )
+        lines.append("")
+
+    return "\n".join(lines).strip()

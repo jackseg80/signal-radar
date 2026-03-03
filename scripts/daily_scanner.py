@@ -785,64 +785,65 @@ def _find_open_position(
 # Telegram notification
 # ---------------------------------------------------------------------------
 
-_SIGNAL_EMOJI = {
-    "BUY": "\U0001f7e2",       # green circle
-    "SELL": "\U0001f534",       # red circle
-    "SAFETY_EXIT": "\u26a0\ufe0f",  # warning
-}
-
-
-def _format_telegram_message(
+def _extract_approaching(
     all_results: dict[str, list[SignalResult]],
-    paper_summary: dict,
-) -> str | None:
-    """Format actionable signals as a Telegram HTML message.
+    strategies_config: dict,
+) -> list[dict]:
+    """Extract near-trigger alerts from scanner results.
 
-    Returns None if no actionable signals.
+    Returns list of {symbol, strategy, label, pct} sorted by pct desc.
+    Same threshold logic as api/routes/market.py _compute_proximity().
     """
-    actionable: list[SignalResult] = []
-    watch_triggers: list[SignalResult] = []
+    alerts: list[dict] = []
 
     for strat_name, results in all_results.items():
+        params = strategies_config.get(strat_name, {}).get("params", {})
+
         for r in results:
-            if r.signal in (Signal.BUY, Signal.SELL, Signal.SAFETY_EXIT):
-                actionable.append(r)
-            elif r.signal == Signal.WATCH and "Would trigger BUY" in r.notes:
-                watch_triggers.append(r)
+            if r.signal not in (Signal.NO_SIGNAL, Signal.WATCH):
+                continue
+            d = r.details
+            if not d:
+                continue
 
-    if not actionable and not watch_triggers:
-        return None
+            if strat_name == "rsi2":
+                rsi = d.get("rsi2")
+                trend_ok = d.get("trend_ok")
+                if rsi is None or not trend_ok:
+                    continue
+                threshold = params.get("rsi_entry_threshold", 10.0)
+                near_zone = threshold * 2
+                if rsi >= near_zone or rsi <= threshold:
+                    continue
+                pct = (near_zone - rsi) / (near_zone - threshold) * 100
+                alerts.append({
+                    "symbol": r.symbol,
+                    "strategy": strat_name,
+                    "label": f"RSI={rsi:.1f}/{threshold:.0f}",
+                    "pct": round(pct, 1),
+                })
 
-    today = datetime.now().strftime("%Y-%m-%d")
-    total_pnl = paper_summary.get("total_pnl", 0)
-    n_open = paper_summary.get("n_open", 0)
-    pnl_sign = "+" if total_pnl >= 0 else ""
+            elif strat_name == "ibs":
+                ibs = d.get("ibs")
+                trend_ok = d.get("trend_ok")
+                if ibs is None or not trend_ok:
+                    continue
+                threshold = params.get("ibs_entry_threshold", 0.2)
+                near_zone = threshold * 2
+                if ibs >= near_zone or ibs <= threshold:
+                    continue
+                pct = (near_zone - ibs) / (near_zone - threshold) * 100
+                alerts.append({
+                    "symbol": r.symbol,
+                    "strategy": strat_name,
+                    "label": f"IBS={ibs:.3f}/{threshold}",
+                    "pct": round(pct, 1),
+                })
 
-    lines: list[str] = [
-        f"\U0001f4ca <b>Signal Radar</b> -- {today}",
-        f"Paper P&amp;L: {pnl_sign}${total_pnl:.2f} | Open: {n_open}",
-        "",
-    ]
+            # TOM: skip -- calendar-based, no progressive approach
 
-    for r in actionable:
-        sig = r.signal.value
-        emoji = _SIGNAL_EMOJI.get(sig, "\u2753")
-        label = "SAFETY EXIT" if sig == "SAFETY_EXIT" else sig
-        strat_label = r.strategy.upper()
-
-        lines.append(f"{emoji} <b>{label} {r.symbol}</b> ({strat_label})")
-        lines.append(f"  {html.escape(r.notes)}")
-        lines.append("")
-
-    for r in watch_triggers:
-        strat_label = r.strategy.upper()
-        lines.append(
-            f"\U0001f440 <b>WATCH {r.symbol}</b> ({strat_label})"
-        )
-        lines.append(f"  {html.escape(r.notes)}")
-        lines.append("")
-
-    return "\n".join(lines).strip()
+    alerts.sort(key=lambda a: a["pct"], reverse=True)
+    return alerts
 
 
 def _format_weekly_summary(
@@ -1197,7 +1198,7 @@ def main() -> None:
         print()
 
     # --- Telegram ---
-    from engine.notifier import send_telegram  # noqa: E402
+    from engine.notifier import send_telegram, format_daily_summary  # noqa: E402
 
     is_sunday = datetime.now().weekday() == 6
 
@@ -1208,12 +1209,18 @@ def main() -> None:
         if send_telegram(weekly_msg):
             logger.info("Telegram weekly summary sent")
 
-    telegram_msg = _format_telegram_message(all_results, paper_summary)
-    if telegram_msg is not None:
-        if send_telegram(telegram_msg):
-            logger.info("Telegram notification sent")
-    else:
-        logger.debug("No actionable signals -- no Telegram message")
+    # Daily summary (always sent)
+    current_prices = {
+        sym: ind["close"] for sym, ind in indicators_by_symbol.items()
+    }
+    approaching = _extract_approaching(all_results, strategies_config)
+
+    daily_msg = format_daily_summary(
+        all_results, paper_summary, open_positions,
+        current_prices, approaching,
+    )
+    if send_telegram(daily_msg):
+        logger.info("Telegram daily summary sent")
 
     logger.info(
         "Scanner complete -- {} strategies, {} symbols evaluated",

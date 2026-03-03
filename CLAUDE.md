@@ -1,8 +1,8 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE -- CLI Container COMPLETE -- Scanner Trigger COMPLETE -- Live Trades COMPLETE -- Hardening Audit COMPLETE -- Backtest Audit COMPLETE -- Proximity Alerts COMPLETE -- Monthly Refresh COMPLETE -- Trade Journal COMPLETE.
-Framework backtest modulaire operationnel. 433 tests.
+Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE -- CLI Container COMPLETE -- Scanner Trigger COMPLETE -- Live Trades COMPLETE -- Hardening Audit COMPLETE -- Backtest Audit COMPLETE -- Proximity Alerts COMPLETE -- Monthly Refresh COMPLETE -- Trade Journal COMPLETE -- Dashboard Polish COMPLETE.
+Framework backtest modulaire operationnel. 443 tests.
 Validated strategies : RSI(2) MR (10 stocks), IBS MR (13 stocks), TOM (21 stocks + 6 ETFs).
 Base SQLite unique (data/signal_radar.db) : prix OHLCV + resultats + paper trading + live trades.
 Scanner multi-strategie avec paper trading ($5k capital). Trigger manuel via dashboard.
@@ -816,3 +816,26 @@ Page /journal dans le dashboard : timeline unifiee des trades paper et live, ave
 - TestJournal DB (6 tests) : update_paper/live notes, nonexistent, entries empty, entries mixed
 - TestJournal API (5 tests) : entries ok, with trades, patch notes, nonexistent, filter strategy
 - Total : 422 -> 433 tests
+
+## Dashboard Polish (COMPLETE)
+
+4 ameliorations UX groupees : Win Rate ring, auto-refresh, mobile responsive, Telegram daily summary.
+
+### Frontend
+
+- `frontend/src/components/performance/StrategyBreakdown.jsx` : Win Rate card -- `isRing: n_closed_trades > 0` (affiche "--" si 0 trades fermes, plus d'anneau rouge vide trompeur)
+- `frontend/src/hooks/useRefresh.jsx` : auto-refresh toutes les 5 minutes via `setInterval` (tous les composants se rafraichissent automatiquement apres le scan)
+- `frontend/src/components/layout/Navbar.jsx` : responsive mobile -- `flex-wrap`, `min-h-12`, gap reduit sur mobile, "Last scan" cache sur petit ecran (`hidden sm:inline`), logo `shrink-0`
+
+Note : toutes les tables avaient deja `overflow-x-auto` et les signal cards avaient deja un grid responsive. Seule la Navbar necessitait un ajustement.
+
+### Backend Telegram
+
+- `engine/notifier.py` : `format_daily_summary()` -- message complet envoye TOUS les jours (plus de silence les jours sans signal). Contenu : header scan + signaux BUY/SELL + positions ouvertes avec unrealized PnL + paper stats + approaching triggers (top 5). Jamais None.
+- `scripts/daily_scanner.py` : `_extract_approaching()` -- extrait les assets proches du trigger depuis `all_results` (logique identique a `_compute_proximity()` dans market.py). `main()` appelle `format_daily_summary()` au lieu de `_format_telegram_message()` (supprimee).
+
+### Nouveaux tests (+10)
+
+- TestFormatDailySummary (6 tests) : always returns string, no signals, BUY signal, open positions unrealized PnL, approaching, paper stats header
+- TestExtractApproaching (4 tests) : RSI near trigger, trend blocked, BUY excluded, IBS near trigger
+- Total : 433 -> 443 tests

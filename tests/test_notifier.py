@@ -9,7 +9,12 @@ from __future__ import annotations
 import urllib.error
 from unittest.mock import MagicMock, patch
 
-from engine.notifier import format_signal_message, format_weekly_summary, send_telegram
+from engine.notifier import (
+    format_daily_summary,
+    format_signal_message,
+    format_weekly_summary,
+    send_telegram,
+)
 from scripts.daily_scanner import Signal, SignalResult
 
 
@@ -199,3 +204,95 @@ class TestSendTelegram:
                 side_effect=urllib.error.URLError("timeout"),
             ):
                 assert send_telegram("test") is False
+
+
+# ---------------------------------------------------------------------------
+# format_daily_summary tests
+# ---------------------------------------------------------------------------
+
+
+class TestFormatDailySummary:
+    """Tests for format_daily_summary (always-on daily message)."""
+
+    @staticmethod
+    def _paper(**kw: float) -> dict:
+        return {
+            "total_pnl": kw.get("total_pnl", 0),
+            "n_trades": kw.get("n_trades", 0),
+            "win_rate": kw.get("win_rate", 0),
+            "n_open": kw.get("n_open", 0),
+        }
+
+    def test_always_returns_string(self) -> None:
+        """Even with empty data, always returns a message."""
+        msg = format_daily_summary({}, self._paper(), [], {})
+        assert isinstance(msg, str)
+        assert "Signal Radar" in msg
+        assert "No actionable signals" in msg
+
+    def test_no_signals_shows_no_actionable(self) -> None:
+        """When only NO_SIGNAL results, says so explicitly."""
+        all_results = {
+            "rsi2": [
+                SignalResult(
+                    signal=Signal.NO_SIGNAL, symbol="META",
+                    strategy="rsi2", notes="No conditions met",
+                    details={"rsi2": 55.0},
+                ),
+            ],
+        }
+        msg = format_daily_summary(all_results, self._paper(), [], {})
+        assert "No actionable signals" in msg
+
+    def test_with_buy_signal(self) -> None:
+        """BUY signal appears in the daily summary."""
+        all_results = {
+            "rsi2": [
+                SignalResult(
+                    signal=Signal.BUY, symbol="META",
+                    strategy="rsi2",
+                    notes="RSI(2)=4.5 < 10, trend OK",
+                    details={"rsi2": 4.5},
+                ),
+            ],
+        }
+        msg = format_daily_summary(all_results, self._paper(), [], {})
+        assert "BUY META" in msg
+        assert "RSI2" in msg
+
+    def test_open_positions_with_unrealized(self) -> None:
+        """Open positions show unrealized PnL."""
+        positions = [
+            {"strategy": "rsi2", "symbol": "META",
+             "entry_price": 580.0, "entry_date": "2026-03-01", "shares": 8},
+        ]
+        prices = {"META": 590.0}
+        msg = format_daily_summary(
+            {}, self._paper(n_open=1), positions, prices,
+        )
+        assert "Positions" in msg
+        assert "META" in msg
+        assert "+$80.00" in msg  # (590 - 580) * 8
+
+    def test_approaching_triggers(self) -> None:
+        """Approaching triggers section rendered."""
+        approaching = [
+            {"symbol": "MSFT", "strategy": "rsi2",
+             "label": "RSI=15.0/10", "pct": 50.0},
+        ]
+        msg = format_daily_summary(
+            {}, self._paper(), [], {}, approaching,
+        )
+        assert "Approaching" in msg
+        assert "RSI2 MSFT" in msg
+
+    def test_paper_summary_in_header(self) -> None:
+        """Paper trading stats appear in the message."""
+        msg = format_daily_summary(
+            {},
+            self._paper(total_pnl=125.50, n_trades=10, win_rate=70.0, n_open=2),
+            [], {},
+        )
+        assert "+$125.50" in msg
+        assert "10 closed" in msg
+        assert "70% WR" in msg

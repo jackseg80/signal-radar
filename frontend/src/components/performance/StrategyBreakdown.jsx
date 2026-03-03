@@ -49,9 +49,10 @@ export default function StrategyBreakdown() {
     },
     {
       label: 'Win Rate',
-      isRing: true,
+      isRing: n_closed_trades > 0,
       ringValue: win_rate,
-      color: 'text-[--text-primary]',
+      value: '--',
+      color: 'text-[--text-muted]',
       glow: '',
     },
     {
