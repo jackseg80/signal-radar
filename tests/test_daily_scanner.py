@@ -506,3 +506,62 @@ class TestStaleDataCheck:
         from datetime import datetime, timedelta
         old_date = (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")
         assert _is_data_stale(old_date) is True
+
+
+# ---------------------------------------------------------------------------
+# Details dict -- trend_ok field
+# ---------------------------------------------------------------------------
+
+
+class TestDetailsTrendOk:
+    """Tests that evaluate_* functions include trend_ok in details."""
+
+    def test_rsi2_trend_ok_true(self) -> None:
+        """RSI2: close > SMA200*buffer -> trend_ok=True in details."""
+        result = evaluate_signal(
+            rsi2_today=15.0,
+            close_today=590.0,
+            sma200_today=570.0,  # 570*1.01=575.7 < 590
+            sma5_today=588.0,
+            position=None,
+        )
+        assert "trend_ok" in result.details
+        assert result.details["trend_ok"] is True
+
+    def test_rsi2_trend_ok_false(self) -> None:
+        """RSI2: close < SMA200*buffer -> trend_ok=False in details."""
+        result = evaluate_signal(
+            rsi2_today=5.0,
+            close_today=570.0,
+            sma200_today=575.0,  # 575*1.01=580.75 > 570
+            sma5_today=572.0,
+            position=None,
+        )
+        assert "trend_ok" in result.details
+        assert result.details["trend_ok"] is False
+
+    def test_ibs_trend_ok_true(self) -> None:
+        """IBS: close > SMA200 -> trend_ok=True in details."""
+        result = evaluate_ibs_signal(
+            ibs_today=0.15,
+            close_today=590.0,
+            high_today=595.0,
+            high_yesterday=592.0,
+            sma200_today=570.0,
+            position=None,
+        )
+        assert "trend_ok" in result.details
+        assert result.details["trend_ok"] is True
+
+    def test_ibs_trend_ok_false(self) -> None:
+        """IBS: close < SMA200 -> trend_ok=False in details."""
+        result = evaluate_ibs_signal(
+            ibs_today=0.15,
+            close_today=560.0,
+            high_today=565.0,
+            high_yesterday=562.0,
+            sma200_today=570.0,
+            position=None,
+        )
+        assert "trend_ok" in result.details
+        assert result.details["trend_ok"] is False

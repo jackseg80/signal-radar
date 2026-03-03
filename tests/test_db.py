@@ -634,3 +634,63 @@ class TestLiveTrades:
     def test_get_latest_prices_empty(self, db: SignalRadarDB) -> None:
         """get_latest_prices with empty list."""
         assert db.get_latest_prices([]) == {}
+
+
+class TestDetailsJson:
+    """Tests for details_json column in signal_log."""
+
+    def test_log_signal_with_details_json(self, db: SignalRadarDB) -> None:
+        """details_json should be stored and retrievable."""
+        import json
+        details = json.dumps({"rsi2": 15.3, "trend_ok": True, "sma200": 580.0})
+        db.log_signal(
+            "2026-03-05 22:00:00", "rsi2", "META", "NO_SIGNAL",
+            612.0, 15.3, "", details_json=details,
+        )
+        _, signals = db.get_latest_signals()
+        assert len(signals) == 1
+        assert signals[0]["details_json"] == details
+        parsed = json.loads(signals[0]["details_json"])
+        assert parsed["rsi2"] == 15.3
+        assert parsed["trend_ok"] is True
+
+    def test_log_signal_without_details_json(self, db: SignalRadarDB) -> None:
+        """Backward-compatible: details_json defaults to NULL."""
+        db.log_signal(
+            "2026-03-05 22:00:00", "rsi2", "META", "NO_SIGNAL",
+            612.0, 15.3, "",
+        )
+        _, signals = db.get_latest_signals()
+        assert len(signals) == 1
+        assert signals[0]["details_json"] is None
+
+    def test_details_json_in_latest_signals(self, db: SignalRadarDB) -> None:
+        """get_latest_signals should include details_json field."""
+        import json
+        db.log_signal(
+            "2026-03-05 22:00:00", "rsi2", "META", "NO_SIGNAL",
+            612.0, 15.3, "",
+            details_json=json.dumps({"rsi2": 15.3}),
+        )
+        db.log_signal(
+            "2026-03-05 22:00:00", "ibs", "META", "NO_SIGNAL",
+            612.0, 0.35, "",
+        )
+        _, signals = db.get_latest_signals()
+        assert len(signals) == 2
+        rsi_sig = next(s for s in signals if s["strategy"] == "rsi2")
+        ibs_sig = next(s for s in signals if s["strategy"] == "ibs")
+        assert rsi_sig["details_json"] is not None
+        assert ibs_sig["details_json"] is None
+
+    def test_details_json_in_signal_history(self, db: SignalRadarDB) -> None:
+        """get_signal_history should also include details_json."""
+        import json
+        db.log_signal(
+            "2026-03-05 22:00:00", "rsi2", "META", "NO_SIGNAL",
+            612.0, 15.3, "",
+            details_json=json.dumps({"rsi2": 15.3, "trend_ok": True}),
+        )
+        history = db.get_signal_history(strategy="rsi2", symbol="META", days=7)
+        assert len(history) == 1
+        assert history[0]["details_json"] is not None

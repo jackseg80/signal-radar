@@ -1,12 +1,13 @@
 # CLAUDE.md — signal-radar
 
 ## Project Status
-Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE -- CLI Container COMPLETE -- Scanner Trigger COMPLETE -- Live Trades COMPLETE -- Hardening Audit COMPLETE -- Backtest Audit COMPLETE.
-Framework backtest modulaire operationnel. 348 tests.
+Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE -- CLI Container COMPLETE -- Scanner Trigger COMPLETE -- Live Trades COMPLETE -- Hardening Audit COMPLETE -- Backtest Audit COMPLETE -- Proximity Alerts COMPLETE.
+Framework backtest modulaire operationnel. 358 tests.
 Validated strategies : RSI(2) MR (10 stocks), IBS MR (13 stocks), TOM (21 stocks + 6 ETFs).
 Base SQLite unique (data/signal_radar.db) : prix OHLCV + resultats + paper trading + live trades.
 Scanner multi-strategie avec paper trading ($5k capital). Trigger manuel via dashboard.
 API REST (FastAPI) + Frontend React (Vite + Tailwind v4 + Recharts). Live trades logging + paper vs live compare.
+Proximity alerts : section "Approaching Trigger" dans le dashboard + mini-barres dans MarketOverview.
 
 ## Stack
 Python 3.12+, pytest, numpy, pandas, scipy, yfinance, fastapi, uvicorn
@@ -696,3 +697,37 @@ Breakdown : ibs_exit +$2.69/trade, prev_high_exit +$5.93/trade, trend_break +$1.
 - Force-close exclu des resultats -- CORRECT
 - Fee model complet (commission + spread + FX + overnight) -- CORRECT
 - Entry fee non double-comptee -- CORRECT (bug Phase 1 corrige)
+
+## Proximity Alerts (COMPLETE)
+
+Section "Approaching Trigger" dans le dashboard : anticiper les BUY avant qu'ils triggent.
+
+### Implementation
+
+- `signal_log` : colonne `details_json TEXT` ajoutee (migration `ALTER TABLE ADD COLUMN`, safe)
+  - Stocke tous les indicateurs bruts du scan (RSI, SMA200, IBS, trend_ok, etc.) en JSON
+  - Migration : anciens signaux ont `details_json = NULL`, proximite calculee des le prochain scan
+  - `log_signal()` : nouveau parametre `details_json: str | None = None` (backward-compatible)
+- `scripts/daily_scanner.py` : `result.details` serialise en JSON dans chaque `log_signal()`
+  - `evaluate_signal()` : ajoute `trend_ok` dans details (close > sma200*buffer)
+  - `evaluate_ibs_signal()` : ajoute `trend_ok` dans details (close > sma200)
+  - `evaluate_tom_signal()` : ajoute `entry_days_before_eom` dans details (pour calcul cote API)
+- `api/routes/market.py` : `_compute_proximity()` calcule la proximite depuis `details_json`
+  - RSI2 : near zone = threshold x 2 (< 20), pct 0->100 vers le seuil, bloquee si trend_ok=False
+  - IBS : near zone = threshold x 2 (< 0.4), idem
+  - TOM : near zone = entry_window + 3 jours, pct 0->100 vers la fenetre d'entree
+  - `proximity` = null pour BUY/HOLD/SELL ; champ ajoute a chaque strategie de `/api/market/overview`
+- `frontend/src/components/signals/NearTrigger.jsx` : section "Approaching Trigger"
+  - Cards horizontales scrollables triees par pct decroissant
+  - S'affiche seulement si au moins un asset a `proximity.near = true`
+  - Indicateur trend : point vert/rouge, card grisee si trend bloque
+- `frontend/src/components/market/MarketOverview.jsx` : `ProximityBar` sous les cellules
+  - Barre + label compact (ex: "RSI=13.5 / 10") quand `proximity.near = true`
+  - Couleur : vert si pct >= 75, ambre si >= 50, gris sinon
+
+### Tests ajoutes (+10)
+
+- TestDetailsJson (4 tests DB) : stockage/lecture details_json, NULL backward-compat, signal_history
+- TestDetailsTrendOk (4 tests scanner) : trend_ok vrai/faux pour RSI2 et IBS
+- TestMarketProximity (2 tests API) : NO_SIGNAL a proximity != null, BUY n'en a pas
+- Total : 348 -> 358 tests

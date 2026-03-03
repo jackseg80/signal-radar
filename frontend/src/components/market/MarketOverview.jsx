@@ -9,6 +9,36 @@ import EmptyState from '../ui/EmptyState';
 
 const STRATEGY_ORDER = ['rsi2', 'ibs', 'tom'];
 
+function ProximityBar({ proximity }) {
+  if (!proximity || proximity.pct == null) return null;
+
+  const pct = proximity.pct;
+  const barColor = pct >= 75
+    ? 'var(--accent-green)'
+    : pct >= 50
+      ? 'var(--accent-amber)'
+      : 'var(--text-muted)';
+
+  const trendBlocked = proximity.trend_ok === false;
+
+  return (
+    <div className={`mt-0.5 flex items-center gap-1 justify-center ${trendBlocked ? 'opacity-40' : ''}`}>
+      <div className="w-10 h-1 rounded-full bg-white/5 overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, backgroundColor: barColor }}
+        />
+      </div>
+      <span className="text-[9px] text-[--text-muted] tabular-nums whitespace-nowrap">
+        {proximity.label}
+      </span>
+      {trendBlocked && (
+        <span className="text-[8px] text-red-400" title="Trend filter blocked (below SMA200)">!</span>
+      )}
+    </div>
+  );
+}
+
 export default function MarketOverview() {
   const { refreshKey } = useRefresh();
   const { data, loading, error, refetch } = useApi(() => api.marketOverview(), [refreshKey]);
@@ -91,6 +121,7 @@ export default function MarketOverview() {
                           )}
                         </div>
                       )}
+                      {strat.proximity?.near && <ProximityBar proximity={strat.proximity} />}
                     </td>
                   );
                 })}

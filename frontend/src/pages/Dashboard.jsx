@@ -12,6 +12,7 @@ import OpenPositions from '../components/positions/OpenPositions';
 import ClosedTrades from '../components/positions/ClosedTrades';
 import EquityCurve from '../components/performance/EquityCurve';
 import MarketOverview from '../components/market/MarketOverview';
+import NearTrigger from '../components/signals/NearTrigger';
 import LivePositions from '../components/live/LivePositions';
 import PaperVsLive from '../components/live/PaperVsLive';
 import LiveTradeForm from '../components/live/LiveTradeForm';
@@ -51,6 +52,9 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="animate-slide-up" style={{ animationDelay: '0ms' }}>
         <StrategyBreakdown />
+      </div>
+      <div className="animate-slide-up" style={{ animationDelay: '40ms' }}>
+        <NearTrigger />
       </div>
       <div className="animate-slide-up" style={{ animationDelay: '80ms' }}>
         <SignalsPanel />

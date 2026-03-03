@@ -158,9 +158,18 @@ class SignalRadarDB:
                     signal TEXT NOT NULL,
                     close_price REAL,
                     indicator_value REAL,
-                    notes TEXT
+                    notes TEXT,
+                    details_json TEXT
                 )
             """)
+
+            # Migration : ajouter details_json si absent (tables existantes)
+            try:
+                conn.execute(
+                    "ALTER TABLE signal_log ADD COLUMN details_json TEXT"
+                )
+            except sqlite3.OperationalError:
+                pass  # colonne deja existante
 
             # -- Live trades (real trades logged by user) --
             conn.execute("""
@@ -756,6 +765,7 @@ class SignalRadarDB:
         close_price: float | None = None,
         indicator_value: float | None = None,
         notes: str = "",
+        details_json: str | None = None,
     ) -> None:
         """Log un signal dans la table signal_log."""
         with self._connect() as conn:
@@ -763,11 +773,11 @@ class SignalRadarDB:
                 """
                 INSERT INTO signal_log
                 (timestamp, strategy, symbol, signal, close_price,
-                 indicator_value, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                 indicator_value, notes, details_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (timestamp, strategy, symbol, signal, close_price,
-                 indicator_value, notes),
+                 indicator_value, notes, details_json),
             )
 
     # ------------------------------------------------------------------ #

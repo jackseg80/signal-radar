@@ -1,5 +1,7 @@
 """Tests for the FastAPI Signal Radar API."""
 
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -21,26 +23,50 @@ def db(tmp_path):
     test_db.open_paper_position("rsi2", "MSFT", "2026-02-28", 420.00, 11.0)
     test_db.close_paper_position("rsi2", "MSFT", "2026-03-04", 428.40)
 
-    # Sample signal log (single scanner run)
+    # Sample signal log (single scanner run) -- with details_json for proximity
     test_db.log_signal(
-        "2026-03-05 22:15:03", "rsi2", "META", "NO_SIGNAL", 612.30, 42.1, ""
+        "2026-03-05 22:15:03", "rsi2", "META", "NO_SIGNAL", 612.30, 42.1, "",
+        details_json=json.dumps({
+            "rsi2": 42.1, "close": 612.3, "sma200": 580.0,
+            "sma5": 610.0, "sma200_buffered": 585.8, "trend_ok": True,
+        }),
     )
     test_db.log_signal(
         "2026-03-05 22:15:03", "rsi2", "V", "BUY", 280.20, 7.8,
-        "RSI(2)=7.8 < 10"
+        "RSI(2)=7.8 < 10",
+        details_json=json.dumps({
+            "rsi2": 7.8, "close": 280.2, "sma200": 270.0,
+            "sma5": 278.0, "sma200_buffered": 272.7, "trend_ok": True,
+        }),
     )
     test_db.log_signal(
-        "2026-03-05 22:15:03", "rsi2", "NVDA", "HOLD", 131.40, 25.1, ""
+        "2026-03-05 22:15:03", "rsi2", "NVDA", "HOLD", 131.40, 25.1, "",
+        details_json=json.dumps({
+            "rsi2": 25.1, "close": 131.4, "sma200": 125.0,
+            "sma5": 130.0, "sma200_buffered": 126.25, "trend_ok": True,
+        }),
     )
     test_db.log_signal(
-        "2026-03-05 22:15:03", "ibs", "META", "HOLD", 612.30, 0.65, ""
+        "2026-03-05 22:15:03", "ibs", "META", "HOLD", 612.30, 0.65, "",
+        details_json=json.dumps({
+            "ibs": 0.65, "close": 612.3, "high": 615.0,
+            "high_yesterday": 613.0, "sma200": 580.0, "trend_ok": True,
+        }),
     )
     test_db.log_signal(
         "2026-03-05 22:15:03", "ibs", "NVDA", "BUY", 131.40, 0.12,
-        "IBS=0.12 < 0.2"
+        "IBS=0.12 < 0.2",
+        details_json=json.dumps({
+            "ibs": 0.12, "close": 131.4, "high": 133.0,
+            "high_yesterday": 132.0, "sma200": 125.0, "trend_ok": True,
+        }),
     )
     test_db.log_signal(
-        "2026-03-05 22:15:03", "tom", "META", "BUY", 612.30, 5.0, "5 days left"
+        "2026-03-05 22:15:03", "tom", "META", "BUY", 612.30, 5.0, "5 days left",
+        details_json=json.dumps({
+            "close": 612.3, "trading_days_left": 5,
+            "trading_day_of_month": 17, "entry_days_before_eom": 5,
+        }),
     )
 
     return test_db
@@ -323,3 +349,32 @@ class TestInputValidation:
         r = client.get("/api/scanner/status")
         assert r.status_code == 200
         assert r.json()["running"] is False
+
+
+class TestMarketProximity:
+    """Tests for proximity-to-trigger in market overview."""
+
+    def test_no_signal_has_proximity(self, client):
+        """NO_SIGNAL assets should have proximity data when details_json exists."""
+        r = client.get("/api/market/overview")
+        assert r.status_code == 200
+        data = r.json()
+        meta = next((a for a in data["assets"] if a["symbol"] == "META"), None)
+        if meta and "rsi2" in meta["strategies"]:
+            strat = meta["strategies"]["rsi2"]
+            if strat["signal"] == "NO_SIGNAL":
+                assert strat["proximity"] is not None
+                assert "pct" in strat["proximity"]
+                assert "near" in strat["proximity"]
+                assert "trend_ok" in strat["proximity"]
+                assert "label" in strat["proximity"]
+
+    def test_buy_signal_no_proximity(self, client):
+        """BUY signals should NOT have proximity (already triggered)."""
+        r = client.get("/api/market/overview")
+        assert r.status_code == 200
+        data = r.json()
+        for asset in data["assets"]:
+            for _strat_name, info in asset.get("strategies", {}).items():
+                if info.get("signal") == "BUY":
+                    assert info.get("proximity") is None

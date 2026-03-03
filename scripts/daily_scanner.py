@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import json
 import math
 import sys
 from dataclasses import dataclass, field
@@ -143,6 +144,7 @@ def evaluate_signal(
         "sma200": round(sma200_today, 2),
         "sma5": round(sma5_today, 2),
         "sma200_buffered": round(sma200_today * sma_trend_buffer, 2),
+        "trend_ok": close_today > sma200_today * sma_trend_buffer,
     }
 
     # --- PENDING position ---
@@ -280,6 +282,7 @@ def evaluate_ibs_signal(
         "high": round(high_today, 2),
         "high_yesterday": round(high_yesterday, 2),
         "sma200": round(sma200_today, 2),
+        "trend_ok": close_today > sma200_today,
     }
 
     # --- OPEN position: check exits ---
@@ -401,6 +404,7 @@ def evaluate_tom_signal(
         "close": round(close_today, 2),
         "trading_days_left": trading_days_left,
         "trading_day_of_month": trading_day_of_month,
+        "entry_days_before_eom": entry_days_before_eom,
     }
 
     # --- OPEN position: check exit ---
@@ -1171,6 +1175,7 @@ def main() -> None:
             db.log_signal(
                 timestamp, strat_name, sym, result.signal.value,
                 ind["close"], indicator_value, result.notes,
+                details_json=json.dumps(result.details) if result.details else None,
             )
 
         all_results[strat_name] = results
