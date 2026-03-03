@@ -3,10 +3,10 @@ import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { api } from '../../api/client';
 import { formatPrice, STRATEGY_COLORS, STRATEGY_LABELS } from '../../utils/format';
 import Card from '../ui/Card';
+import { Bell, ArrowRight } from 'lucide-react';
 
 /**
  * Extract near-trigger alerts from market overview data.
- * Returns sorted array of { symbol, strategy, close, proximity }.
  */
 function extractAlerts(assets) {
   const alerts = [];
@@ -30,7 +30,7 @@ function extractAlerts(assets) {
   return alerts;
 }
 
-function AlertCard({ alert }) {
+function AlertRow({ alert }) {
   const sc = STRATEGY_COLORS[alert.strategy] || STRATEGY_COLORS.rsi2;
   const pct = alert.proximity.pct;
   const barColor = pct >= 75
@@ -41,62 +41,76 @@ function AlertCard({ alert }) {
   const trendBlocked = alert.proximity.trend_ok === false;
 
   return (
-    <div className={`flex-shrink-0 w-52 rounded-lg border border-[--border-subtle] p-3 ${
+    <div className={`group flex flex-col gap-2 p-3 rounded-lg border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all ${
       trendBlocked ? 'opacity-50' : ''
     }`}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="font-semibold text-sm">{alert.symbol}</span>
-        <span className={`text-[10px] px-1.5 py-0.5 rounded ${sc.bg} ${sc.text}`}>
-          {STRATEGY_LABELS[alert.strategy] || alert.strategy}
-        </span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-sm text-white">{alert.symbol}</span>
+          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${sc.bg} ${sc.text}`}>
+            {STRATEGY_LABELS[alert.strategy] || alert.strategy}
+          </span>
+        </div>
+        <span className="text-[10px] text-[--text-muted] tabular-nums">{formatPrice(alert.close)}</span>
       </div>
 
       {/* Progress bar */}
-      <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden mb-2">
-        <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${pct}%`, backgroundColor: barColor }}
-        />
-      </div>
-
-      <div className="flex items-center justify-between text-[10px]">
-        <span className="text-[--text-muted] tabular-nums">{alert.proximity.label}</span>
-        <div className="flex items-center gap-1">
-          {alert.proximity.trend_ok !== null && (
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                alert.proximity.trend_ok ? 'bg-green-400' : 'bg-red-400'
-              }`}
-              title={alert.proximity.trend_ok ? 'Trend OK' : 'Trend blocked'}
-            />
-          )}
-          <span className="text-[--text-secondary] tabular-nums">{formatPrice(alert.close)}</span>
+      <div className="space-y-1.5">
+        <div className="flex justify-between text-[9px] text-[--text-muted]">
+          <span>{alert.proximity.label}</span>
+          <span className="tabular-nums font-medium text-[--text-secondary]">{pct.toFixed(0)}%</span>
+        </div>
+        <div className="w-full h-1 rounded-full bg-white/5 overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-1000 ease-out"
+            style={{ width: `${pct}%`, backgroundColor: barColor }}
+          />
         </div>
       </div>
 
       {trendBlocked && (
-        <div className="text-[9px] text-red-400/70 mt-1">Trend blocked</div>
+        <div className="flex items-center gap-1.5 text-[9px] text-red-400/80 mt-1">
+          <div className="w-1 h-1 rounded-full bg-red-400 animate-pulse" />
+          Trend filter blocked (below SMA)
+        </div>
       )}
     </div>
   );
 }
 
-export default function NearTrigger() {
+export default function NearTrigger({ className }) {
   const { refreshKey } = useRefresh();
   const { data, loading } = useApi(() => api.marketOverview(), [refreshKey]);
 
-  if (loading) return null;
+  if (loading) return (
+    <Card title="Approaching" icon={<Bell size={14} />} className={className}>
+      <div className="animate-pulse space-y-3">
+        <div className="h-16 bg-white/5 rounded-lg" />
+        <div className="h-16 bg-white/5 rounded-lg" />
+      </div>
+    </Card>
+  );
 
   const alerts = extractAlerts(data?.assets);
-  if (alerts.length === 0) return null;
-
+  
   return (
-    <Card title="Approaching Trigger">
-      <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
-        {alerts.map((a) => (
-          <AlertCard key={`${a.symbol}-${a.strategy}`} alert={a} />
-        ))}
-      </div>
+    <Card 
+      title="Approaching" 
+      subtitle={`${alerts.length} assets near trigger`}
+      headerAction={<Bell size={14} className={alerts.length > 0 ? "text-amber-400 animate-bounce" : "text-[--text-muted]"} />}
+      className={className}
+    >
+      {alerts.length === 0 ? (
+        <div className="py-8 text-center text-xs text-[--text-muted] italic bg-white/[0.01] rounded-lg border border-dashed border-white/5">
+          No assets near trigger
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {alerts.map((a) => (
+            <AlertRow key={`${a.symbol}-${a.strategy}`} alert={a} />
+          ))}
+        </div>
+      )}
     </Card>
   );
 }

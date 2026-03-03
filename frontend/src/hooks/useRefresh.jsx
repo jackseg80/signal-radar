@@ -20,6 +20,4 @@ export function RefreshProvider({ children }) {
   );
 }
 
-export function useRefresh() {
-  return useContext(RefreshContext);
-}
+export const useRefresh = () => useContext(RefreshContext);

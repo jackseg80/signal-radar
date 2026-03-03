@@ -12,7 +12,7 @@ export default function LiveTradeForm({ mode = 'open', prefill = {}, onDone, onC
   const [shares, setShares] = useState(prefill.shares || '');
   const [fees, setFees] = useState(prefill.fees || '1');
   const [notes, setNotes] = useState(prefill.notes || '');
-  const [paperId, setPaperId] = useState(prefill.paper_position_id || '');
+  const [paperId] = useState(prefill.paper_position_id || ''); // Removed setPaperId linter error
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -49,9 +49,9 @@ export default function LiveTradeForm({ mode = 'open', prefill = {}, onDone, onC
   const labelClass = 'text-xs text-[--text-muted] uppercase tracking-wider mb-1';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onCancel}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onCancel}>
       <div
-        className="bg-[--bg-card] border border-[--border-subtle] rounded-xl p-6 w-full max-w-md shadow-xl"
+        className="bg-[--bg-card] border border-[--border-subtle] rounded-xl p-6 w-full max-w-md shadow-2xl animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-sm font-semibold text-[--text-primary] mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -105,18 +105,18 @@ export default function LiveTradeForm({ mode = 'open', prefill = {}, onDone, onC
 
           {error && <div className="text-red-400 text-xs">{error}</div>}
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 px-4 py-2 rounded border border-[--border-subtle] text-sm text-[--text-secondary] hover:bg-white/5 transition-colors cursor-pointer"
+              className="flex-1 px-4 py-2 rounded-lg border border-[--border-subtle] text-sm text-[--text-secondary] hover:bg-white/5 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 px-4 py-2 rounded bg-green-600 text-white text-sm font-medium hover:bg-green-500 transition-colors cursor-pointer disabled:opacity-50"
+              className="flex-1 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-500 transition-all cursor-pointer disabled:opacity-50 shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_20px_rgba(34,197,94,0.4)]"
             >
               {submitting ? 'Saving...' : isOpen ? 'Open Trade' : 'Close Trade'}
             </button>

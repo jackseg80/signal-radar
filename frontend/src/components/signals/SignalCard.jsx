@@ -1,4 +1,6 @@
+import { cn } from "../../lib/utils";
 import { formatPrice, SIGNAL_COLORS } from '../../utils/format';
+import { ArrowUpCircle, ArrowDownCircle, AlertCircle, Eye, Timer } from 'lucide-react';
 
 const SIGNAL_GLOW = {
   BUY: 'glow-green',
@@ -9,11 +11,11 @@ const SIGNAL_GLOW = {
 };
 
 const SIGNAL_ICONS = {
-  BUY: '\u25B2',
-  SELL: '\u25BC',
-  SAFETY_EXIT: '\u26A0',
-  HOLD: '\u2022',
-  WATCH: '\u25CB',
+  BUY: <ArrowUpCircle size={14} className="text-green-400" />,
+  SELL: <ArrowDownCircle size={14} className="text-red-400" />,
+  SAFETY_EXIT: <AlertCircle size={14} className="text-red-400" />,
+  HOLD: <Timer size={14} className="text-blue-400" />,
+  WATCH: <Eye size={14} className="text-amber-400" />,
 };
 
 export default function SignalCard({ symbol, signal, close_price, indicator_value, notes }) {
@@ -22,32 +24,57 @@ export default function SignalCard({ symbol, signal, close_price, indicator_valu
   const isWatch = signal === 'WATCH' || signal === 'PENDING_VALID';
   const isDim = signal === 'NO_SIGNAL' || signal === 'PENDING_EXPIRED';
   const glowClass = SIGNAL_GLOW[signal] || '';
-  const icon = SIGNAL_ICONS[signal] || '';
+  const icon = SIGNAL_ICONS[signal];
 
   return (
-    <div className={`rounded-lg border border-l-4 ${colors.border} p-3 transition-all duration-200
-      ${isActionable || isWatch ? `glass-card ${glowClass}` : 'bg-[--bg-card] shadow-card'}
-      ${isActionable && signal === 'BUY' ? 'animate-border-glow' : ''}
-      ${isDim ? 'opacity-40' : ''}
-      hover:scale-[1.02] hover:brightness-110
-    `}>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className={`text-sm ${isActionable ? 'font-bold text-[--text-primary]' : 'font-semibold text-[--text-secondary]'}`}>
+    <div className={cn(
+      "group relative rounded-xl border border-[--glass-border] p-4 transition-all duration-300",
+      "hover:scale-[1.03] hover:border-white/20 active:scale-[0.98]",
+      (isActionable || isWatch) ? `glass-card ${glowClass}` : 'bg-white/[0.02] shadow-sm',
+      isActionable && signal === 'BUY' && 'animate-border-glow',
+      isDim && 'opacity-30 grayscale-[0.5]'
+    )}>
+      {/* Action status label */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className={cn(
+          "text-sm tracking-tight",
+          isActionable ? "font-bold text-white" : "font-semibold text-[--text-secondary]"
+        )}>
           {symbol}
-        </span>
-        <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${colors.bg} ${colors.text} flex items-center gap-1`}>
-          {icon && <span className="text-[9px]">{icon}</span>}
+        </h3>
+        
+        <div className={cn(
+          "px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1.5 uppercase transition-colors",
+          colors.bg, colors.text
+        )}>
+          {icon}
           {signal === 'NO_SIGNAL' ? '---' : signal.replace('_', ' ')}
-        </span>
+        </div>
       </div>
-      <div className="text-xs space-y-0.5">
-        {close_price != null && (
-          <div className="text-[--text-secondary]">{formatPrice(close_price)}</div>
-        )}
-        {notes && (
-          <div className="text-[--text-muted] truncate" title={notes}>{notes}</div>
+
+      <div className="flex items-baseline justify-between">
+        <div className="text-sm font-medium tabular-nums text-[--text-secondary]">
+          {close_price != null ? formatPrice(close_price) : '--'}
+        </div>
+        
+        {indicator_value != null && (
+          <div className="text-[10px] text-[--text-muted] tabular-nums bg-white/5 px-1.5 py-0.5 rounded">
+             Ind: {Number(indicator_value).toFixed(1)}
+          </div>
         )}
       </div>
+
+      {notes && (
+        <div 
+          className="mt-3 text-[10px] text-[--text-muted] border-t border-white/5 pt-2 italic truncate hover:whitespace-normal transition-all" 
+          title={notes}
+        >
+          {notes}
+        </div>
+      )}
+      
+      {/* Hover decoration */}
+      <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-green-500/0 to-transparent group-hover:via-green-500/30 transition-all duration-500 rounded-b-xl" />
     </div>
   );
 }

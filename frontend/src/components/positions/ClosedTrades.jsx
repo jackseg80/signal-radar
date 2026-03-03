@@ -8,26 +8,26 @@ import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 import PnlBar from '../ui/PnlBar';
 
-export default function ClosedTrades() {
+export default function ClosedTrades({ className }) {
   const { refreshKey } = useRefresh();
   const { data, loading, error, refetch } = useApi(
     () => api.closedTrades({ limit: 10 }),
     [refreshKey],
   );
 
-  if (loading) return <Card title="Recent Trades"><LoadingState /></Card>;
-  if (error) return <Card title="Recent Trades"><ErrorState message={error} onRetry={refetch} /></Card>;
+  if (loading) return <Card title="Recent Trades" className={className}><LoadingState /></Card>;
+  if (error) return <Card title="Recent Trades" className={className}><ErrorState message={error} onRetry={refetch} /></Card>;
 
   const trades = data?.trades || [];
 
   if (trades.length === 0) {
-    return <Card title="Recent Trades"><EmptyState message="No closed trades yet" /></Card>;
+    return <Card title="Recent Trades" className={className}><EmptyState message="No closed trades yet" /></Card>;
   }
 
   const maxAbsPnl = Math.max(1, ...trades.map((t) => Math.abs(t.pnl_dollars || 0)));
 
   return (
-    <Card title="Recent Trades">
+    <Card title="Recent Trades" className={className}>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>

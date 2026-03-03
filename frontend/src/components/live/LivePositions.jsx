@@ -9,7 +9,7 @@ import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 import LiveTradeForm from './LiveTradeForm';
 
-export default function LivePositions() {
+export default function LivePositions({ className }) {
   const { refreshKey, refresh } = useRefresh();
   const { data, loading, error, refetch } = useApi(() => api.liveOpenTrades(), [refreshKey]);
   const [closingTrade, setClosingTrade] = useState(null);
@@ -28,18 +28,18 @@ export default function LivePositions() {
     }
   };
 
-  if (loading) return <Card title="Live Positions"><LoadingState /></Card>;
-  if (error) return <Card title="Live Positions"><ErrorState message={error} onRetry={refetch} /></Card>;
+  if (loading) return <Card title="Live Positions" className={className}><LoadingState /></Card>;
+  if (error) return <Card title="Live Positions" className={className}><ErrorState message={error} onRetry={refetch} /></Card>;
 
   const trades = data?.trades || [];
 
   if (trades.length === 0) {
-    return <Card title="Live Positions"><EmptyState message="No open live trades" /></Card>;
+    return <Card title="Live Positions" className={className}><EmptyState message="No open live trades" /></Card>;
   }
 
   return (
     <>
-      <Card title="Live Positions">
+      <Card title="Live Positions" className={className}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

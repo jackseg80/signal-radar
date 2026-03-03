@@ -22,25 +22,25 @@ function CustomTooltip({ active, payload }) {
   );
 }
 
-export default function EquityCurve() {
+export default function EquityCurve({ className }) {
   const { refreshKey } = useRefresh();
   const { data, loading, error, refetch } = useApi(() => api.equityCurve(), [refreshKey]);
 
-  if (loading) return <Card title="Equity Curve"><LoadingState rows={4} /></Card>;
-  if (error) return <Card title="Equity Curve"><ErrorState message={error} onRetry={refetch} /></Card>;
+  if (loading) return <Card title="Equity Curve" className={className}><LoadingState rows={4} /></Card>;
+  if (error) return <Card title="Equity Curve" className={className}><ErrorState message={error} onRetry={refetch} /></Card>;
 
   const points = data?.data_points || [];
 
   if (points.length < 2) {
     return (
-      <Card title="Equity Curve">
+      <Card title="Equity Curve" className={className}>
         <EmptyState message="Not enough trades yet for equity curve" />
       </Card>
     );
   }
 
   return (
-    <Card title="Equity Curve">
+    <Card title="Equity Curve" className={className}>
       <ResponsiveContainer width="100%" height={250}>
         <AreaChart data={points} margin={{ top: 5, right: 5, bottom: 5, left: 5 }} style={{ cursor: 'crosshair' }}>
           <defs>

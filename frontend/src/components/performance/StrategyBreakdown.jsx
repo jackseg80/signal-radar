@@ -7,17 +7,23 @@ import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import AnimatedNumber from '../ui/AnimatedNumber';
 import ProgressRing from '../ui/ProgressRing';
+import { Wallet, TrendingUp, BarChart3, PieChart, Info } from 'lucide-react';
 
 export default function StrategyBreakdown() {
   const { refreshKey } = useRefresh();
   const { data, loading, error, refetch } = useApi(() => api.perfSummary(), [refreshKey]);
 
-  if (loading) return <Card><LoadingState rows={2} /></Card>;
+  if (loading) return (
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      {[...Array(5)].map((_, i) => <Card key={i}><LoadingState rows={1} /></Card>)}
+    </div>
+  );
+  
   if (error) return <Card><ErrorState message={error} onRetry={refetch} /></Card>;
   if (!data) return null;
 
   const {
-    capital, n_closed_trades, n_wins, win_rate,
+    capital, n_closed_trades, win_rate,
     total_realized_pnl, total_unrealized_pnl, n_open_positions, by_strategy,
   } = data;
 
@@ -26,13 +32,15 @@ export default function StrategyBreakdown() {
 
   const kpis = [
     {
-      label: 'Capital',
+      label: 'Portfolio Equity',
+      icon: <Wallet size={14} />,
       value: `$${capital.toLocaleString()}`,
-      color: 'text-[--text-primary]',
-      glow: '',
+      sub: 'Initial: $10,000',
+      color: 'text-white',
     },
     {
-      label: 'Realized',
+      label: 'Realized PnL',
+      icon: <TrendingUp size={14} />,
       animated: true,
       rawValue: total_realized_pnl,
       sub: formatPct(realizedPct),
@@ -40,7 +48,8 @@ export default function StrategyBreakdown() {
       glow: total_realized_pnl > 0 ? 'glow-green' : total_realized_pnl < 0 ? 'glow-red' : '',
     },
     {
-      label: 'Unrealized',
+      label: 'Unrealized PnL',
+      icon: <ActivityIcon size={14} />,
       animated: true,
       rawValue: total_unrealized_pnl,
       sub: formatPct(unrealizedPct),
@@ -48,45 +57,50 @@ export default function StrategyBreakdown() {
       glow: total_unrealized_pnl > 0 ? 'glow-green' : total_unrealized_pnl < 0 ? 'glow-red' : '',
     },
     {
-      label: 'Win Rate',
+      label: 'Success Rate',
+      icon: <PieChart size={14} />,
       isRing: n_closed_trades > 0,
       ringValue: win_rate,
       value: '--',
       color: 'text-[--text-muted]',
-      glow: '',
     },
     {
-      label: 'Trades',
-      value: `${n_closed_trades} / ${n_open_positions}`,
-      sub: 'closed / open',
-      color: 'text-[--text-primary]',
-      glow: '',
+      label: 'Market Exposure',
+      icon: <BarChart3 size={14} />,
+      value: `${n_open_positions}`,
+      sub: `Across ${Object.keys(by_strategy || {}).length} strategies`,
+      color: 'text-white',
     },
   ];
 
   return (
-    <div className="space-y-4">
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <div className="space-y-6">
+      {/* KPI Row */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {kpis.map((kpi, idx) => (
           <div
             key={kpi.label}
-            className={`glass-card rounded-lg p-4 animate-slide-up ${kpi.glow}`}
-            style={{ animationDelay: `${idx * 80}ms` }}
+            className={`bg-[--bg-card]/40 border border-[--glass-border] rounded-xl p-4 animate-slide-up transition-all hover:bg-[--bg-card]/60 hover:border-white/10 ${kpi.glow}`}
+            style={{ animationDelay: `${idx * 50}ms` }}
           >
-            <div
-              className="text-[10px] font-semibold uppercase tracking-widest text-[--text-muted] mb-2"
-              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-            >
-              {kpi.label}
+            <div className="flex items-center gap-2 mb-3">
+               <div className="p-1.5 rounded-lg bg-white/5 text-[--text-muted]">
+                 {kpi.icon}
+               </div>
+               <span 
+                className="text-[10px] font-bold uppercase tracking-wider text-[--text-muted]"
+                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+               >
+                 {kpi.label}
+               </span>
             </div>
 
             {kpi.isRing ? (
               <div className="flex items-center gap-3">
                 <ProgressRing
                   value={kpi.ringValue || 0}
-                  size={44}
-                  strokeWidth={3.5}
+                  size={48}
+                  strokeWidth={4}
                   color={
                     kpi.ringValue >= 60 ? 'var(--accent-green)' :
                     kpi.ringValue >= 50 ? 'var(--accent-amber)' :
@@ -94,66 +108,82 @@ export default function StrategyBreakdown() {
                   }
                   label={kpi.ringValue != null ? `${kpi.ringValue.toFixed(0)}%` : '--'}
                 />
+                <div className="text-[10px] text-[--text-muted]">of {n_closed_trades} trades</div>
               </div>
             ) : kpi.animated ? (
-              <>
+              <div>
                 <AnimatedNumber
                   value={kpi.rawValue}
                   format={formatPnl}
-                  className={`text-2xl font-bold ${kpi.color}`}
+                  className={`text-xl font-bold tabular-nums ${kpi.color}`}
                 />
                 {kpi.sub && (
-                  <div className="text-xs text-[--text-muted] mt-1">{kpi.sub}</div>
+                  <div className={kpi.rawValue >= 0 ? 'text-green-500/80 text-[10px] mt-0.5' : 'text-red-500/80 text-[10px] mt-0.5'}>
+                    {kpi.sub} from start
+                  </div>
                 )}
-              </>
+              </div>
             ) : (
-              <>
-                <div className={`text-2xl font-bold tabular-nums ${kpi.color}`}>{kpi.value}</div>
+              <div>
+                <div className={`text-xl font-bold tabular-nums ${kpi.color}`}>{kpi.value}</div>
                 {kpi.sub && (
-                  <div className="text-xs text-[--text-muted] mt-1">{kpi.sub}</div>
+                  <div className="text-[10px] text-[--text-muted] mt-0.5">{kpi.sub}</div>
                 )}
-              </>
+              </div>
             )}
           </div>
         ))}
       </div>
 
-      {/* Strategy breakdown */}
+      {/* Strategy Performance Details */}
       {by_strategy && Object.keys(by_strategy).length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {Object.entries(by_strategy).map(([strat, stats]) => {
             const colors = STRATEGY_COLORS[strat] || STRATEGY_COLORS.rsi2;
+            const winRate = stats.trades > 0 ? (stats.wins / stats.trades * 100) : 0;
             return (
               <div
                 key={strat}
-                className={`glass-card rounded-lg p-4 border-t-2 ${colors.border} animate-fade-in`}
+                className={`group relative overflow-hidden bg-[--bg-card]/20 border border-[--glass-border] rounded-xl p-4 hover:border-white/10 transition-all animate-fade-in`}
               >
-                <div className="flex items-center gap-2 mb-3">
+                {/* Visual Accent */}
+                <div className={`absolute top-0 left-0 w-1 h-full ${colors.bg}`} />
+                
+                <div className="flex items-center justify-between mb-4 pl-2">
                   <span
-                    className={`px-2.5 py-1 rounded-md text-xs font-bold ${colors.bg} ${colors.text}`}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${colors.bg} ${colors.text}`}
                     style={{ fontFamily: "'Space Grotesk', sans-serif" }}
                   >
                     {STRATEGY_LABELS[strat] || strat}
                   </span>
-                </div>
-                <div className="text-sm space-y-1.5">
-                  <div className="flex justify-between">
-                    <span className="text-[--text-muted] text-xs">Trades</span>
-                    <span className="font-medium">
-                      {stats.trades}
-                      <span className="text-[--text-muted] font-normal ml-1">
-                        ({stats.wins}W / {stats.trades - stats.wins}L)
-                      </span>
-                    </span>
+                  <div className="text-[10px] font-bold text-white/80 tabular-nums">
+                    {winRate.toFixed(0)}% WR
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-[--text-muted] text-xs">PnL</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pl-2">
+                  <div>
+                    <div className="text-[9px] uppercase tracking-wider text-[--text-muted] mb-1">Net Profit</div>
                     <AnimatedNumber
                       value={stats.pnl}
                       format={formatPnl}
-                      className={`font-bold ${pnlColor(stats.pnl)}`}
+                      className={`text-sm font-bold ${pnlColor(stats.pnl)}`}
                     />
                   </div>
+                  <div>
+                    <div className="text-[9px] uppercase tracking-wider text-[--text-muted] mb-1">Volume</div>
+                    <div className="text-sm font-bold text-white/90">
+                      {stats.trades} <span className="text-[10px] text-[--text-muted] font-normal">Trades</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Small progress bar for win rate */}
+                <div className="mt-4 h-1 w-full bg-white/5 rounded-full overflow-hidden pl-2 ml-2">
+                   <div 
+                    className={`h-full transition-all duration-1000 ${winRate >= 50 ? 'bg-green-500/50' : 'bg-red-500/50'}`}
+                    style={{ width: `${winRate}%` }} 
+                   />
                 </div>
               </div>
             );
@@ -161,5 +191,22 @@ export default function StrategyBreakdown() {
         </div>
       )}
     </div>
+  );
+}
+
+function ActivityIcon({ size }) {
+  return (
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    >
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    </svg>
   );
 }

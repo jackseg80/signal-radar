@@ -8,23 +8,23 @@ import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 import PnlBar from '../ui/PnlBar';
 
-export default function OpenPositions({ onLogReal }) {
+export default function OpenPositions({ onLogReal, className }) {
   const { refreshKey } = useRefresh();
   const { data, loading, error, refetch } = useApi(() => api.openPositions(), [refreshKey]);
 
-  if (loading) return <Card title="Open Positions"><LoadingState /></Card>;
-  if (error) return <Card title="Open Positions"><ErrorState message={error} onRetry={refetch} /></Card>;
+  if (loading) return <Card title="Open Positions" className={className}><LoadingState /></Card>;
+  if (error) return <Card title="Open Positions" className={className}><ErrorState message={error} onRetry={refetch} /></Card>;
 
   const positions = data?.positions || [];
 
   if (positions.length === 0) {
-    return <Card title="Open Positions"><EmptyState message="No open positions" /></Card>;
+    return <Card title="Open Positions" className={className}><EmptyState message="No open positions" /></Card>;
   }
 
   const maxAbsPnl = Math.max(1, ...positions.map((p) => Math.abs(p.unrealized_pnl || 0)));
 
   return (
-    <Card title="Open Positions">
+    <Card title="Open Positions" className={className}>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>

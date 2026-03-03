@@ -1,0 +1,93 @@
+================================================================
+VALIDATION COMPLETE -- signal-radar
+Date: Mon Mar  2 13:19:15     2026
+================================================================
+
+################################################################
+# RSI2 -- us_stocks_large
+################################################################
+
+  Pipeline de validation : rsi2_mean_reversion / us_stocks_large
+  Universe: US Large Cap Stocks (47 assets)
+  Capital=10,000, whole_shares=True, fee_model=us_stocks_usd_account
+  OOS=2014-01-01 -> 2025-01-01
+
+  AAPL... [32m2026-03-02 13:19:16.765[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AAPL (2005-01-01 -> 2025-01-01): 5033 candles[0m
+94 trades, PF 1.33, CONDITIONAL
+  MSFT... [32m2026-03-02 13:19:16.908[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MSFT (2005-01-01 -> 2025-01-01): 5033 candles[0m
+85 trades, PF 1.66, VALIDATED
+  GOOGL... [32m2026-03-02 13:19:17.043[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour GOOGL (2005-01-01 -> 2025-01-01): 5033 candles[0m
+90 trades, PF 1.72, VALIDATED
+  AMZN... [32m2026-03-02 13:19:17.183[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AMZN (2005-01-01 -> 2025-01-01): 5033 candles[0m
+74 trades, PF 1.39, REJECTED
+  META... [32m2026-03-02 13:19:17.312[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour META (2012-06-01 -> 2025-01-01): 3166 candles[0m
+93 trades, PF 3.49, VALIDATED
+  NVDA... [32m2026-03-02 13:19:17.437[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour NVDA (2005-01-01 -> 2025-01-01): 5033 candles[0m
+96 trades, PF 1.48, VALIDATED
+  TSLA... [32m2026-03-02 13:19:17.576[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour TSLA (2010-07-01 -> 2025-01-01): 3650 candles[0m
+63 trades, PF 1.14, REJECTED
+  AMD... [32m2026-03-02 13:19:17.700[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AMD (2005-01-01 -> 2025-01-01): 5033 candles[0m
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: invalid value encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+80 trades, PF 1.29, REJECTED
+  AVGO... [32m2026-03-02 13:19:17.829[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AVGO (2009-08-01 -> 2025-01-01): 3877 candles[0m
+98 trades, PF 1.59, VALIDATED
+  CRM... [32m2026-03-02 13:19:17.971[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CRM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+76 trades, PF 1.23, REJECTED
+  ADBE... [32m2026-03-02 13:19:18.105[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour ADBE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+76 trades, PF 1.45, CONDITIONAL
+  NFLX... [32m2026-03-02 13:19:18.236[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour NFLX (2005-01-01 -> 2025-01-01): 5033 candles[0m
+89 trades, PF 0.87, REJECTED
+  ORCL... [32m2026-03-02 13:19:18.366[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour ORCL (2005-01-01 -> 2025-01-01): 5033 candles[0m
+82 trades, PF 1.58, VALIDATED
+  INTC... [32m2026-03-02 13:19:18.542[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour INTC (2005-01-01 -> 2025-01-01): 5033 candles[0m
+63 trades, PF 0.86, REJECTED
+  CSCO... [32m2026-03-02 13:19:18.657[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CSCO (2005-01-01 -> 2025-01-01): 5033 candles[0m
+66 trades, PF 0.57, REJECTED
+  JPM... [32m2026-03-02 13:19:18.786[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour JPM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+89 trades, PF 0.92, REJECTED
+  GS... [32m2026-03-02 13:19:18.916[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour GS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+70 trades, PF 1.55, REJECTED
+  BAC... [32m2026-03-02 13:19:19.038[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour BAC (2005-01-01 -> 2025-01-01): 5033 candles[0m
+68 trades, PF 0.76, REJECTED
+  MS... [32m2026-03-02 13:19:19.178[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+82 trades, PF 1.16, REJECTED
+  V... [32m2026-03-02 13:19:19.309[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement V (2008-03-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:19:19.877[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mV: ajustement O/H/L pour splits/dividendes (ratio min=0.8808, max=0.9909)[0m
+[32m2026-03-02 13:19:19.970[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mV: 4226 candles sauvegardees dans la DB[0m
+86 trades, PF 2.48, VALIDATED
+  MA... [32m2026-03-02 13:19:20.108[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement MA (2006-05-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:19:20.277[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mMA: ajustement O/H/L pour splits/dividendes (ratio min=0.9074, max=0.9928)[0m
+[32m2026-03-02 13:19:20.370[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mMA: 4682 candles sauvegardees dans la DB[0m
+91 trades, PF 1.86, VALIDATED
+  JNJ... [32m2026-03-02 13:19:20.494[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour JNJ (2005-01-01 -> 2025-01-01): 5033 candles[0m
+72 trades, PF 0.67, REJECTED
+  UNH... [32m2026-03-02 13:19:20.617[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour UNH (2005-01-01 -> 2025-01-01): 5033 candles[0m
+95 trades, PF 1.33, CONDITIONAL
+  PFE... [32m2026-03-02 13:19:20.744[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PFE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+71 trades, PF 0.58, REJECTED
+  ABBV... [32m2026-03-02 13:19:20.873[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour ABBV (2013-01-01 -> 2025-01-01): 3020 candles[0m
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\Python\signal-radar\cli\validate.py", line 168, in <module>
+    main()
+    ~~~~^^
+  File "D:\Python\signal-radar\cli\validate.py", line 147, in main
+    report = validate(strategy, val_config)
+  File "D:\Python\signal-radar\validation\pipeline.py", line 115, in validate
+    robustness = run_robustness(
+        strategy, cache, bt_config,
+    ...<2 lines>...
+        symbol=symbol,
+    )
+  File "D:\Python\signal-radar\validation\robustness.py", line 78, in run_robustness
+    result = simulate(
+        strategy, cache, params, config,
+        start_idx=start_idx, end_idx=end_idx,
+    )
+  File "D:\Python\signal-radar\engine\simulator.py", line 172, in simulate
+    raise ValueError(
+    ...<2 lines>...
+    )
+ValueError: start_idx (252) < warmup (260). Les indicateurs ne sont pas valides avant le warmup.

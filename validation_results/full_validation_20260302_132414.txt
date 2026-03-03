@@ -1,0 +1,123 @@
+================================================================
+VALIDATION COMPLETE -- signal-radar
+Date: Mon Mar  2 13:24:14     2026
+================================================================
+
+################################################################
+# RSI2 -- us_stocks_large
+################################################################
+
+  Pipeline de validation : rsi2_mean_reversion / us_stocks_large
+  Universe: US Large Cap Stocks (47 assets)
+  Capital=10,000, whole_shares=True, fee_model=us_stocks_usd_account
+  OOS=2014-01-01 -> 2025-01-01
+
+  AAPL... [32m2026-03-02 13:24:16.111[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AAPL (2005-01-01 -> 2025-01-01): 5033 candles[0m
+94 trades, PF 1.33, CONDITIONAL
+  MSFT... [32m2026-03-02 13:24:16.247[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MSFT (2005-01-01 -> 2025-01-01): 5033 candles[0m
+85 trades, PF 1.66, VALIDATED
+  GOOGL... [32m2026-03-02 13:24:16.387[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour GOOGL (2005-01-01 -> 2025-01-01): 5033 candles[0m
+90 trades, PF 1.72, VALIDATED
+  AMZN... [32m2026-03-02 13:24:16.521[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AMZN (2005-01-01 -> 2025-01-01): 5033 candles[0m
+74 trades, PF 1.39, REJECTED
+  META... [32m2026-03-02 13:24:16.659[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour META (2012-06-01 -> 2025-01-01): 3166 candles[0m
+93 trades, PF 3.49, VALIDATED
+  NVDA... [32m2026-03-02 13:24:16.803[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour NVDA (2005-01-01 -> 2025-01-01): 5033 candles[0m
+96 trades, PF 1.48, VALIDATED
+  TSLA... [32m2026-03-02 13:24:16.944[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour TSLA (2010-07-01 -> 2025-01-01): 3650 candles[0m
+63 trades, PF 1.14, REJECTED
+  AMD... [32m2026-03-02 13:24:17.070[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AMD (2005-01-01 -> 2025-01-01): 5033 candles[0m
+D:\Python\signal-radar\engine\indicators.py:327: RuntimeWarning: invalid value encountered in divide
+  ibs = np.where(range_ > 0, (closes - lows) / range_, np.nan)
+80 trades, PF 1.29, REJECTED
+  AVGO... [32m2026-03-02 13:24:17.205[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour AVGO (2009-08-01 -> 2025-01-01): 3877 candles[0m
+98 trades, PF 1.59, VALIDATED
+  CRM... [32m2026-03-02 13:24:17.346[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CRM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+76 trades, PF 1.23, REJECTED
+  ADBE... [32m2026-03-02 13:24:17.505[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour ADBE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+76 trades, PF 1.45, CONDITIONAL
+  NFLX... [32m2026-03-02 13:24:17.647[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour NFLX (2005-01-01 -> 2025-01-01): 5033 candles[0m
+89 trades, PF 0.87, REJECTED
+  ORCL... [32m2026-03-02 13:24:17.787[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour ORCL (2005-01-01 -> 2025-01-01): 5033 candles[0m
+82 trades, PF 1.58, VALIDATED
+  INTC... [32m2026-03-02 13:24:17.951[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour INTC (2005-01-01 -> 2025-01-01): 5033 candles[0m
+63 trades, PF 0.86, REJECTED
+  CSCO... [32m2026-03-02 13:24:18.077[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CSCO (2005-01-01 -> 2025-01-01): 5033 candles[0m
+66 trades, PF 0.57, REJECTED
+  JPM... [32m2026-03-02 13:24:18.202[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour JPM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+89 trades, PF 0.92, REJECTED
+  GS... [32m2026-03-02 13:24:18.343[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour GS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+70 trades, PF 1.55, REJECTED
+  BAC... [32m2026-03-02 13:24:18.477[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour BAC (2005-01-01 -> 2025-01-01): 5033 candles[0m
+68 trades, PF 0.76, REJECTED
+  MS... [32m2026-03-02 13:24:18.607[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+82 trades, PF 1.16, REJECTED
+  V... [32m2026-03-02 13:24:18.745[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement V (2008-03-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:24:19.533[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mV: ajustement O/H/L pour splits/dividendes (ratio min=0.8808, max=0.9909)[0m
+[32m2026-03-02 13:24:19.670[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mV: 4226 candles sauvegardees dans la DB[0m
+86 trades, PF 2.48, VALIDATED
+  MA... [32m2026-03-02 13:24:19.881[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement MA (2006-05-01 -> 2025-01-01)...[0m
+[32m2026-03-02 13:24:20.293[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m92[0m - [1mMA: ajustement O/H/L pour splits/dividendes (ratio min=0.9074, max=0.9928)[0m
+[32m2026-03-02 13:24:20.435[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m106[0m - [1mMA: 4682 candles sauvegardees dans la DB[0m
+91 trades, PF 1.86, VALIDATED
+  JNJ... [32m2026-03-02 13:24:20.630[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour JNJ (2005-01-01 -> 2025-01-01): 5033 candles[0m
+72 trades, PF 0.67, REJECTED
+  UNH... [32m2026-03-02 13:24:20.820[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour UNH (2005-01-01 -> 2025-01-01): 5033 candles[0m
+95 trades, PF 1.33, CONDITIONAL
+  PFE... [32m2026-03-02 13:24:20.992[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PFE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+71 trades, PF 0.58, REJECTED
+  ABBV... [32m2026-03-02 13:24:21.131[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour ABBV (2013-01-01 -> 2025-01-01): 3020 candles[0m
+80 trades, PF 0.88, REJECTED
+  LLY... [32m2026-03-02 13:24:21.229[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour LLY (2005-01-01 -> 2025-01-01): 5033 candles[0m
+90 trades, PF 0.92, REJECTED
+  MRK... [32m2026-03-02 13:24:21.389[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MRK (2005-01-01 -> 2025-01-01): 5033 candles[0m
+77 trades, PF 1.39, CONDITIONAL
+  KO... [32m2026-03-02 13:24:21.576[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour KO (2005-01-01 -> 2025-01-01): 5033 candles[0m
+71 trades, PF 0.95, REJECTED
+  PEP... [32m2026-03-02 13:24:21.731[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PEP (2005-01-01 -> 2025-01-01): 5033 candles[0m
+67 trades, PF 0.50, REJECTED
+  WMT... [32m2026-03-02 13:24:21.877[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour WMT (2005-01-01 -> 2025-01-01): 5033 candles[0m
+71 trades, PF 1.10, REJECTED
+  PG... [32m2026-03-02 13:24:22.051[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PG (2005-01-01 -> 2025-01-01): 5033 candles[0m
+79 trades, PF 1.31, CONDITIONAL
+  COST... [32m2026-03-02 13:24:22.191[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour COST (2005-01-01 -> 2025-01-01): 5033 candles[0m
+75 trades, PF 0.86, REJECTED
+  HD... [32m2026-03-02 13:24:22.382[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour HD (2005-01-01 -> 2025-01-01): 5033 candles[0m
+89 trades, PF 0.92, REJECTED
+  MCD... [32m2026-03-02 13:24:22.562[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour MCD (2005-01-01 -> 2025-01-01): 5033 candles[0m
+75 trades, PF 1.02, REJECTED
+  NKE... [32m2026-03-02 13:24:22.714[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour NKE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+66 trades, PF 1.05, REJECTED
+  SBUX... [32m2026-03-02 13:24:22.869[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour SBUX (2005-01-01 -> 2025-01-01): 5033 candles[0m
+68 trades, PF 0.87, REJECTED
+  CAT... [32m2026-03-02 13:24:23.015[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CAT (2005-01-01 -> 2025-01-01): 5033 candles[0m
+74 trades, PF 1.00, REJECTED
+  BA... [32m2026-03-02 13:24:23.162[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour BA (2005-01-01 -> 2025-01-01): 5033 candles[0m
+64 trades, PF 0.82, REJECTED
+  XOM... [32m2026-03-02 13:24:23.284[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour XOM (2005-01-01 -> 2025-01-01): 5033 candles[0m
+54 trades, PF 0.95, REJECTED
+  CVX... [32m2026-03-02 13:24:23.459[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour CVX (2005-01-01 -> 2025-01-01): 5033 candles[0m
+58 trades, PF 0.84, REJECTED
+  GE... [32m2026-03-02 13:24:23.646[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour GE (2005-01-01 -> 2025-01-01): 5033 candles[0m
+63 trades, PF 1.99, VALIDATED
+  UPS... [32m2026-03-02 13:24:23.809[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour UPS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+60 trades, PF 0.57, REJECTED
+  DIS... [32m2026-03-02 13:24:23.968[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour DIS (2005-01-01 -> 2025-01-01): 5033 candles[0m
+66 trades, PF 1.55, VALIDATED
+  PYPL... [32m2026-03-02 13:24:24.152[0m | [34m[1mDEBUG   [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m64[0m - [34m[1mCache hit pour PYPL (2015-07-01 -> 2025-01-01): 2390 candles[0m
+48 trades, PF 1.10, REJECTED
+  SQ... [32m2026-03-02 13:24:24.242[0m | [1mINFO    [0m | [36mdata.yahoo_loader[0m:[36mget_daily_candles[0m:[36m71[0m - [1mTelechargement SQ (2015-11-01 -> 2025-01-01)...[0m
+$SQ: possibly delisted; no timezone found
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\Python\signal-radar\cli\validate.py", line 168, in <module>
+    main()
+    ~~~~^^
+  File "D:\Python\signal-radar\cli\validate.py", line 147, in main
+    report = validate(strategy, val_config)
+  File "D:\Python\signal-radar\validation\pipeline.py", line 74, in validate
+    df = loader.get_daily_candles(symbol, start_date, config.data_end)
+  File "D:\Python\signal-radar\data\yahoo_loader.py", line 76, in get_daily_candles
+    raise ValueError(f"Aucune donnee retournee pour {symbol} ({start} -> {end})")
+ValueError: Aucune donnee retournee pour SQ (2015-11-01 -> 2025-01-01)

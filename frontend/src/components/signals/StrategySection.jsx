@@ -14,10 +14,11 @@ export default function StrategySection({ strategyKey, strategyData }) {
         >
           {strategyData.label}
         </span>
-        <span className="text-xs text-[--text-muted]">{strategyData.signals.length} assets</span>
-        <div className="flex-1 h-px bg-[--border-subtle]"></div>
+        <span className="text-[10px] text-[--text-muted]">{strategyData.signals.length} assets</span>
+        <div className="flex-1 h-px bg-white/5"></div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+      {/* Internal Grid: Optimized for display within a dashboard column */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3">
         {sorted.map((sig) => (
           <SignalCard
             key={sig.symbol}
