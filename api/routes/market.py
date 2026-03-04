@@ -14,8 +14,9 @@ router = APIRouter()
 INDICATOR_LABELS = {"rsi2": "RSI(2)", "ibs": "IBS", "tom": "Days left"}
 _PROXIMITY_SIGNALS = {"NO_SIGNAL", "WATCH"}
 
-# Hardcoded domains for top assets to avoid DB dependency or slow fetching
+# Expanded mapping including major ETF issuers
 COMMON_DOMAINS = {
+    # Tech & Stocks
     "AAPL": "apple.com", "MSFT": "microsoft.com", "GOOGL": "google.com", "AMZN": "amazon.com",
     "META": "meta.com", "NVDA": "nvidia.com", "TSLA": "tesla.com", "AMD": "amd.com",
     "AVGO": "broadcom.com", "CRM": "salesforce.com", "ADBE": "adobe.com", "NFLX": "netflix.com",
@@ -24,8 +25,28 @@ COMMON_DOMAINS = {
     "DIS": "disney.com", "PYPL": "paypal.com", "SQ": "block.xyz", "UBER": "uber.com",
     "ABNB": "airbnb.com", "KO": "cocacola.com", "PEP": "pepsico.com", "WMT": "walmart.com",
     "COST": "costco.com", "NKE": "nike.com", "SBUX": "starbucks.com", "CAT": "caterpillar.com",
-    "XOM": "exxonmobil.com", "CVX": "chevron.com", "GE": "ge.com", "UNH": "uhg.com"
+    "XOM": "exxonmobil.com", "CVX": "chevron.com", "GE": "ge.com", "UNH": "uhg.com",
+    
+    # ETFs (Major issuers)
+    "QQQ": "invesco.com",
+    "SPY": "ssga.com", "DIA": "ssga.com", 
+    "XLY": "ssga.com", "XLP": "ssga.com", "XLE": "ssga.com", "XLF": "ssga.com", 
+    "XLV": "ssga.com", "XLI": "ssga.com", "XLB": "ssga.com", "XLK": "ssga.com", 
+    "XLU": "ssga.com", "XLRE": "ssga.com", "XLC": "ssga.com",
+    "VOO": "vanguard.com", "VTI": "vanguard.com", "BND": "vanguard.com",
+    "IVV": "ishares.com", "IWM": "ishares.com", "IJR": "ishares.com", "EFA": "ishares.com", "IEFA": "ishares.com"
 }
+
+def _get_domain(symbol: str, db: SignalRadarDB) -> str | None:
+    """Helper to find a domain for a symbol."""
+    if symbol in COMMON_DOMAINS:
+        return COMMON_DOMAINS[symbol]
+    
+    meta = db.get_asset_metadata(symbol)
+    if meta and meta.get("logo_url") and "logo.clearbit.com/" in meta["logo_url"]:
+        return meta["logo_url"].split("logo.clearbit.com/")[1]
+    
+    return None
 
 def _compute_proximity(strategy: str, details: dict, params: dict) -> dict | None:
     if not details: return None
@@ -61,17 +82,19 @@ def _compute_proximity(strategy: str, details: dict, params: dict) -> dict | Non
 @router.get("/overview")
 def get_market_overview(db: SignalRadarDB = Depends(get_db)) -> dict:
     config = load_production_config(); strategies_cfg = config.get("strategies", {})
-    metadata_map = db.get_all_metadata()
-    asset_membership = {}
-    for strat_name, strat_cfg in strategies_cfg.items():
-        if not strat_cfg.get("enabled", False): continue
-        for sym in strat_cfg.get("universe", []): asset_membership.setdefault(sym, {})[strat_name] = True
-        for sym in strat_cfg.get("watchlist", []): asset_membership.setdefault(sym, {})[strat_name] = False
     ts, all_signals = db.get_latest_signals()
     signal_map = {(s["strategy"], s["symbol"]): s for s in all_signals}
     details_map = { (s["strategy"], s["symbol"]): _json.loads(s["details_json"]) for s in all_signals if s.get("details_json") }
     open_pos_map = {}
     for p in db.get_open_positions(): open_pos_map.setdefault(p["symbol"], []).append(p["strategy"])
+    
+    # Pre-calculate assets membership
+    asset_membership = {}
+    for strat_name, strat_cfg in strategies_cfg.items():
+        if not strat_cfg.get("enabled", False): continue
+        for sym in strat_cfg.get("universe", []): asset_membership.setdefault(sym, {})[strat_name] = True
+        for sym in strat_cfg.get("watchlist", []): asset_membership.setdefault(sym, {})[strat_name] = False
+
     assets = []
     for sym in sorted(asset_membership.keys()):
         strat_data = {}
@@ -85,8 +108,20 @@ def get_market_overview(db: SignalRadarDB = Depends(get_db)) -> dict:
                 strat_data[strat_name] = {"signal": sig["signal"], "indicator_value": sig["indicator_value"], "indicator_label": INDICATOR_LABELS.get(strat_name, strat_name), "in_universe": asset_membership.get(sym, {}).get(strat_name, False), "proximity": prox}
             elif strat_name in asset_membership.get(sym, {}):
                 strat_data[strat_name] = {"signal": None, "indicator_value": None, "indicator_label": INDICATOR_LABELS.get(strat_name, strat_name), "in_universe": asset_membership[sym][strat_name], "proximity": None}
-        meta = metadata_map.get(sym) or db.get_asset_metadata(sym) or {}
-        assets.append({"symbol": sym, "name": meta.get("name") or sym, "logo_url": meta.get("logo_url") or f"GUESS:{sym}", "close": close_price, "strategies": strat_data, "has_open_position": sym in open_pos_map, "position_strategies": open_pos_map.get(sym, [])})
+        
+        # Only provide logo URL if we actually have a domain
+        domain = _get_domain(sym, db)
+        logo_url = f"/api/market/asset/{sym}/logo" if domain else None
+        
+        assets.append({
+            "symbol": sym, 
+            "name": sym, # Minimal name to keep it fast
+            "logo_url": logo_url, 
+            "close": close_price, 
+            "strategies": strat_data, 
+            "has_open_position": sym in open_pos_map, 
+            "position_strategies": open_pos_map.get(sym, [])
+        })
     return {"scanner_timestamp": ts, "assets": assets}
 
 @router.get("/asset/{symbol}")
@@ -97,22 +132,35 @@ def get_asset_details(symbol: str, db: SignalRadarDB = Depends(get_db)) -> dict:
     if last_price is None:
         df = db.get_ohlcv(symbol)
         if not df.empty: last_price = float(df.iloc[-1]["close"])
-    return {"symbol": symbol, "name": meta.get("name") or symbol, "logo_url": meta.get("logo_url") or f"GUESS:{symbol}", "last_price": last_price, "timestamp": ts, "signals": asset_signals, "membership": [], "open_positions": [p for p in db.get_open_positions() if p["symbol"] == symbol], "validations": [v for v in db.get_validations_filtered(verdict="VALIDATED") if v["symbol"] == symbol]}
+    
+    domain = _get_domain(symbol, db)
+    logo_url = f"/api/market/asset/{symbol}/logo" if domain else None
+    
+    return {
+        "symbol": symbol, 
+        "name": meta.get("name") or symbol, 
+        "logo_url": logo_url, 
+        "last_price": last_price, 
+        "timestamp": ts, 
+        "signals": asset_signals, 
+        "membership": [], 
+        "open_positions": [p for p in db.get_open_positions() if p["symbol"] == symbol], 
+        "validations": [v for v in db.get_validations_filtered(verdict="VALIDATED") if v["symbol"] == symbol]
+    }
 
 @router.get("/asset/{symbol}/logo")
 async def get_asset_logo_proxy(symbol: str, db: SignalRadarDB = Depends(get_db)):
     """Ultra-robust logo proxy: uses DB, then Common Mapping, then Google."""
-    domain = COMMON_DOMAINS.get(symbol)
-    if not domain:
-        meta = db.get_asset_metadata(symbol)
-        if meta and meta.get("logo_url") and "logo.clearbit.com/" in meta["logo_url"]:
-            domain = meta["logo_url"].split("logo.clearbit.com/")[1]
+    domain = _get_domain(symbol, db)
     
     if not domain:
-        # Last resort guess
-        domain = f"{symbol.lower()}.com"
+        # Final guess attempt for the proxy specifically
+        if not symbol.includes('=X'):
+            domain = f"{symbol.lower()}.com"
+        else:
+            raise HTTPException(status_code=404)
 
-    # Try Google Favicon service (usually not blocked and very reliable)
+    # Use Google Favicon service via proxy
     url = f"https://www.google.com/s2/favicons?domain={domain}&sz=128"
     
     try:
