@@ -7,7 +7,13 @@ import Card from '../ui/Card';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, Info } from 'lucide-react';
+
+const VERDICT_EXPLANATIONS = {
+  VALIDATED: "Robuste, stable sur toutes les périodes et statistiquement significatif.",
+  CONDITIONAL: "Robuste, mais manque soit de stabilité temporelle, soit de volume de trades suffisant.",
+  REJECTED: "Échec aux tests de robustesse ou de stabilité. Performance probablement due au hasard (Overfitting)."
+};
 
 export default function CompareMatrix() {
   const { refreshKey } = useRefresh();
@@ -37,7 +43,6 @@ export default function CompareMatrix() {
         aVal = a;
         bVal = b;
       } else {
-        // Strategy PF sorting
         aVal = data.matrix[a]?.[sortConfig.key]?.pf || 0;
         bVal = data.matrix[b]?.[sortConfig.key]?.pf || 0;
       }
@@ -61,7 +66,7 @@ export default function CompareMatrix() {
   return (
     <Card 
       title="Cross-Strategy Comparison" 
-      subtitle="Side-by-side Profit Factor comparison for Tier 1 assets"
+      subtitle="Comparaison du Profit Factor par actif et stratégie"
       noPadding
     >
       <div className="overflow-x-auto">
@@ -73,7 +78,9 @@ export default function CompareMatrix() {
               </th>
               {strategies.map((s) => (
                 <th key={s} className="text-center py-4 px-4 cursor-pointer hover:text-white transition-colors" onClick={() => requestSort(s)}>
-                  <div className="flex items-center justify-center gap-1">{s.split('_')[0]} {getSortIcon(s)}</div>
+                  <div className="flex items-center justify-center gap-1">
+                    {s.split('_')[0]} {getSortIcon(s)}
+                  </div>
                 </th>
               ))}
             </tr>
@@ -89,17 +96,22 @@ export default function CompareMatrix() {
                   if (!val) return <td key={strat} className="py-4 px-4 text-center text-[--text-muted] opacity-20">--</td>;
                   
                   const pf = val.pf;
-                  const v = VERDICT_COLORS[val.verdict] || VERDICT_COLORS.REJECTED;
+                  const verdict = val.verdict;
+                  const v = VERDICT_COLORS[verdict] || VERDICT_COLORS.REJECTED;
                   
                   return (
                     <td key={strat} className="py-4 px-4 text-center">
-                      <div className="flex flex-col items-center gap-1">
+                      <div className="flex flex-col items-center gap-1 group/item relative">
                         <span className={`text-sm font-bold tabular-nums ${pf >= 1.5 ? 'text-green-400' : pf >= 1 ? 'text-white' : 'text-red-400'}`}>
                           {formatPF(pf)}
                         </span>
-                        <span className={`text-[8px] font-bold px-1 rounded ${v.text} ${v.bg} opacity-70`}>
-                          {val.verdict}
-                        </span>
+                        <div 
+                          className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${v.text} ${v.bg} border ${v.border} cursor-help flex items-center gap-1`}
+                          title={VERDICT_EXPLANATIONS[verdict]}
+                        >
+                          {verdict}
+                          <Info size={8} />
+                        </div>
                       </div>
                     </td>
                   );
@@ -108,6 +120,14 @@ export default function CompareMatrix() {
             ))}
           </tbody>
         </table>
+      </div>
+      
+      <div className="p-4 bg-blue-500/5 border-t border-white/5 flex gap-3">
+        <Info size={16} className="text-blue-400 shrink-0 mt-0.5" />
+        <p className="text-[10px] text-[--text-muted] leading-relaxed">
+          <strong>Note :</strong> Un Profit Factor élevé ne garantit pas la validation. Le système exige que la stratégie soit 
+          stable dans le temps et robuste face aux changements de paramètres pour éliminer le hasard.
+        </p>
       </div>
     </Card>
   );
