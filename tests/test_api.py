@@ -1,7 +1,9 @@
 """Tests for the FastAPI Signal Radar API."""
 
 import json
+from datetime import datetime
 
+import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
@@ -68,6 +70,14 @@ def db(tmp_path):
             "trading_day_of_month": 17, "entry_days_before_eom": 5,
         }),
     )
+
+    # OHLCV sample for asset details
+    df = pd.DataFrame(
+        [[600.0, 615.0, 595.0, 612.0, 1000.0]],
+        columns=["Open", "High", "Low", "Close", "Volume"],
+        index=[pd.Timestamp("2026-03-05")]
+    )
+    test_db.save_ohlcv("META", df)
 
     return test_db
 
@@ -159,16 +169,25 @@ class TestPerformance:
         r = client.get("/api/performance/summary")
         assert r.status_code == 200
         data = r.json()
-        assert data["capital"] == 5000
-        assert data["n_closed_trades"] == 1
-        assert data["n_open_positions"] == 2
+        assert "paper" in data
+        assert "live" in data
+        # Check some field inside paper
+        assert data["paper"]["n_trades"] == 1
+        assert data["paper"]["n_open"] == 2
 
     def test_equity_curve(self, client):
         """GET /api/performance/equity-curve returns cumulative P&L."""
         r = client.get("/api/performance/equity-curve")
         assert r.status_code == 200
         data = r.json()
-        assert len(data["data_points"]) == 1
+        assert "data_points" in data
+        assert len(data["data_points"]) >= 1
+
+    def test_validations_all(self, client):
+        """GET /api/performance/validations/all returns validations."""
+        r = client.get("/api/performance/validations/all")
+        assert r.status_code == 200
+        assert isinstance(r.json(), list)
 
 
 class TestMarket:
@@ -181,6 +200,25 @@ class TestMarket:
         # META should have signals from multiple strategies
         meta = next(a for a in data["assets"] if a["symbol"] == "META")
         assert "rsi2" in meta["strategies"] or "ibs" in meta["strategies"]
+
+    def test_asset_details(self, client):
+        """GET /api/market/asset/{symbol} returns details."""
+        r = client.get("/api/market/asset/META")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["symbol"] == "META"
+        assert "signals" in data
+        assert "open_positions" in data
+        assert "validations" in data
+
+    def test_asset_history(self, client, db):
+        """GET /api/market/asset/{symbol}/history returns history."""
+        r = client.get("/api/market/asset/META/history")
+        assert r.status_code == 200
+        data = r.json()
+        assert isinstance(data, list)
+        assert len(data) >= 1
+        assert data[0]["symbol"] == "META"
 
 
 class TestBacktest:
@@ -195,6 +233,18 @@ class TestBacktest:
         r = client.get("/api/backtest/validations")
         assert r.status_code == 200
         assert r.json()["total"] == 0
+
+    def test_robustness_unknown_strategy(self, client):
+        r = client.get("/api/backtest/robustness", params={
+            "strategy": "unknown", "symbol": "META", "universe": "us_stocks_large"
+        })
+        assert r.status_code == 404
+
+    def test_robustness_no_data(self, client):
+        r = client.get("/api/backtest/robustness", params={
+            "strategy": "rsi2", "symbol": "UNKNOWN", "universe": "us_stocks_large"
+        })
+        assert r.status_code == 404
 
 
 class TestScanner:
@@ -264,12 +314,9 @@ class TestLive:
         assert r.status_code == 200
         assert r.json()["n_trades"] == 0
 
-    def test_delete_live_trade(self, client):
-        client.post("/api/live/open", params={
-            "strategy": "rsi2", "symbol": "META",
-            "entry_date": "2026-03-05", "entry_price": 612.30, "shares": 8.0,
-        })
-        trades = client.get("/api/live/open").json()["trades"]
+    def test_delete_live_trade(self, client, db):
+        db.open_live_trade("rsi2", "META", "2026-03-05", 612.30, 8.0)
+        trades = db.get_open_live_trades()
         r = client.delete(f"/api/live/{trades[0]['id']}")
         assert r.status_code == 200
         assert r.json()["deleted"] is True

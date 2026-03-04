@@ -8,16 +8,29 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceL
 export default function AssetModal({ symbol, onClose }) {
   const { data: details, loading: loadingDetails } = useApi(() => api.assetDetails(symbol), [symbol]);
   const { data: history, loading: loadingHistory } = useApi(() => api.assetHistory(symbol, 60), [symbol]);
+  const { data: prices, loading: loadingPrices } = useApi(() => api.assetPrices(symbol, 60), [symbol]);
 
   const historyData = useMemo(() => {
-    if (!history || !Array.isArray(history)) return [];
-    return [...history].reverse().map(h => ({
-      date: h.timestamp.split(' ')[0],
-      price: h.close_price,
-      indicator: h.indicator_value,
-      signal: h.signal
+    if (!prices || !Array.isArray(prices)) return [];
+    
+    // Create a map of signals by date for quick lookup
+    const signalMap = {};
+    if (history && Array.isArray(history)) {
+      history.forEach(h => {
+        const date = h.timestamp.split(' ')[0];
+        // Only keep important signals for the chart dots
+        if (h.signal === 'BUY' || h.signal === 'SELL' || h.signal === 'SAFETY_EXIT') {
+          signalMap[date] = h.signal;
+        }
+      });
+    }
+
+    return prices.map(p => ({
+      date: p.date,
+      price: p.close,
+      signal: signalMap[p.date] || null
     }));
-  }, [history]);
+  }, [prices, history]);
 
   if (!symbol) return null;
 
@@ -55,17 +68,18 @@ export default function AssetModal({ symbol, onClose }) {
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-[10px] font-bold text-[--text-muted] uppercase tracking-widest">
                 <TrendingUp size={14} className="text-blue-400" />
-                <span>Historique des Signaux (60j)</span>
+                <span>Price History & Signals (60d)</span>
               </div>
               <div className="h-64 w-full bg-white/[0.02] rounded-xl border border-white/5 p-4 min-h-[256px]">
                 {historyData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={historyData}>
                       <XAxis dataKey="date" hide />
-                      <YAxis domain={['dataMin - 5', 'dataMax + 5']} hide />
+                      <YAxis domain={['auto', 'auto']} hide />
                       <Tooltip 
                         contentStyle={{ backgroundColor: '#1a1d27', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '10px' }}
                         itemStyle={{ color: '#fff' }}
+                        labelStyle={{ color: '#64748b', marginBottom: '4px' }}
                       />
                       <Line 
                         type="monotone" 
@@ -74,16 +88,17 @@ export default function AssetModal({ symbol, onClose }) {
                         strokeWidth={2} 
                         dot={(props) => {
                           const { cx, cy, payload } = props;
-                          if (payload.signal === 'BUY') return <circle key={`buy-${payload.date}`} cx={cx} cy={cy} r={4} fill="#22c55e" stroke="none" />;
-                          if (payload.signal === 'SELL') return <circle key={`sell-${payload.date}`} cx={cx} cy={cy} r={4} fill="#ef4444" stroke="none" />;
+                          if (payload.signal === 'BUY') return <circle key={`buy-${payload.date}`} cx={cx} cy={cy} r={5} fill="#22c55e" stroke="white" strokeWidth={1} />;
+                          if (payload.signal === 'SELL' || payload.signal === 'SAFETY_EXIT') return <circle key={`sell-${payload.date}`} cx={cx} cy={cy} r={5} fill="#ef4444" stroke="white" strokeWidth={1} />;
                           return null;
                         }}
+                        isAnimationActive={false}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-full flex items-center justify-center text-[--text-muted] text-xs">
-                    {loadingHistory ? "Chargement du graphique..." : "Aucun historique disponible"}
+                    {loadingPrices ? "Chargement des prix..." : "Données de prix non disponibles"}
                   </div>
                 )}
               </div>

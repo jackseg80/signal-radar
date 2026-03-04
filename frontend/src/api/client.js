@@ -28,6 +28,7 @@ export const api = {
   marketOverview: () => fetchJson('/market/overview'),
   assetDetails: (symbol) => fetchJson(`/market/asset/${symbol}`),
   assetHistory: (symbol, days = 60) => fetchJson(`/market/asset/${symbol}/history?days=${days}`),
+  assetPrices: (symbol, days = 60) => fetchJson(`/market/asset/${symbol}/prices?days=${days}`),
 
   // Positions & Trades
   openPositions: () => fetchJson('/positions/open'),

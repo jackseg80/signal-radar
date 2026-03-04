@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -453,6 +454,14 @@ class TestAPIDBMethods:
         buys = db.get_signal_history(signal_type="BUY", days=30)
         assert len(buys) == 1
         assert buys[0]["signal"] == "BUY"
+
+    def test_get_signal_history_filter_symbol(self, db: SignalRadarDB) -> None:
+        db.log_signal("2026-03-05 22:15:00", "rsi2", "META", "BUY", 610.0, 4.5, "")
+        db.log_signal("2026-03-05 22:15:00", "rsi2", "NVDA", "BUY", 130.0, 4.0, "")
+        
+        meta_sigs = db.get_signal_history(symbol="META", days=30)
+        assert len(meta_sigs) == 1
+        assert meta_sigs[0]["symbol"] == "META"
 
     def test_get_screens_filtered(self, db: SignalRadarDB) -> None:
         results = db.get_screens_filtered(min_pf=1.0)

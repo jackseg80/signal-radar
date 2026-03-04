@@ -216,10 +216,9 @@ def get_asset_details(
     ts, all_signals = db.get_latest_signals()
     asset_signals = [s for s in all_signals if s["symbol"] == symbol]
     
-    # Use get_latest_price instead of get_ohlcv(limit=1)
+    # Last known price
     last_price = db.get_latest_price(symbol)
     if last_price is None:
-        # Fallback to last known price in OHLCV table
         df = db.get_ohlcv(symbol)
         if df.empty:
              raise HTTPException(status_code=404, detail=f"Asset {symbol} not found")
@@ -261,3 +260,24 @@ def get_asset_history(
     # We fetch for all strategies to see the timeline
     history = db.get_signal_history(symbol=symbol, days=days)
     return history
+
+
+@router.get("/asset/{symbol}/prices")
+def get_asset_prices(
+    symbol: str,
+    days: int = Query(60, gt=0, le=365),
+    db: SignalRadarDB = Depends(get_db),
+) -> list:
+    """Historical prices (OHLCV) for a specific asset."""
+    import pandas as pd
+    start_date = (pd.Timestamp.now() - pd.Timedelta(days=days)).strftime("%Y-%m-%d")
+    df = db.get_ohlcv(symbol, start=start_date)
+    
+    # Convert index to list of dicts
+    prices = []
+    for date, row in df.iterrows():
+        prices.append({
+            "date": date.strftime("%Y-%m-%d") if isinstance(date, pd.Timestamp) else str(date),
+            "close": float(row["Close"])
+        })
+    return prices
