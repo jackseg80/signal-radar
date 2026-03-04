@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { BookOpen, Layers, Zap, ShieldCheck, Target, TrendingUp, Calendar, ArrowRight } from 'lucide-react';
 import RSI2Visualizer from '../components/strategies/RSI2Visualizer';
 import IBSVisualizer from '../components/strategies/IBSVisualizer';
+import TOMVisualizer from '../components/strategies/TOMVisualizer';
 
 export default function Strategies() {
   return (
@@ -110,8 +111,8 @@ export default function Strategies() {
       </section>
 
       {/* TOM Section */}
-      <section className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-green-500/10 via-transparent to-transparent border border-green-500/20 space-y-8">
-        <div className="max-w-2xl space-y-4">
+      <section className="space-y-8 py-12 border-t border-white/5">
+        <div className="max-w-3xl space-y-4">
           <h2 className="text-3xl font-bold text-white flex items-center gap-3">
             <Calendar className="text-green-400" size={32} />
             <span className="text-green-400">03.</span> Turn of the Month (TOM)
@@ -121,35 +122,27 @@ export default function Strategies() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-          <div className="grid grid-cols-7 gap-2 opacity-50">
-             {Array.from({ length: 28 }).map((_, i) => {
-               const day = i + 1;
-               const isTom = day >= 25 || day <= 3;
-               return (
-                 <div key={i} className={`h-10 rounded-lg flex items-center justify-center text-[10px] font-bold border transition-all ${isTom ? 'bg-green-500/20 border-green-500/40 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.1)]' : 'border-white/5 text-[--text-muted]'}`}>
-                   {day}
-                 </div>
-               );
-             })}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          <div className="space-y-6">
+             <div className="space-y-4">
+                <h4 className="text-lg font-bold text-white uppercase tracking-tight">Mécanique de la Fenêtre</h4>
+                <ul className="space-y-4">
+                  <li className="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
+                    <div className="w-8 h-8 rounded-full bg-green-500/10 text-green-400 flex items-center justify-center font-bold shrink-0">1</div>
+                    <p className="text-sm text-[--text-muted]">On identifie les <strong>5 derniers jours de bourse</strong> du mois actuel.</p>
+                  </li>
+                  <li className="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
+                    <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold shrink-0">2</div>
+                    <p className="text-sm text-[--text-muted]">On sort de position après les <strong>3 premiers jours de bourse</strong> du mois suivant.</p>
+                  </li>
+                  <li className="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
+                    <div className="w-8 h-8 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold shrink-0">3</div>
+                    <p className="text-sm text-[--text-muted]">Cette fenêtre capture l'effet de "Window Dressing" et les réallocations automatiques institutionnelles.</p>
+                  </li>
+                </ul>
+             </div>
           </div>
-          <div className="space-y-4">
-             <h4 className="text-lg font-bold text-white uppercase tracking-tight">La Fenêtre de Trading</h4>
-             <ul className="space-y-3">
-               <li className="flex gap-3 text-xs text-[--text-muted]">
-                 <div className="w-1.5 h-1.5 rounded-full bg-green-400 mt-1.5" />
-                 <span>Entrée : 5 jours de bourse avant la fin du mois.</span>
-               </li>
-               <li className="flex gap-3 text-xs text-[--text-muted]">
-                 <div className="w-1.5 h-1.5 rounded-full bg-green-400 mt-1.5" />
-                 <span>Sortie : 3 jours de bourse après le début du nouveau mois.</span>
-               </li>
-               <li className="flex gap-3 text-xs text-[--text-muted]">
-                 <div className="w-1.5 h-1.5 rounded-full bg-green-400 mt-1.5" />
-                 <span>Objectif : Capturer l'afflux de liquidités institutionnelles.</span>
-               </li>
-             </ul>
-          </div>
+          <TOMVisualizer />
         </div>
       </section>
     </div>
