@@ -13,7 +13,10 @@ export default function AssetIcon({ symbol, logoUrl, className, size = 'md' }) {
 
   const fallback = symbol ? symbol.substring(0, 2).toUpperCase() : '??';
 
-  if (logoUrl && !error) {
+  // We use our own proxy to bypass adblockers
+  const proxyUrl = symbol ? `/api/market/asset/${symbol}/logo` : null;
+
+  if (logoUrl && !error && proxyUrl) {
     return (
       <div className={cn(
         "rounded-lg bg-white overflow-hidden flex items-center justify-center shrink-0 border border-white/10 shadow-sm",
@@ -21,7 +24,7 @@ export default function AssetIcon({ symbol, logoUrl, className, size = 'md' }) {
         className
       )}>
         <img 
-          src={logoUrl} 
+          src={proxyUrl} 
           alt={symbol}
           className="w-full h-full object-contain p-1"
           onError={() => setError(true)}
@@ -30,7 +33,6 @@ export default function AssetIcon({ symbol, logoUrl, className, size = 'md' }) {
     );
   }
 
-  // Stylish fallback based on symbol characters
   const getFallbackColor = (str) => {
     const colors = [
       'bg-blue-500/20 text-blue-400 border-blue-500/30',

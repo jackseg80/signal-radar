@@ -1,8 +1,9 @@
 """Market overview endpoint with proximity-to-trigger alerts."""
 
 import json as _json
-
-from fastapi import APIRouter, Depends, Query, HTTPException
+import httpx
+from fastapi import APIRouter, Depends, Query, HTTPException, Response
+from fastapi.responses import StreamingResponse
 
 from data.db import SignalRadarDB
 from api.config import load_production_config
@@ -115,10 +116,8 @@ def get_market_overview(
     config = load_production_config()
     strategies_cfg = config.get("strategies", {})
     
-    # Get all metadata at once
     metadata_map = db.get_all_metadata()
 
-    # Build asset -> strategy membership mapping
     asset_membership: dict[str, dict[str, bool]] = {}
     for strat_name, strat_cfg in strategies_cfg.items():
         if not strat_cfg.get("enabled", False):
@@ -214,7 +213,6 @@ def get_asset_details(
     config = load_production_config()
     strategies_cfg = config.get("strategies", {})
     
-    # Get metadata, fetch if missing
     meta = db.get_asset_metadata(symbol) or {}
     
     ts, all_signals = db.get_latest_signals()
@@ -225,7 +223,6 @@ def get_asset_details(
         df = db.get_ohlcv(symbol)
         if df.empty:
              raise HTTPException(status_code=404, detail=f"Asset {symbol} not found")
-        # Ensure lowercase column access
         last_price = float(df.iloc[-1]["close"])
 
     membership = []
@@ -250,6 +247,29 @@ def get_asset_details(
         "open_positions": open_pos,
         "validations": asset_validations
     }
+
+
+@router.get("/asset/{symbol}/logo")
+async def get_asset_logo_proxy(
+    symbol: str,
+    db: SignalRadarDB = Depends(get_db),
+):
+    """Proxy for asset logo to bypass adblockers."""
+    meta = db.get_asset_metadata(symbol)
+    if not meta or not meta.get("logo_url"):
+        raise HTTPException(status_code=404, detail="Logo URL not found")
+    
+    url = meta["logo_url"]
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, timeout=5.0, follow_redirects=True)
+            if resp.status_code != 200:
+                raise HTTPException(status_code=resp.status_code)
+            
+            return Response(content=resp.content, media_type=resp.headers.get("Content-Type", "image/png"))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to fetch logo: {str(e)}")
 
 
 @router.get("/asset/{symbol}/history")
