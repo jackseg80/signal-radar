@@ -12,6 +12,7 @@ export default function Backtest() {
 
   return (
     <div className="space-y-6">
+      {/* Page Header - Not sticky */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/5 pb-4">
         <div>
           <h1 
@@ -24,9 +25,9 @@ export default function Backtest() {
         </div>
       </div>
 
-      {/* Sub-tabs - Sticky at top-16 (Navbar is h-16) */}
-      <div className="sticky top-16 z-40 bg-[--bg-primary]/80 backdrop-blur-md py-4 border-b border-transparent">
-        <div className="flex gap-1 animate-fade-in bg-white/[0.02] p-1 rounded-xl w-fit border border-white/5 shadow-xl">
+      {/* Sub-tabs - Sticky at top-16 (Navbar is 64px) */}
+      <div className="sticky top-[64px] z-[40] bg-[--bg-primary] py-4">
+        <div className="flex gap-1 animate-fade-in bg-white/[0.02] p-1 rounded-xl w-fit border border-white/5 shadow-2xl backdrop-blur-md">
           {TABS.map((tab) => (
             <button
               key={tab.key}

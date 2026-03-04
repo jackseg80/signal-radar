@@ -86,31 +86,31 @@ export default function ValidationsTable() {
   const selectClass = "bg-[#1a1d27] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-green-500/50 cursor-pointer appearance-none min-w-[140px]";
 
   return (
-    <div className="space-y-0">
-      {/* Filters Bar - Sticky below Tabs (top-16 + tabs height) */}
-      <div className="sticky top-[136px] z-30 bg-[--bg-primary] pb-4">
-        <div className="flex flex-wrap gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl items-center shadow-lg backdrop-blur-md">
+    <div className="space-y-0 relative">
+      {/* Filters Bar - Sticky below Tabs (Navbar 64px + Tabs 76px = 140px) */}
+      <div className="sticky top-[140px] z-[30] bg-[--bg-primary] py-2">
+        <div className="flex flex-wrap gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl items-center shadow-2xl backdrop-blur-md">
           <div className="flex items-center gap-2 mr-2">
             <Filter size={14} className="text-[--text-muted]" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-[--text-muted]">Filtrer l'élite :</span>
           </div>
           
           <select value={filters.strategy} onChange={(e) => setFilters({ ...filters, strategy: e.target.value })} className={selectClass}>
-            <option value="">Toutes les Stratégies</option>
-            {allStrategies.map(s => <option key={s} value={s}>{STRATEGY_LABELS[s] || s}</option>)}
+            <option value="" className="bg-[#1a1d27]">Toutes les Stratégies</option>
+            {allStrategies.map(s => <option key={s} value={s} className="bg-[#1a1d27]">{STRATEGY_LABELS[s] || s}</option>)}
           </select>
 
           <select value={filters.verdict} onChange={(e) => setFilters({ ...filters, verdict: e.target.value })} className={selectClass}>
-            <option value="">Tous les Verdicts</option>
-            <option value="VALIDATED">VALIDATED</option>
-            <option value="CONDITIONAL">CONDITIONAL</option>
-            <option value="REJECTED">REJECTED</option>
+            <option value="" className="bg-[#1a1d27]">Tous les Verdicts</option>
+            <option value="VALIDATED" className="bg-[#1a1d27]">VALIDATED</option>
+            <option value="CONDITIONAL" className="bg-[#1a1d27]">CONDITIONAL</option>
+            <option value="REJECTED" className="bg-[#1a1d27]">REJECTED</option>
           </select>
 
           {allUniverses.length > 0 && (
             <select value={filters.universe} onChange={(e) => setFilters({ ...filters, universe: e.target.value })} className={selectClass}>
-              <option value="">Tous les Univers</option>
-              {allUniverses.map(u => <option key={u} value={u}>{u}</option>)}
+              <option value="" className="bg-[#1a1d27]">Tous les Univers</option>
+              {allUniverses.map(u => <option key={u} value={u} className="bg-[#1a1d27]">{u}</option>)}
             </select>
           )}
 
@@ -124,10 +124,10 @@ export default function ValidationsTable() {
       {sortedResults.length === 0 ? (
         <div className="pt-8"><EmptyState message="Aucun test ne correspond à ces critères." /></div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-visible">
           <table className="w-full text-sm border-collapse">
-            <thead className="sticky top-[216px] z-20 bg-[--bg-primary]">
-              <tr className="bg-white/[0.05] border-b border-[--glass-border] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold">
+            <thead className="sticky top-[216px] z-[20]">
+              <tr className="bg-[#1a1d27] border-b border-[--glass-border] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold shadow-sm">
                 <th className="text-left py-4 px-4 cursor-pointer hover:text-white" onClick={() => requestSort('symbol')}>
                   <div className="flex items-center gap-1">Actif {getSortIcon('symbol')}</div>
                 </th>
@@ -154,7 +154,7 @@ export default function ValidationsTable() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-[--bg-primary]">
+            <tbody>
               {sortedResults.map((r, idx) => {
                 const v = VERDICT_COLORS[r.verdict] || VERDICT_COLORS.REJECTED;
                 const isSelected = selectedValidation?.symbol === r.symbol && selectedValidation?.strategy === r.strategy;
@@ -191,7 +191,10 @@ export default function ValidationsTable() {
                       <div className="flex flex-col items-end gap-1">
                         <span className={`font-bold ${r.robustness_pct >= 80 ? 'text-green-400' : 'text-amber-400'}`}>{r.robustness_pct.toFixed(0)}%</span>
                         <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
-                          <div className={`h-full ${r.robustness_pct >= 80 ? 'bg-green-500' : 'bg-amber-500'}`} style={{ width: `${r.robustness_pct}%` }} />
+                          <div 
+                            className={`h-full ${r.robustness_pct >= 80 ? 'bg-green-500' : 'bg-amber-500'}`}
+                            style={{ width: `${r.robustness_pct}%` }}
+                          />
                         </div>
                       </div>
                     </td>

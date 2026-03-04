@@ -82,10 +82,10 @@ export default function CompareMatrix() {
       subtitle="Visualisation de la robustesse croisée par actif"
       noPadding
     >
-      <div className="overflow-x-auto">
+      <div className="overflow-visible">
         <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="bg-white/[0.02] border-b border-[--glass-border] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold">
+          <thead className="sticky top-[140px] z-[30] bg-[--bg-primary]">
+            <tr className="bg-[#1a1d27] border-b border-[--glass-border] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold shadow-sm">
               <th className="text-left py-4 px-6 cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: 'symbol', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
                 Actif
               </th>
@@ -100,7 +100,7 @@ export default function CompareMatrix() {
             </tr>
           </thead>
           <tbody>
-            {sortedAssets.map(({ symbol, validCount, avgPf }) => (
+            {sortedAssets.map(({ symbol, validCount }) => (
               <tr key={symbol} className="border-b border-white/5 hover:bg-white/[0.02] transition-all group">
                 <td className="py-4 px-6 font-bold text-white group-hover:text-green-400 transition-colors">
                   {symbol}
