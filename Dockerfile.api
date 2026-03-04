@@ -20,12 +20,14 @@ WORKDIR /app
 COPY requirements-api.txt ./
 RUN uv pip install --system --no-cache -r requirements-api.txt
 
-# API code + scanner (for trigger endpoint)
+# API code + scanner modules
 COPY api/ api/
-COPY data/__init__.py data/base_loader.py data/yahoo_loader.py data/db.py data/
+COPY data/ data/
 COPY engine/ engine/
 COPY strategies/ strategies/
 COPY config/ config/
+COPY validation/ validation/
+COPY cli/ cli/
 COPY scripts/daily_scanner.py scripts/monthly_refresh.py scripts/
 
 # Directories for scanner runtime
