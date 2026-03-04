@@ -4,6 +4,7 @@ import Navbar from './components/layout/Navbar';
 import Dashboard from './pages/Dashboard';
 import Backtest from './pages/Backtest';
 import Journal from './pages/Journal';
+import Strategies from './pages/Strategies';
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/backtest" element={<Backtest />} />
                 <Route path="/journal" element={<Journal />} />
+                <Route path="/strategies" element={<Strategies />} />
               </Routes>
             </div>
           </main>

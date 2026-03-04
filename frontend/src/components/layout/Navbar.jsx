@@ -4,7 +4,7 @@ import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { useApi } from '../../hooks/useApi';
 import { api } from '../../api/client';
 import { formatTimestamp } from '../../utils/format';
-import { LayoutDashboard, LineChart, BookOpen, Activity, RefreshCw, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, LineChart, BookOpen, Activity, RefreshCw, HelpCircle, GraduationCap } from 'lucide-react';
 import GuideModal from './GuideModal';
 
 export default function Navbar() {
@@ -41,6 +41,7 @@ export default function Navbar() {
 
   const navItems = [
     { to: "/", icon: <LayoutDashboard size={18} />, label: "Dashboard", end: true },
+    { to: "/strategies", icon: <GraduationCap size={18} />, label: "Stratégies" },
     { to: "/backtest", icon: <LineChart size={18} />, label: "Backtest" },
     { to: "/journal", icon: <BookOpen size={18} />, label: "Journal" },
   ];
@@ -92,10 +93,10 @@ export default function Navbar() {
              <button
                 onClick={() => setIsGuideOpen(true)}
                 className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all duration-300 cursor-pointer bg-white/5 text-[--text-muted] hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10"
-                title="Guide Stratégique"
+                title="Aide Rapide"
               >
                 <HelpCircle size={16} />
-                <span>Guide</span>
+                <span>Aide</span>
               </button>
 
              <button
