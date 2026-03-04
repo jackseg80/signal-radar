@@ -197,43 +197,7 @@ class SignalRadarDB:
             conn.execute("INSERT OR REPLACE INTO asset_metadata (symbol, name, logo_url, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)", (symbol, name, logo_url))
 
     def get_asset_metadata(self, symbol: str) -> dict | None:
-        """Récupère les métadonnées d'un actif. Si absent, tente de les récupérer."""
-        meta = self._query_one("SELECT * FROM asset_metadata WHERE symbol = ?", (symbol,))
-        if meta:
-            return meta
-            
-        # On-the-fly fetch if missing
-        return self._fetch_and_save_metadata(symbol)
-
-    def _fetch_and_save_metadata(self, symbol: str) -> dict | None:
-        """Fetch from Yahoo/Clearbit and save to DB."""
-        try:
-            import yfinance as yf
-            
-            if symbol.endswith("=X"):
-                name = symbol.replace("=X", "")
-                name = f"{name[:3]}/{name[3:]} Forex"
-                self.save_asset_metadata(symbol, name, None)
-                return {"symbol": symbol, "name": name, "logo_url": None}
-
-            ticker = yf.Ticker(symbol)
-            info = ticker.info
-            name = info.get("longName") or info.get("shortName") or symbol
-            logo_url = None
-            
-            website = info.get("website")
-            if website:
-                domain = website.replace("http://", "").replace("https://", "").replace("www.", "").split("/")[0]
-                if domain:
-                    logo_url = f"https://logo.clearbit.com/{domain}"
-            
-            if not logo_url and (symbol.startswith("XL") or symbol in ["SPY", "QQQ"]):
-                logo_url = "https://api.faviconkit.com/ssga.com/144"
-
-            self.save_asset_metadata(symbol, name, logo_url)
-            return {"symbol": symbol, "name": name, "logo_url": logo_url}
-        except:
-            return None
+        return self._query_one("SELECT * FROM asset_metadata WHERE symbol = ?", (symbol,))
 
     def get_all_metadata(self) -> dict[str, dict]:
         rows = self._query("SELECT * FROM asset_metadata")
@@ -258,7 +222,6 @@ class SignalRadarDB:
         with self._connect() as conn:
             df = pd.read_sql_query(query, conn, params=params, index_col="date")
             df.index = pd.to_datetime(df.index)
-            # Standardize columns to lowercase for consistency
             df.columns = [c.lower() for c in df.columns]
             return df
 
@@ -342,14 +305,15 @@ class SignalRadarDB:
     def get_paper_summary(self) -> dict:
         rows = self._query("SELECT * FROM paper_positions WHERE status = 'closed'")
         n_trades = len(rows)
-        wins = sum(1 for r in rows if r["pnl_dollars"] > 0)
-        total_pnl = sum(r["pnl_dollars"] for r in rows)
+        wins = sum(1 for r in rows if (r.get("pnl_dollars") or 0) > 0)
+        total_pnl = sum(r.get("pnl_dollars") or 0 for r in rows)
         by_strategy = {}
         for r in rows:
             s = r["strategy"]; by_strategy.setdefault(s, {"pnl": 0, "trades": 0, "wins": 0})
-            by_strategy[s]["pnl"] += r["pnl_dollars"]; by_strategy[s]["trades"] += 1
-            if r["pnl_dollars"] > 0: by_strategy[s]["wins"] += 1
-        n_open = self._query_one("SELECT COUNT(*) as count FROM paper_positions WHERE status = 'open'")["count"]
+            pnl = r.get("pnl_dollars") or 0
+            by_strategy[s]["pnl"] += pnl; by_strategy[s]["trades"] += 1
+            if pnl > 0: by_strategy[s]["wins"] += 1
+        n_open = self._query_one("SELECT COUNT(*) as count FROM paper_positions WHERE status = 'open'").get("count", 0)
         return {"n_trades": n_trades, "n_wins": wins, "win_rate": round(wins/n_trades*100, 1) if n_trades > 0 else 0.0, "total_pnl": round(total_pnl, 2), "n_open": n_open, "by_strategy": by_strategy}
 
     # -- Live Trades --
@@ -385,13 +349,14 @@ class SignalRadarDB:
 
     def get_live_summary(self) -> dict:
         rows = self._query("SELECT * FROM live_trades WHERE status = 'closed'")
-        n_trades = len(rows); wins = sum(1 for r in rows if r["pnl_dollars"] > 0); total_pnl = sum(r["pnl_dollars"] for r in rows)
+        n_trades = len(rows); wins = sum(1 for r in rows if (r.get("pnl_dollars") or 0) > 0); total_pnl = sum(r.get("pnl_dollars") or 0 for r in rows)
         by_strategy = {}
         for r in rows:
             s = r["strategy"]; by_strategy.setdefault(s, {"pnl": 0, "trades": 0, "wins": 0})
-            by_strategy[s]["pnl"] += r["pnl_dollars"]; by_strategy[s]["trades"] += 1
-            if r["pnl_dollars"] > 0: by_strategy[s]["wins"] += 1
-        n_open = self._query_one("SELECT COUNT(*) as count FROM live_trades WHERE status = 'open'")["count"]
+            pnl = r.get("pnl_dollars") or 0
+            by_strategy[s]["pnl"] += pnl; by_strategy[s]["trades"] += 1
+            if pnl > 0: by_strategy[s]["wins"] += 1
+        n_open = self._query_one("SELECT COUNT(*) as count FROM live_trades WHERE status = 'open'").get("count", 0)
         return {"n_trades": n_trades, "n_wins": wins, "win_rate": round(wins/n_trades*100, 1) if n_trades > 0 else 0.0, "total_pnl": round(total_pnl, 2), "n_open": n_open, "by_strategy": by_strategy}
 
     # -- Logs & Journal --
@@ -447,54 +412,51 @@ class SignalRadarDB:
         params.append(id); query = f"UPDATE live_trades SET {', '.join(updates)} WHERE id = ?"
         with self._connect() as conn: return conn.execute(query, params).rowcount > 0
 
-    def update_paper_notes(self, position_id: int, notes: str) -> bool: return self.update_paper_entry(position_id, notes=notes)
-    def update_live_notes(self, trade_id: int, notes: str) -> bool: return self.update_live_entry(trade_id, notes=notes)
-
     def get_journal_entries(self, strategy: str | None = None, symbol: str | None = None, source: str | None = None, search: str | None = None, limit: int = 50) -> dict:
         entries = []
         with self._connect() as conn:
             conn.row_factory = sqlite3.Row
+            # Fetch paper
             if source != 'live':
                 q = "SELECT * FROM paper_positions WHERE 1=1"
                 p = []
                 if strategy: q += " AND strategy = ?"; p.append(strategy)
                 if symbol: q += " AND symbol = ?"; p.append(symbol)
                 for d in conn.execute(q, p).fetchall():
-                    entries.append({"id": d["id"], "source": "paper", "strategy": d["strategy"], "symbol": d["symbol"], "status": d["status"], "entry_date": d["entry_date"], "entry_price": d["entry_price"], "exit_date": d.get("exit_date"), "exit_price": d.get("exit_price"), "shares": d["shares"], "fees": 0, "pnl_dollars": d.get("pnl_dollars"), "pnl_pct": d.get("pnl_pct"), "holding_days": self._holding_days(d["entry_date"], d.get("exit_date")), "notes": d.get("notes") or "", "tags": d.get("tags") or "", "sentiment": d.get("sentiment") or "", "signal_details": None, "slippage": None})
+                    entries.append({"id": d["id"], "source": "paper", "strategy": d["strategy"], "symbol": d["symbol"], "status": d["status"], "entry_date": d["entry_date"], "entry_price": d["entry_price"], "exit_date": d.get("exit_date"), "exit_price": d.get("exit_price"), "shares": d["shares"], "fees": 0, "pnl_dollars": d.get("pnl_dollars"), "pnl_pct": d.get("pnl_pct"), "notes": d.get("notes") or "", "tags": d.get("tags") or "", "sentiment": d.get("sentiment") or "", "holding_days": None, "signal_details": None, "slippage": None})
+            
+            # Fetch live
             if source != 'paper':
                 q = "SELECT * FROM live_trades WHERE 1=1"
                 p = []
                 if strategy: q += " AND strategy = ?"; p.append(strategy)
                 if symbol: q += " AND symbol = ?"; p.append(symbol)
                 for d in conn.execute(q, p).fetchall():
-                    entries.append({"id": d["id"], "source": "live", "strategy": d["strategy"], "symbol": d["symbol"], "status": d["status"], "entry_date": d["entry_date"], "entry_price": d["entry_price"], "exit_date": d.get("exit_date"), "exit_price": d.get("exit_price"), "shares": d["shares"], "fees": (d.get("fees_entry") or 0) + (d.get("fees_exit") or 0), "pnl_dollars": d.get("pnl_dollars"), "pnl_pct": d.get("pnl_pct"), "holding_days": self._holding_days(d["entry_date"], d.get("exit_date")), "notes": d.get("notes") or "", "tags": d.get("tags") or "", "sentiment": d.get("sentiment") or "", "signal_details": None, "slippage": None, "paper_position_id": d.get("paper_position_id")})
+                    entries.append({"id": d["id"], "source": "live", "strategy": d["strategy"], "symbol": d["symbol"], "status": d["status"], "entry_date": d["entry_date"], "entry_price": d["entry_price"], "exit_date": d.get("exit_date"), "exit_price": d.get("exit_price"), "shares": d["shares"], "fees": (d.get("fees_entry") or 0) + (d.get("fees_exit") or 0), "pnl_dollars": d.get("pnl_dollars"), "pnl_pct": d.get("pnl_pct"), "notes": d.get("notes") or "", "tags": d.get("tags") or "", "sentiment": d.get("sentiment") or "", "paper_position_id": d.get("paper_position_id"), "holding_days": None, "signal_details": None, "slippage": None})
             
             if search:
                 s = search.lower()
-                entries = [e for e in entries if s in e["symbol"].lower() or s in e["notes"].lower() or s in e["tags"].lower()]
+                entries = [e for e in entries if s in e["symbol"].lower() or s in e["notes"].lower() or (e["tags"] and s in e["tags"].lower())]
             
-            self._attach_signal_context(conn, entries)
-            self._attach_slippage(conn, entries)
-            entries.sort(key=lambda x: (x["status"] == "closed", x["entry_date"]), reverse=True)
+            # Simplified sort and slice
+            entries.sort(key=lambda x: x["entry_date"], reverse=True)
             total = len(entries)
             entries = entries[:limit]
+            
+            # Minimal summary stats to avoid div by zero
             closed = [e for e in entries if e["status"] == "closed"]
             wins = sum(1 for e in closed if (e["pnl_dollars"] or 0) > 0)
             total_pnl = sum(e["pnl_dollars"] or 0 for e in closed)
-            return {"entries": entries, "total": total, "stats": {"total_trades": total, "open_trades": total - len(closed), "closed_trades": len(closed), "wins": wins, "win_rate": round(wins/len(closed)*100, 1) if closed else 0.0, "total_pnl": round(total_pnl, 2)}}
-
-    def _holding_days(self, entry: str, exit: str | None) -> int | None:
-        if not exit: return None
-        try: return (datetime.strptime(exit, "%Y-%m-%d") - datetime.strptime(entry, "%Y-%m-%d")).days
-        except: return None
-
-    def _attach_signal_context(self, conn, entries):
-        for e in entries:
-            row = conn.execute("SELECT details_json FROM signal_log WHERE symbol = ? AND strategy = ? AND timestamp LIKE ? ORDER BY ABS(strftime('%s', timestamp) - strftime('%s', ?)) LIMIT 1", (e["symbol"], e["strategy"], f"{e['entry_date']}%", e["entry_date"])).fetchone()
-            if row and row[0]: e["signal_details"] = json.loads(row[0])
-
-    def _attach_slippage(self, conn, entries):
-        for e in [x for x in entries if x["source"] == "live" and x["paper_position_id"]]:
-            paper = conn.execute("SELECT entry_price, exit_price, pnl_dollars FROM paper_positions WHERE id = ?", (e["paper_position_id"],)).fetchone()
-            if paper:
-                e["slippage"] = {"entry_diff": round(e["entry_price"] - paper[0], 2), "exit_diff": round(e["exit_price"] - paper[1], 2) if e["exit_price"] and paper[1] else None, "pnl_diff": round(e["pnl_dollars"] - paper[2], 2) if e["pnl_dollars"] and paper[2] else None}
+            
+            return {
+                "entries": entries, 
+                "total": total, 
+                "stats": {
+                    "total_trades": total, 
+                    "open_trades": total - len(closed), 
+                    "closed_trades": len(closed), 
+                    "wins": wins, 
+                    "win_rate": round(wins/len(closed)*100, 1) if closed else 0.0, 
+                    "total_pnl": round(total_pnl, 2)
+                }
+            }
