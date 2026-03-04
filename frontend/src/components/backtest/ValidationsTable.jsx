@@ -7,7 +7,7 @@ import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 import RobustnessHeatmap from './RobustnessHeatmap';
-import { X, Filter, ChevronUp, ChevronDown } from 'lucide-react';
+import { X, Filter, ChevronUp, ChevronDown, Info, ShieldCheck, AlertCircle } from 'lucide-react';
 
 const STRATEGY_MAPPING = {
   'rsi2': 'rsi2_mean_reversion',
@@ -15,8 +15,17 @@ const STRATEGY_MAPPING = {
   'tom': 'turn_of_month'
 };
 
+const COLUMN_TOOLTIPS = {
+  trades: "Nombre total de transactions effectuées durant la période de test (Out-of-Sample).",
+  wr: "Win Rate : Pourcentage de trades gagnants sur le total.",
+  pf: "Profit Factor : Somme des gains / Somme des pertes. > 1.0 est profitable, > 1.5 est excellent.",
+  sharpe: "Ratio de Sharpe : Mesure de la rentabilité par rapport au risque (volatilité).",
+  robust: "Pourcentage de combinaisons de paramètres (ex: RSI 2,3,4) qui restent profitables. Un score élevé (> 80%) prouve que la stratégie n'est pas due au hasard.",
+  verdict: "VALIDATED: Robuste + Stable + Significatif.\nCONDITIONAL: Robuste mais manque de stabilité ou de volume.\nREJECTED: Fragile ou instable."
+};
+
 export default function ValidationsTable() {
-  const { refreshKey } = useRefresh();
+  const { refreshKey } = refresh = useRefresh();
   const [filters, setFilters] = useState({
     strategy: '',
     universe: '',
@@ -68,8 +77,7 @@ export default function ValidationsTable() {
   const allStrategies = ['rsi2', 'ibs', 'tom'];
   const allUniverses = useMemo(() => {
     if (!data?.results?.length) return [];
-    const univs = [...new Set(data.results.map(r => r.universe))].filter(Boolean).sort();
-    return univs;
+    return [...new Set(data.results.map(r => r.universe))].filter(Boolean).sort();
   }, [data]);
 
   if (loading && !sortedResults.length) return <LoadingState rows={10} />;
@@ -86,31 +94,27 @@ export default function ValidationsTable() {
           <span className="text-[10px] font-bold uppercase tracking-widest text-[--text-muted]">Filtres :</span>
         </div>
         
-        <div className="relative">
-          <select
-            value={filters.strategy}
-            onChange={(e) => setFilters({ ...filters, strategy: e.target.value })}
-            className={selectClass}
-          >
-            <option value="" className="bg-[#1a1d27]">Toutes les Stratégies</option>
-            {allStrategies.map(s => <option key={s} value={s} className="bg-[#1a1d27]">{STRATEGY_LABELS[s] || s}</option>)}
-          </select>
-        </div>
+        <select
+          value={filters.strategy}
+          onChange={(e) => setFilters({ ...filters, strategy: e.target.value })}
+          className={selectClass}
+        >
+          <option value="" className="bg-[#1a1d27]">Toutes les Stratégies</option>
+          {allStrategies.map(s => <option key={s} value={s} className="bg-[#1a1d27]">{STRATEGY_LABELS[s] || s}</option>)}
+        </select>
 
-        <div className="relative">
-          <select
-            value={filters.verdict}
-            onChange={(e) => setFilters({ ...filters, verdict: e.target.value })}
-            className={selectClass}
-          >
-            <option value="" className="bg-[#1a1d27]">Tous les Verdicts</option>
-            <option value="VALIDATED" className="bg-[#1a1d27]">VALIDATED</option>
-            <option value="CONDITIONAL" className="bg-[#1a1d27]">CONDITIONAL</option>
-            <option value="REJECTED" className="bg-[#1a1d27]">REJECTED</option>
-          </select>
-        </div>
+        <select
+          value={filters.verdict}
+          onChange={(e) => setFilters({ ...filters, verdict: e.target.value })}
+          className={selectClass}
+        >
+          <option value="" className="bg-[#1a1d27]">Tous les Verdicts</option>
+          <option value="VALIDATED" className="bg-[#1a1d27]">VALIDATED</option>
+          <option value="CONDITIONAL" className="bg-[#1a1d27]">CONDITIONAL</option>
+          <option value="REJECTED" className="bg-[#1a1d27]">REJECTED</option>
+        </select>
 
-        <div className="relative">
+        {allUniverses.length > 0 && (
           <select
             value={filters.universe}
             onChange={(e) => setFilters({ ...filters, universe: e.target.value })}
@@ -119,7 +123,7 @@ export default function ValidationsTable() {
             <option value="" className="bg-[#1a1d27]">Tous les Univers</option>
             {allUniverses.map(u => <option key={u} value={u} className="bg-[#1a1d27]">{u}</option>)}
           </select>
-        </div>
+        )}
       </div>
 
       {sortedResults.length === 0 ? (
@@ -129,29 +133,29 @@ export default function ValidationsTable() {
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-white/[0.02] border-b border-[--glass-border] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold">
-                <th className="text-left py-4 px-4 cursor-pointer hover:text-white transition-colors" onClick={() => requestSort('strategy')}>
-                  <div className="flex items-center gap-1">Stratégie {getSortIcon('strategy')}</div>
+                <th className="text-left py-4 px-4 cursor-pointer hover:text-white" onClick={() => requestSort('strategy')}>
+                  Stratégie {getSortIcon('strategy')}
                 </th>
-                <th className="text-left py-4 px-4 cursor-pointer hover:text-white transition-colors" onClick={() => requestSort('symbol')}>
-                  <div className="flex items-center gap-1">Actif {getSortIcon('symbol')}</div>
+                <th className="text-left py-4 px-4 cursor-pointer hover:text-white" onClick={() => requestSort('symbol')}>
+                  Actif {getSortIcon('symbol')}
                 </th>
-                <th className="text-right py-4 px-4 cursor-pointer hover:text-white transition-colors" onClick={() => requestSort('n_trades')}>
-                  <div className="flex items-center justify-end gap-1">Trades {getSortIcon('n_trades')}</div>
+                <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('n_trades')} title={COLUMN_TOOLTIPS.trades}>
+                  <div className="flex items-center justify-end gap-1">Trades <Info size={10} className="opacity-0 group-hover/h:opacity-100" /> {getSortIcon('n_trades')}</div>
                 </th>
-                <th className="text-right py-4 px-4 cursor-pointer hover:text-white transition-colors" onClick={() => requestSort('win_rate')}>
-                  <div className="flex items-center justify-end gap-1">Win Rate {getSortIcon('win_rate')}</div>
+                <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('win_rate')} title={COLUMN_TOOLTIPS.wr}>
+                  <div className="flex items-center justify-end gap-1">Win Rate <Info size={10} className="opacity-0 group-hover/h:opacity-100" /> {getSortIcon('win_rate')}</div>
                 </th>
-                <th className="text-right py-4 px-4 cursor-pointer hover:text-white transition-colors" onClick={() => requestSort('profit_factor')}>
-                  <div className="flex items-center justify-end gap-1">PF {getSortIcon('profit_factor')}</div>
+                <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('profit_factor')} title={COLUMN_TOOLTIPS.pf}>
+                  <div className="flex items-center justify-end gap-1">PF <Info size={10} className="opacity-0 group-hover/h:opacity-100" /> {getSortIcon('profit_factor')}</div>
                 </th>
-                <th className="text-right py-4 px-4 cursor-pointer hover:text-white transition-colors" onClick={() => requestSort('sharpe')}>
-                  <div className="flex items-center justify-end gap-1">Sharpe {getSortIcon('sharpe')}</div>
+                <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('sharpe')} title={COLUMN_TOOLTIPS.sharpe}>
+                  <div className="flex items-center justify-end gap-1">Sharpe <Info size={10} className="opacity-0 group-hover/h:opacity-100" /> {getSortIcon('sharpe')}</div>
                 </th>
-                <th className="text-right py-4 px-4 cursor-pointer hover:text-white transition-colors" onClick={() => requestSort('robustness_pct')}>
-                  <div className="flex items-center justify-end gap-1">Robust% {getSortIcon('robustness_pct')}</div>
+                <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('robustness_pct')} title={COLUMN_TOOLTIPS.robust}>
+                  <div className="flex items-center justify-end gap-1">Robust% <Info size={10} className="opacity-0 group-hover/h:opacity-100" /> {getSortIcon('robustness_pct')}</div>
                 </th>
-                <th className="text-center py-4 px-4 cursor-pointer hover:text-white transition-colors" onClick={() => requestSort('verdict')}>
-                  <div className="flex items-center justify-center gap-1">Verdict {getSortIcon('verdict')}</div>
+                <th className="text-center py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('verdict')} title={COLUMN_TOOLTIPS.verdict}>
+                  <div className="flex items-center justify-center gap-1">Verdict <Info size={10} className="opacity-0 group-hover/h:opacity-100" /> {getSortIcon('verdict')}</div>
                 </th>
               </tr>
             </thead>
@@ -221,6 +225,13 @@ export default function ValidationsTable() {
           >
             <X size={20} />
           </button>
+          <div className="p-4 bg-green-500/5 rounded-xl border border-green-500/10 mb-4 flex gap-3 items-center">
+             <ShieldCheck size={18} className="text-green-400" />
+             <div>
+                <p className="text-xs text-white font-bold">Analyse de Robustesse : {selectedValidation.symbol}</p>
+                <p className="text-[10px] text-[--text-muted]">Cette matrice montre le Profit Factor pour 48 variantes de paramètres. Si la zone est majoritairement verte, la stratégie est fiable.</p>
+             </div>
+          </div>
           <RobustnessHeatmap 
             strategy={selectedValidation.strategy.split('_')[0]} 
             symbol={selectedValidation.symbol} 
