@@ -10,12 +10,14 @@ export default function StrategySection({ strategyKey, strategyData }) {
   // Sort signals
   const allSignals = sortSignals(strategyData.signals);
   
-  // Filter out non-actionable signals (NO_SIGNAL, PENDING_EXPIRED) unless showAll is true
+  // Calculate how many signals are neutral/non-actionable
+  const neutralSignals = allSignals.filter(sig => sig.signal === 'NO_SIGNAL' || sig.signal === 'PENDING_EXPIRED');
+  const neutralCount = neutralSignals.length;
+
+  // Filter signals for display
   const filteredSignals = showAll 
     ? allSignals 
     : allSignals.filter(sig => sig.signal !== 'NO_SIGNAL' && sig.signal !== 'PENDING_EXPIRED');
-
-  const hiddenCount = allSignals.length - filteredSignals.length;
 
   return (
     <div className="mb-8">
@@ -29,12 +31,12 @@ export default function StrategySection({ strategyKey, strategyData }) {
           </span>
           <span className="text-[10px] text-[--text-muted] font-medium uppercase tracking-wider">
             {filteredSignals.length} {filteredSignals.length === 1 ? 'Signal' : 'Signals'}
-            {hiddenCount > 0 && !showAll && ` (+${hiddenCount} hidden)`}
+            {neutralCount > 0 && !showAll && ` (+${neutralCount} hidden)`}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          {hiddenCount > 0 && (
+          {neutralCount > 0 && (
             <button
               onClick={() => setShowAll(!showAll)}
               className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-tight transition-all cursor-pointer ${
@@ -44,7 +46,7 @@ export default function StrategySection({ strategyKey, strategyData }) {
               }`}
             >
               {showAll ? <EyeOff size={12} /> : <Eye size={12} />}
-              {showAll ? 'Hide Neutral' : `Show Neutral (${hiddenCount})`}
+              {showAll ? 'Hide Neutral' : `Show Neutral (${neutralCount})`}
             </button>
           )}
           <div className="h-4 w-px bg-white/5"></div>
@@ -67,12 +69,12 @@ export default function StrategySection({ strategyKey, strategyData }) {
       ) : (
         <div className="py-8 text-center rounded-xl border border-dashed border-white/5 bg-white/[0.01]">
           <span className="text-xs text-[--text-muted]">No active signals for this strategy.</span>
-          {hiddenCount > 0 && (
+          {neutralCount > 0 && (
             <button 
               onClick={() => setShowAll(true)}
               className="ml-2 text-xs text-green-400 hover:underline cursor-pointer"
             >
-              Show neutral assets ({hiddenCount})
+              Show neutral assets ({neutralCount})
             </button>
           )}
         </div>
