@@ -11,7 +11,7 @@ export default function Backtest() {
   const [activeTab, setActiveTab] = useState('compare');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-h-screen">
       {/* Page Header - Not sticky */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/5 pb-4">
         <div>
@@ -44,8 +44,8 @@ export default function Backtest() {
         </div>
       </div>
 
-      {/* Tab content */}
-      <div className="animate-slide-up">
+      {/* Tab content - Use overflow-visible to allow sticky children */}
+      <div className="animate-slide-up overflow-visible">
         {activeTab === 'compare' && <CompareMatrix />}
         {activeTab === 'explorer' && <ValidationsTable />}
       </div>

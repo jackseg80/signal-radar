@@ -12,14 +12,12 @@ import { ChevronUp, ChevronDown, Info, ShieldCheck, AlertTriangle } from 'lucide
 const getHeatmapColor = (pf, verdict) => {
   if (!pf || pf <= 0) return 'bg-white/[0.02] text-[--text-muted]';
   
-  // Base colors based on Profit Factor
   let colorClass = 'bg-red-500/20';
   if (pf >= 1.0) colorClass = 'bg-amber-500/20';
   if (pf >= 1.2) colorClass = 'bg-green-500/20';
   if (pf >= 1.5) colorClass = 'bg-green-500/40';
   if (pf >= 2.0) colorClass = 'bg-green-500/70';
 
-  // Context: If rejected, we dim the color significantly to show it's "fake" profit
   if (verdict === 'REJECTED') {
     return 'bg-slate-500/10 text-slate-500 grayscale opacity-40';
   }
@@ -42,7 +40,6 @@ export default function CompareMatrix() {
     const assetsWithScores = data.assets.map(symbol => {
       const strats = data.matrix[symbol] || {};
       const validStrats = Object.values(strats).filter(s => s.verdict === 'VALIDATED');
-      // Score = Number of validated strats + average PF of validated ones
       const avgPf = validStrats.length > 0 
         ? validStrats.reduce((sum, s) => sum + s.pf, 0) / validStrats.length 
         : 0;
@@ -83,17 +80,17 @@ export default function CompareMatrix() {
       noPadding
     >
       <div className="overflow-visible">
-        <table className="w-full text-sm border-collapse">
+        <table className="w-full text-sm border-separate border-spacing-0">
           <thead className="sticky top-[140px] z-[30] bg-[--bg-primary]">
-            <tr className="bg-[#1a1d27] border-b border-[--glass-border] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold shadow-sm">
-              <th className="text-left py-4 px-6 cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: 'symbol', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
+            <tr className="bg-[#1a1d27] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold shadow-sm">
+              <th className="text-left py-4 px-6 border-b border-[--glass-border] cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: 'symbol', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
                 Actif
               </th>
-              <th className="text-center py-4 px-4 cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: 'score', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
+              <th className="text-center py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: 'score', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
                 Confiance
               </th>
               {strategies.map((s) => (
-                <th key={s} className="text-center py-4 px-4 cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: s, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
+                <th key={s} className="text-center py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: s, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
                   {s.split('_')[0]}
                 </th>
               ))}
