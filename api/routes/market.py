@@ -221,7 +221,8 @@ def get_asset_details(
         df = db.get_ohlcv(symbol)
         if df.empty:
              raise HTTPException(status_code=404, detail=f"Asset {symbol} not found")
-        last_price = float(df.iloc[-1]["Close"])
+        # Fix: use lowercase column name 'close'
+        last_price = float(df.iloc[-1]["close"])
 
     membership = []
     for s_name, s_cfg in strategies_cfg.items():
@@ -273,6 +274,7 @@ def get_asset_prices(
     for date, row in df.iterrows():
         prices.append({
             "date": date.strftime("%Y-%m-%d") if isinstance(date, pd.Timestamp) else str(date),
-            "close": float(row["Close"])
+            # Fix: use lowercase column name 'close'
+            "close": float(row["close"])
         })
     return prices
