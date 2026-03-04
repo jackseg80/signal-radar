@@ -9,6 +9,17 @@ async function fetchJson(url, options = {}) {
   return res.json();
 }
 
+function buildQueryString(params = {}) {
+  const cleanParams = {};
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      cleanParams[key] = value;
+    }
+  });
+  const q = new URLSearchParams(cleanParams).toString();
+  return q ? `?${q}` : '';
+}
+
 async function patchJson(url, body) {
   return fetchJson(url, {
     method: 'PATCH',
@@ -32,10 +43,7 @@ export const api = {
 
   // Positions & Trades
   openPositions: () => fetchJson('/positions/open'),
-  closedTrades: (params = {}) => {
-    const q = new URLSearchParams(params).toString();
-    return fetchJson(`/positions/closed?${q}`);
-  },
+  closedTrades: (params = {}) => fetchJson(`/positions/closed${buildQueryString(params)}`),
   
   // Performance
   perfSummary: () => fetchJson('/performance/summary'),
@@ -43,48 +51,23 @@ export const api = {
   equityCurve: () => fetchJson('/performance/equity-curve'),
   
   // Backtest
-  screens: (params = {}) => {
-    const q = new URLSearchParams(params).toString();
-    return fetchJson(`/backtest/screens?${q}`);
-  },
-  validations: (params = {}) => {
-    const q = new URLSearchParams(params).toString();
-    return fetchJson(`/backtest/validations?${q}`);
-  },
+  screens: (params = {}) => fetchJson(`/backtest/screens${buildQueryString(params)}`),
+  validations: (params = {}) => fetchJson(`/backtest/validations${buildQueryString(params)}`),
+  compare: () => fetchJson('/backtest/compare'),
   backtestRobustness: (strategy, symbol, universe) => 
     fetchJson(`/backtest/robustness?strategy=${strategy}&symbol=${symbol}&universe=${universe}`),
-  compare: () => fetchJson('/backtest/compare'),
-  
-  // Backtest Legacy/AssetModal names
-  backtestScreens: (strategy = '', universe = '') => 
-    fetchJson(`/backtest/screens?strategy=${strategy}&universe=${universe}`),
-  backtestValidations: (strategy = '', universe = '') => 
-    fetchJson(`/backtest/validations?strategy=${strategy}&universe=${universe}`),
-  backtestCompare: () => fetchJson('/backtest/compare'),
   
   // Live Trades
-  liveOpen: (data) => {
-    const q = new URLSearchParams(data).toString();
-    return fetchJson(`/live/open?${q}`, { method: 'POST' });
-  },
-  liveClose: (data) => {
-    const q = new URLSearchParams(data).toString();
-    return fetchJson(`/live/close?${q}`, { method: 'POST' });
-  },
+  liveOpen: (data) => fetchJson(`/live/open${buildQueryString(data)}`, { method: 'POST' }),
+  liveClose: (data) => fetchJson(`/live/close${buildQueryString(data)}`, { method: 'POST' }),
   liveDelete: (id) => fetchJson(`/live/${id}`, { method: 'DELETE' }),
   liveActive: () => fetchJson('/live/open'),
-  liveClosed: (params = {}) => {
-    const q = new URLSearchParams(params).toString();
-    return fetchJson(`/live/closed?${q}`);
-  },
+  liveClosed: (params = {}) => fetchJson(`/live/closed${buildQueryString(params)}`),
   liveSummary: () => fetchJson('/live/summary'),
   liveCompare: () => fetchJson('/live/compare'),
 
   // Journal
-  journalEntries: (params = {}) => {
-    const searchParams = new URLSearchParams(params);
-    return fetchJson(`/journal/entries?${searchParams.toString()}`);
-  },
+  journalEntries: (params = {}) => fetchJson(`/journal/entries${buildQueryString(params)}`),
   journalPaperNote: (id, notes) => patchJson(`/journal/paper/${id}/notes`, { notes }),
   journalLiveNote: (id, notes) => patchJson(`/journal/live/${id}/notes`, { notes }),
 

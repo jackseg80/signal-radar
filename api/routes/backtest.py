@@ -1,16 +1,14 @@
 """Backtest results endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import Any
 import itertools
 
 from data.db import SignalRadarDB
-from api.config import load_production_config
 from api.dependencies import get_db
 from engine.indicator_cache import IndicatorCache
 from validation.robustness import run_robustness
 
-# Import strategies directly to avoid circular imports with cli.runner
+# Import strategies directly
 from strategies.rsi2_mean_reversion import RSI2MeanReversion
 from strategies.ibs_mean_reversion import IBSMeanReversion
 from strategies.turn_of_month import TurnOfMonth
@@ -26,69 +24,34 @@ router = APIRouter()
 
 @router.get("/screens")
 def get_screens(
-    strategy: str | None = Query(None),
-    universe: str | None = Query(None),
+    strategy: str | None = None,
+    universe: str | None = None,
     min_pf: float = 1.0,
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Screening results from the database."""
-    # Clean empty strings from query params
-    s = strategy if strategy and strategy.strip() else None
-    u = universe if universe and universe.strip() else None
-    
     results = db.get_screens_filtered(
-        strategy=s, universe=u, min_pf=min_pf
+        strategy=strategy, universe=universe, min_pf=min_pf
     )
     return {
-        "results": [
-            {
-                "strategy": r["strategy"],
-                "universe": r["universe"],
-                "symbol": r["symbol"],
-                "n_trades": r["n_trades"],
-                "win_rate": r["win_rate"],
-                "profit_factor": r["profit_factor"],
-                "sharpe": r["sharpe"],
-            }
-            for r in results
-        ],
+        "results": results,
         "total": len(results),
     }
 
 
 @router.get("/validations")
 def get_validations(
-    strategy: str | None = Query(None),
-    universe: str | None = Query(None),
-    verdict: str | None = Query(None),
+    strategy: str | None = None,
+    universe: str | None = None,
+    verdict: str | None = None,
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Full validation results from the database."""
-    # Clean empty strings from query params
-    s = strategy if strategy and strategy.strip() else None
-    u = universe if universe and universe.strip() else None
-    v = verdict if verdict and verdict.strip() else None
-
     results = db.get_validations_filtered(
-        strategy=s, universe=u, verdict=v
+        strategy=strategy, universe=universe, verdict=verdict
     )
     return {
-        "results": [
-            {
-                "strategy": r["strategy"],
-                "universe": r["universe"],
-                "symbol": r["symbol"],
-                "n_trades": r["n_trades"],
-                "win_rate": r["win_rate"],
-                "profit_factor": r["profit_factor"],
-                "sharpe": r["sharpe"],
-                "robustness_pct": r["robustness_pct"],
-                "t_stat": None,
-                "p_value": r["ttest_p"],
-                "verdict": r["verdict"],
-            }
-            for r in results
-        ],
+        "results": results,
         "total": len(results),
     }
 
@@ -99,25 +62,21 @@ def compare_strategies(
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Cross-strategy comparison for selected assets."""
+    all_validations = db.get_validations_filtered()
+    
+    strategies_seen = sorted(list(set(v["strategy"] for v in all_validations)))
+    
+    # Collect symbols
     if symbols:
         symbol_list = [s.strip().upper() for s in symbols.split(",")]
     else:
-        config = load_production_config()
-        symbol_set: set[str] = set()
-        for strat_cfg in config.get("strategies", {}).values():
-            if strat_cfg.get("enabled", False):
-                symbol_set.update(strat_cfg.get("universe", []))
-        symbol_list = sorted(symbol_set)
+        symbol_list = sorted(list(set(v["symbol"] for v in all_validations)))
 
-    all_validations = db.get_validations_filtered()
-    strategies_seen: set[str] = set()
-    matrix: dict[str, dict[str, dict]] = {}
-
+    matrix = {}
     for v in all_validations:
         sym = v["symbol"]
         strat = v["strategy"]
         if sym in symbol_list:
-            strategies_seen.add(strat)
             matrix.setdefault(sym, {})[strat] = {
                 "pf": v["profit_factor"],
                 "verdict": v["verdict"],
@@ -125,7 +84,7 @@ def compare_strategies(
 
     return {
         "assets": symbol_list,
-        "strategies": sorted(strategies_seen),
+        "strategies": strategies_seen,
         "matrix": matrix,
     }
 
@@ -138,13 +97,19 @@ def get_robustness(
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Calculate and return robustness matrix for a specific asset/strategy."""
-    if strategy not in STRATEGIES_MAP:
+    # Find matching strategy key (handle short or long names)
+    strat_key = None
+    for k in STRATEGIES_MAP:
+        if k in strategy.lower():
+            strat_key = k
+            break
+            
+    if not strat_key:
         raise HTTPException(status_code=404, detail=f"Strategy {strategy} unknown")
     
-    strat_class = STRATEGIES_MAP[strategy]
+    strat_class = STRATEGIES_MAP[strat_key]
     strat_obj = strat_class()
     
-    # Load data
     df = db.get_ohlcv(symbol)
     if df.empty:
         raise HTTPException(status_code=404, detail=f"Data for {symbol} not found")
@@ -152,24 +117,11 @@ def get_robustness(
     cache = IndicatorCache(df)
     strat_obj.build_cache(cache)
     
-    # Resolve params
-    from config.universe_loader import load_universe
-    from engine.fee_model import US_STOCKS_USD, US_ETFS_USD
-    
-    univ_cfg = load_universe(universe)
-    cap = univ_cfg.get("capital", 10000.0)
-    ws = univ_cfg.get("whole_shares", True)
-    
-    fee_model_name = univ_cfg.get("fee_model", "us_stocks_usd")
-    if "etf" in fee_model_name.lower():
-        fee_model = US_ETFS_USD
-    else:
-        fee_model = US_STOCKS_USD
-    
+    # Simple defaults for on-the-fly robustness
     from engine.backtest_config import BacktestConfig
-    config = BacktestConfig(symbol=symbol, capital=cap, whole_shares=ws, fee_model=fee_model)
+    from engine.fee_model import US_STOCKS_USD
+    config = BacktestConfig(symbol=symbol, capital=10000.0, whole_shares=True, fee_model=US_STOCKS_USD)
     
-    # Run robustness test
     start_idx = cache.get_idx_from_date("2014-01-01") or strat_obj.warmup(strat_obj.default_params())
     end_idx = len(cache.close) - 1
     
@@ -179,18 +131,14 @@ def get_robustness(
     )
     
     grid = strat_obj.param_grid()
-    keys = list(grid.keys())
-    
-    if len(keys) < 2:
-        return {"robustness": None, "detail": "Grid too small for matrix"}
-    
-    if strategy == "rsi2":
+    if "rsi2" in strategy.lower():
         y_key, x_key = "rsi_entry_threshold", "sma_exit_period"
-    elif strategy == "ibs":
+    elif "ibs" in strategy.lower():
         y_key, x_key = "ibs_entry_threshold", "ibs_exit_threshold"
-    elif strategy == "tom":
+    elif "tom" in strategy.lower():
         y_key, x_key = "entry_days_before_eom", "exit_day_of_new_month"
     else:
+        keys = list(grid.keys())
         y_key, x_key = keys[0], keys[1]
 
     y_axis = grid[y_key]
@@ -216,7 +164,7 @@ def get_robustness(
             "x_axis": x_axis,
             "y_axis": y_axis,
             "values": values_2d,
-            "x_label": x_key,
-            "y_label": y_key
+            "x_label": x_key.replace('_', ' ').title(),
+            "y_label": y_key.replace('_', ' ').title()
         }
     }
