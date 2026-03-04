@@ -58,12 +58,11 @@ def get_market_overview(db: SignalRadarDB = Depends(get_db)) -> dict:
         
         assets.append({
             "symbol": sym, 
-            "name": sym,
             "logo_url": get_proxy_url(sym), 
             "close": close_price, 
             "strategies": strat_data, 
             "has_open_position": sym in open_pos_map,
-            "position_strategies": [] # Added back to avoid frontend undefined.map
+            "position_strategies": [] 
         })
     return {"scanner_timestamp": ts, "assets": assets}
 
@@ -77,7 +76,6 @@ def get_asset_details(symbol: str, db: SignalRadarDB = Depends(get_db)) -> dict:
     
     return {
         "symbol": symbol, 
-        "name": symbol,
         "logo_url": get_proxy_url(symbol), 
         "last_price": last_price, 
         "timestamp": ts, 
@@ -106,11 +104,12 @@ async def get_asset_logo_proxy(symbol: str, db: SignalRadarDB = Depends(get_db))
     except: pass
     raise HTTPException(status_code=404)
 
-@router.get("/history")
+# RESTORED FULL PATHS
+@router.get("/asset/{symbol}/history")
 def get_asset_history(symbol: str, days: int = Query(60), db: SignalRadarDB = Depends(get_db)) -> list:
     return db.get_signal_history(symbol=symbol, days=days)
 
-@router.get("/prices")
+@router.get("/asset/{symbol}/prices")
 def get_asset_prices(symbol: str, days: int = Query(60), db: SignalRadarDB = Depends(get_db)) -> list:
     import pandas as pd
     start_date = (pd.Timestamp.now() - pd.Timedelta(days=days)).strftime("%Y-%m-%d")
