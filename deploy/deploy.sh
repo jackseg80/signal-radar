@@ -1,48 +1,66 @@
 #!/bin/bash
+# deploy/deploy.sh
 set -e
 
 DEPLOY_DIR="${DEPLOY_DIR:-$HOME/signal-radar}"
 cd "$DEPLOY_DIR"
 
 echo "========================================"
-echo "  SIGNAL RADAR -- Deploy"
+echo "  SIGNAL RADAR -- Déploiement Optimisé"
 echo "========================================"
 
-# Create persistent directories
+# 1. Vérification de l'environnement
 mkdir -p data logs
+if [ ! -f .env ]; then
+    echo "[!] ATTENTION : .env non trouvé. Création depuis .env.example..."
+    cp .env.example .env
+    echo "[!] Modifiez le fichier .env avec vos accès réels !"
+fi
 
-# Pull latest code
-echo "[*] Updating code..."
-git pull origin master
+# 2. Mise à jour du code (Force le nettoyage)
+echo "[*] Mise à jour du code depuis master..."
+git fetch origin
+git reset --hard origin/master
 
-# Build Docker images (frontend built inside Dockerfile.api via multi-stage)
-echo "[*] Building images..."
-docker compose build
+# 3. Build Docker
+echo "[*] Construction des images..."
+docker compose build --pull
 
-# Restart
-echo "[*] Restarting containers..."
-docker compose down --timeout 10 || true
-docker compose up -d
+# 4. Redémarrage propre
+echo "[*] Redémarrage des conteneurs..."
+docker compose down --timeout 15 || true
+docker compose up -d --remove-orphans
 
-# Verify
-echo "[*] Verifying..."
-sleep 3
-RUNNING=$(docker compose ps --format '{{.Service}} {{.State}}' | grep -c running || true)
-if [ "$RUNNING" -ge 2 ]; then
+# 5. Vérification intelligente
+echo "[*] Vérification des services (attente 5s)..."
+sleep 5
+
+SERVICES=("api" "scanner")
+ERREUR=0
+
+for svc in "${SERVICES[@]}"; do
+    STATUS=$(docker compose ps --format '{{.State}}' "$svc" 2>/dev/null || echo "introuvable")
+    if [[ "$STATUS" == *"running"* ]]; then
+        echo "[OK] Service $svc est opérationnel"
+    else
+        echo "[ERREUR] Service $svc est dans l'état : $STATUS"
+        ERREUR=1
+    fi
+done
+
+# 6. Conclusion
+if [ $ERREUR -eq 0 ]; then
     echo ""
-    echo "[OK] Both services running"
-    echo "[OK] Scanner: cron 22:15 local time (Sun-Fri)"
-    echo "[OK] Dashboard: http://$(hostname -I | awk '{print $1}'):9000"
-    echo ""
-    echo "Test scanner:"
-    echo "  docker compose exec scanner python scripts/daily_scanner.py"
-    echo ""
-    echo "Test API:"
-    echo "  curl http://localhost:9000/api/health"
+    echo "Déploiement réussi !"
+    echo "Dashboard : http://$(hostname -I | awk '{print $1}'):9000"
+    echo "API Health : http://localhost:9000/api/health"
+    
+    # Nettoyage seulement si tout va bien
+    docker image prune -f
 else
-    echo ""
-    echo "[ERROR] Not all services running"
+    echo "----------------------------------------"
+    echo "[!] ÉCHEC DU DÉPLOIEMENT"
     docker compose ps
-    docker compose logs --tail 20
+    docker compose logs --tail 50
     exit 1
 fi
