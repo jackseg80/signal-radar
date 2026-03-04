@@ -10,27 +10,33 @@ import AnimatedNumber from '../ui/AnimatedNumber';
 import ProgressRing from '../ui/ProgressRing';
 import { Wallet, TrendingUp, BarChart3, PieChart, Activity } from 'lucide-react';
 
-const StrategyBreakdown = forwardRef(({ style, className, onMouseDown, onMouseUp, onTouchEnd }, ref) => {
+const StrategyBreakdown = forwardRef(({ style, className, onMouseDown, onMouseUp, onTouchEnd, ...props }, ref) => {
   const { refreshKey } = useRefresh();
-  const { data, loading, error, refetch } = useApi(() => api.perfSummary(), [refreshKey]);
+  const { data: perfData, loading: perfLoading, error: perfError, refetch: refetchPerf } = useApi(() => api.performanceSummary(), [refreshKey]);
+  const { data: openData, loading: openLoading } = useApi(() => api.openPositions(), [refreshKey]);
 
-  if (loading) return (
-    <div ref={ref} style={style} className={`grid grid-cols-2 md:grid-cols-5 gap-4 ${className}`}>
+  if (perfLoading || openLoading) return (
+    <div ref={ref} style={style} className={`grid grid-cols-2 md:grid-cols-5 gap-4 ${className}`} {...props}>
       {[...Array(5)].map((_, i) => <Card key={i}><LoadingState rows={1} /></Card>)}
     </div>
   );
   
-  if (error) return <Card ref={ref} style={style} className={className}><ErrorState message={error} onRetry={refetch} /></Card>;
-  if (!data || !data.paper) return null;
+  if (perfError) return <Card ref={ref} style={style} className={className} {...props}><ErrorState message={perfError} onRetry={refetchPerf} /></Card>;
+  if (!perfData || !perfData.paper) return null;
 
-  // Use paper stats for the main KPIs
-  const stats = data.paper;
-  const {
-    capital, n_closed_trades, win_rate,
-    total_realized_pnl, total_unrealized_pnl, n_open_positions, by_strategy,
-  } = stats;
+  // Map backend stats to the required format
+  const stats = perfData.paper;
+  const n_closed_trades = stats.n_trades || 0;
+  const win_rate = stats.win_rate || 0;
+  const total_realized_pnl = stats.total_pnl || 0;
+  const n_open_positions = stats.n_open || 0;
+  const by_strategy = stats.by_strategy || {};
+  
+  const initialCapital = 10000;
+  const capital = initialCapital + total_realized_pnl;
+  const total_unrealized_pnl = openData?.total_unrealized_pnl || 0;
 
-  const realizedPct = capital > 0 ? (total_realized_pnl / capital * 100) : 0;
+  const realizedPct = initialCapital > 0 ? (total_realized_pnl / initialCapital * 100) : 0;
   const unrealizedPct = capital > 0 ? (total_unrealized_pnl / capital * 100) : 0;
 
   const kpis = [
@@ -38,7 +44,7 @@ const StrategyBreakdown = forwardRef(({ style, className, onMouseDown, onMouseUp
       label: 'Portfolio Equity',
       icon: <Wallet size={14} />,
       value: `$${capital.toLocaleString()}`,
-      sub: 'Initial: $10,000',
+      sub: `Initial: $${initialCapital.toLocaleString()}`,
       color: 'text-white',
     },
     {
@@ -84,6 +90,7 @@ const StrategyBreakdown = forwardRef(({ style, className, onMouseDown, onMouseUp
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
       onTouchEnd={onTouchEnd}
+      {...props}
     >
       {/* KPI Row - Header is draggable area */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 cursor-grab active:cursor-grabbing">
