@@ -2,8 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { api } from '../../api/client';
-import { VERDICT_COLORS, STRATEGY_LABELS, formatPF } from '../../utils/format';
-import Card from '../ui/Card';
+import { VERDICT_COLORS, STRATEGY_LABELS, formatPF, getAssetType, ASSET_TYPES } from '../../utils/format';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
@@ -30,7 +29,8 @@ export default function ValidationsTable() {
   const [filters, setFilters] = useState({
     strategy: '',
     universe: '',
-    verdict: ''
+    verdict: '',
+    assetType: ''
   });
   const [sortConfig, setSortConfig] = useState({ key: 'profit_factor', direction: 'desc' });
 
@@ -40,7 +40,7 @@ export default function ValidationsTable() {
       universe: filters.universe || undefined, 
       verdict: filters.verdict || undefined 
     }),
-    [refreshKey, filters]
+    [refreshKey, filters.strategy, filters.universe, filters.verdict]
   );
 
   const [selectedValidation, setSelectedValidation] = useState(null);
@@ -58,8 +58,14 @@ export default function ValidationsTable() {
     return sortConfig.direction === 'asc' ? <ChevronUp size={14} className="text-green-400" /> : <ChevronDown size={14} className="text-green-400" />;
   };
 
-  const sortedResults = useMemo(() => {
-    const results = data?.results || [];
+  const filteredResults = useMemo(() => {
+    let results = data?.results || [];
+    
+    // Apply client-side asset type filter
+    if (filters.assetType) {
+      results = results.filter(r => getAssetType(r.symbol, r.universe).label.toUpperCase().includes(filters.assetType.toUpperCase()));
+    }
+    
     if (!sortConfig.key) return results;
 
     return [...results].sort((a, b) => {
@@ -73,7 +79,7 @@ export default function ValidationsTable() {
       if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [data, sortConfig]);
+  }, [data, sortConfig, filters.assetType]);
 
   const allStrategies = ['rsi2', 'ibs', 'tom'];
   const allUniverses = useMemo(() => {
@@ -81,14 +87,13 @@ export default function ValidationsTable() {
     return [...new Set(data.results.map(r => r.universe))].filter(Boolean).sort();
   }, [data]);
 
-  if (loading && !sortedResults.length) return <LoadingState rows={10} />;
+  if (loading && !filteredResults.length) return <LoadingState rows={10} />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
 
-  const selectClass = "bg-[#1a1d27] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-green-500/50 cursor-pointer appearance-none min-w-[140px]";
+  const selectClass = "bg-[#1a1d27] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-green-500/50 cursor-pointer appearance-none min-w-[120px]";
 
   // Calculations: Navbar(64) + Tabs(68) = 132
   const filterStickyTop = "top-[132px]";
-  // Calculations: FilterBar height is approx 72px. 132 + 72 = 204
   const headerStickyTop = "top-[204px]";
 
   return (
@@ -98,97 +103,81 @@ export default function ValidationsTable() {
         <div className="flex flex-wrap gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl items-center shadow-2xl backdrop-blur-md">
           <div className="flex items-center gap-2 mr-2">
             <Filter size={14} className="text-[--text-muted]" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[--text-muted]">Filtrer l'élite :</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[--text-muted]">Filtrer :</span>
           </div>
           
           <select value={filters.strategy} onChange={(e) => setFilters({ ...filters, strategy: e.target.value })} className={selectClass}>
-            <option value="" className="bg-[#1a1d27]">Toutes les Stratégies</option>
-            {allStrategies.map(s => <option key={s} value={s} className="bg-[#1a1d27]">{STRATEGY_LABELS[s] || s}</option>)}
+            <option value="">Toutes Stratégies</option>
+            {allStrategies.map(s => <option key={s} value={s}>{STRATEGY_LABELS[s] || s}</option>)}
+          </select>
+
+          <select value={filters.assetType} onChange={(e) => setFilters({ ...filters, assetType: e.target.value })} className={selectClass}>
+            <option value="">Tous Types</option>
+            <option value="Stock">Stocks</option>
+            <option value="ETF">ETFs</option>
+            <option value="Forex">Forex</option>
           </select>
 
           <select value={filters.verdict} onChange={(e) => setFilters({ ...filters, verdict: e.target.value })} className={selectClass}>
-            <option value="" className="bg-[#1a1d27]">Tous les Verdicts</option>
-            <option value="VALIDATED" className="bg-[#1a1d27]">VALIDATED</option>
-            <option value="CONDITIONAL" className="bg-[#1a1d27]">CONDITIONAL</option>
-            <option value="REJECTED" className="bg-[#1a1d27]">REJECTED</option>
+            <option value="">Tous Verdicts</option>
+            <option value="VALIDATED">VALIDATED</option>
+            <option value="CONDITIONAL">CONDITIONAL</option>
+            <option value="REJECTED">REJECTED</option>
           </select>
 
           {allUniverses.length > 0 && (
             <select value={filters.universe} onChange={(e) => setFilters({ ...filters, universe: e.target.value })} className={selectClass}>
-              <option value="" className="bg-[#1a1d27]">Tous les Univers</option>
-              {allUniverses.map(u => <option key={u} value={u} className="bg-[#1a1d27]">{u}</option>)}
+              <option value="">Tous Univers</option>
+              {allUniverses.map(u => <option key={u} value={u}>{u}</option>)}
             </select>
           )}
 
           <div className="flex-1" />
           <div className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-            {sortedResults.length} Tests affichés
+            {filteredResults.length} Tests affichés
           </div>
         </div>
       </div>
 
-      {sortedResults.length === 0 ? (
+      {filteredResults.length === 0 ? (
         <div className="pt-8"><EmptyState message="Aucun test ne correspond à ces critères." /></div>
       ) : (
         <div className="overflow-visible">
-          <table className="w-full text-sm border-separate border-spacing-0">
-            <thead>
-              <tr className="text-[--text-muted] text-[10px] uppercase tracking-widest font-bold shadow-sm">
-                <th 
-                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-left py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white transition-colors`}
-                  onClick={() => requestSort('symbol')}
-                >
+          <table className="w-full text-sm border-collapse">
+            <thead className="sticky top-[200px] z-[20]">
+              <tr className="bg-[#1a1d27] border-b border-[--glass-border] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold shadow-sm">
+                <th className="text-left py-4 px-4 cursor-pointer hover:text-white" onClick={() => requestSort('symbol')}>
                   <div className="flex items-center gap-1">Actif {getSortIcon('symbol')}</div>
                 </th>
-                <th 
-                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-left py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white transition-colors`}
-                  onClick={() => requestSort('strategy')}
-                >
+                <th className="text-left py-4 px-4 cursor-pointer hover:text-white" onClick={() => requestSort('strategy')}>
                   <div className="flex items-center gap-1">Stratégie {getSortIcon('strategy')}</div>
                 </th>
-                <th 
-                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-right py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white group/h`}
-                  onClick={() => requestSort('n_trades')} title={COLUMN_TOOLTIPS.trades}
-                >
+                <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('n_trades')} title={COLUMN_TOOLTIPS.trades}>
                   <div className="flex items-center justify-end gap-1">Trades <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('n_trades')}</div>
                 </th>
-                <th 
-                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-right py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white group/h`}
-                  onClick={() => requestSort('win_rate')} title={COLUMN_TOOLTIPS.wr}
-                >
+                <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('win_rate')} title={COLUMN_TOOLTIPS.wr}>
                   <div className="flex items-center justify-end gap-1">Win Rate <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('win_rate')}</div>
                 </th>
-                <th 
-                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-right py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white group/h`}
-                  onClick={() => requestSort('profit_factor')} title={COLUMN_TOOLTIPS.pf}
-                >
+                <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('profit_factor')} title={COLUMN_TOOLTIPS.pf}>
                   <div className="flex items-center justify-end gap-1 text-green-400">PF <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('profit_factor')}</div>
                 </th>
-                <th 
-                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-right py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white group/h`}
-                  onClick={() => requestSort('sharpe')} title={COLUMN_TOOLTIPS.sharpe}
-                >
+                <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('sharpe')} title={COLUMN_TOOLTIPS.sharpe}>
                   <div className="flex items-center justify-end gap-1">Sharpe <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('sharpe')}</div>
                 </th>
-                <th 
-                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-right py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white group/h`}
-                  onClick={() => requestSort('robustness_pct')} title={COLUMN_TOOLTIPS.robust}
-                >
+                <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('robustness_pct')} title={COLUMN_TOOLTIPS.robust}>
                   <div className="flex items-center justify-end gap-1">Robust% <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('robustness_pct')}</div>
                 </th>
-                <th 
-                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-center py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white group/h`}
-                  onClick={() => requestSort('verdict')} title={COLUMN_TOOLTIPS.verdict}
-                >
+                <th className="text-center py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('verdict')} title={COLUMN_TOOLTIPS.verdict}>
                   <div className="flex items-center justify-center gap-1">Verdict <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('verdict')}</div>
                 </th>
               </tr>
             </thead>
             <tbody className="bg-[--bg-primary]">
-              {sortedResults.map((r, idx) => {
+              {filteredResults.map((r, idx) => {
                 const v = VERDICT_COLORS[r.verdict] || VERDICT_COLORS.REJECTED;
                 const isSelected = selectedValidation?.symbol === r.symbol && selectedValidation?.strategy === r.strategy;
                 const baseStrategy = r.strategy.split('_')[0];
+                const assetType = getAssetType(r.symbol, r.universe);
                 
                 return (
                   <tr
@@ -199,7 +188,12 @@ export default function ValidationsTable() {
                     onClick={() => setSelectedValidation(r)}
                   >
                     <td className="py-4 px-4">
-                      <span className="text-white font-bold group-hover:text-green-400 transition-colors text-base">{r.symbol}</span>
+                      <div className="flex flex-col">
+                        <span className="text-white font-bold group-hover:text-green-400 transition-colors text-base">{r.symbol}</span>
+                        <span className={`w-fit text-[7px] font-black px-1 rounded ${assetType.bg} ${assetType.text} border ${assetType.border} uppercase mt-0.5`}>
+                          {assetType.label}
+                        </span>
+                      </div>
                     </td>
                     <td className="py-4 px-4">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-white/5 text-[--text-muted]`}>

@@ -50,6 +50,39 @@ export function pnlColor(n) {
   return 'text-[--text-secondary]';
 }
 
+// -- Asset Categorization --
+
+export const ASSET_TYPES = {
+  STK: { label: 'Stock', bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20' },
+  ETF: { label: 'ETF', bg: 'bg-purple-500/10', text: 'text-purple-400', border: 'border-purple-500/20' },
+  FX:  { label: 'Forex', bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
+  UNK: { label: 'Asset', bg: 'bg-white/5', text: 'text-[--text-muted]', border: 'border-white/10' },
+};
+
+/**
+ * Determine asset type based on symbol and known universe patterns.
+ */
+export function getAssetType(symbol, universe = '') {
+  if (!symbol) return ASSET_TYPES.UNK;
+  
+  const sym = symbol.toUpperCase();
+  const univ = (universe || '').toLowerCase();
+
+  // 1. Explicit check by universe name
+  if (univ.includes('forex')) return ASSET_TYPES.FX;
+  if (univ.includes('etf')) return ASSET_TYPES.ETF;
+  if (univ.includes('stocks')) return ASSET_TYPES.STK;
+
+  // 2. Pattern check
+  if (sym.endsWith('=X')) return ASSET_TYPES.FX;
+  if (sym.length <= 4 && (sym.startsWith('XL') || sym === 'SPY' || sym === 'QQQ' || sym === 'DIA' || sym === 'IWM' || sym === 'IJR' || sym === 'VTI' || sym === 'VOO' || sym === 'IVV' || sym === 'EFA')) {
+    return ASSET_TYPES.ETF;
+  }
+
+  // 3. Default to Stock for US Large Caps
+  return ASSET_TYPES.STK;
+}
+
 // -- Strategy constants --
 
 const _COLORS_RSI2 = { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500' };
@@ -60,7 +93,6 @@ export const STRATEGY_COLORS = {
   rsi2: _COLORS_RSI2,
   ibs:  _COLORS_IBS,
   tom:  _COLORS_TOM,
-  // Long-form keys from validations DB
   rsi2_mean_reversion: _COLORS_RSI2,
   ibs_mean_reversion:  _COLORS_IBS,
   turn_of_month:       _COLORS_TOM,
@@ -70,7 +102,6 @@ export const STRATEGY_LABELS = {
   rsi2: 'RSI(2)',
   ibs: 'IBS',
   tom: 'TOM',
-  // Long-form keys from validations DB
   rsi2_mean_reversion: 'RSI(2)',
   ibs_mean_reversion: 'IBS',
   turn_of_month: 'TOM',
@@ -92,9 +123,9 @@ export const SIGNAL_COLORS = {
 // -- Verdict constants --
 
 export const VERDICT_COLORS = {
-  VALIDATED:   { bg: 'bg-green-500/20', text: 'text-green-400' },
-  CONDITIONAL: { bg: 'bg-amber-500/20', text: 'text-amber-400' },
-  REJECTED:    { bg: 'bg-red-500/20', text: 'text-red-400' },
+  VALIDATED:   { bg: 'bg-green-500/20', text: 'text-green-400', border: 'border-green-500/30' },
+  CONDITIONAL: { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/30' },
+  REJECTED:    { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/30' },
 };
 
 // Signal sort priority (BUY/SELL first)

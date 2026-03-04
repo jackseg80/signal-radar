@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useApi } from '../hooks/useApi';
 import { useRefresh } from '../hooks/useRefresh';
 import { api } from '../api/client';
-import { formatDate } from '../utils/format';
+import { formatDate, getAssetType } from '../utils/format';
 import JournalFilters from '../components/journal/JournalFilters';
 import JournalStats from '../components/journal/JournalStats';
 import JournalCharts from '../components/journal/JournalCharts';
@@ -15,8 +15,9 @@ export default function Journal() {
     symbol: null,
     source: null,
     search: null,
+    assetType: null
   });
-  const [limit] = useState(50);
+  const [limit] = useState(100); // Increased limit to allow client-side type filtering
 
   const params = useMemo(() => {
     const p = { limit };
@@ -25,24 +26,34 @@ export default function Journal() {
     if (filters.source) p.source = filters.source;
     if (filters.search) p.search = filters.search;
     return p;
-  }, [filters, limit]);
+  }, [filters.strategy, filters.symbol, filters.source, filters.search, limit]);
 
   const { data, loading, error } = useApi(
     () => api.journalEntries(params),
     [params, refreshKey]
   );
 
-  // Group entries by entry_date
-  const grouped = useMemo(() => {
+  // Group entries by entry_date AND apply client-side Asset Type filter
+  const filteredEntries = useMemo(() => {
     if (!data?.entries) return [];
+    let entries = data.entries;
+    
+    if (filters.assetType) {
+      entries = entries.filter(e => getAssetType(e.symbol).label.toUpperCase() === filters.assetType.toUpperCase());
+    }
+    
+    return entries;
+  }, [data, filters.assetType]);
+
+  const grouped = useMemo(() => {
     const groups = {};
-    for (const entry of data.entries) {
+    for (const entry of filteredEntries) {
       const date = entry.entry_date;
       if (!groups[date]) groups[date] = [];
       groups[date].push(entry);
     }
     return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
-  }, [data]);
+  }, [filteredEntries]);
 
   return (
     <div className="space-y-6">
@@ -58,9 +69,9 @@ export default function Journal() {
       </div>
 
       {/* Analytics Charts */}
-      {data?.entries && (
+      {filteredEntries.length > 0 && (
         <div className="animate-slide-up" style={{ animationDelay: '20ms' }}>
-          <JournalCharts entries={data.entries} />
+          <JournalCharts entries={filteredEntries} />
         </div>
       )}
 
@@ -79,9 +90,9 @@ export default function Journal() {
           <div className="text-center text-red-400 text-sm py-12">{error}</div>
         )}
 
-        {data && data.entries.length === 0 && (
+        {data && filteredEntries.length === 0 && (
           <div className="text-center text-[--text-muted] text-sm py-12">
-            No trades found
+            No trades found matching filters
           </div>
         )}
 
@@ -104,7 +115,7 @@ export default function Journal() {
 
         {data && data.total > data.entries.length && (
           <div className="text-center text-xs text-[--text-muted] py-4">
-            Showing {data.entries.length} of {data.total} trades
+            Showing {filteredEntries.length} of {data.total} trades
           </div>
         )}
       </div>

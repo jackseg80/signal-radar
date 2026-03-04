@@ -1,5 +1,5 @@
 import { cn } from "../../lib/utils";
-import { formatPrice, SIGNAL_COLORS } from '../../utils/format';
+import { formatPrice, SIGNAL_COLORS, getAssetType } from '../../utils/format';
 import { ArrowUpCircle, ArrowDownCircle, AlertCircle, Eye, Timer } from 'lucide-react';
 
 const SIGNAL_GLOW = {
@@ -25,6 +25,8 @@ export default function SignalCard({ symbol, signal, close_price, indicator_valu
   const isDim = signal === 'NO_SIGNAL' || signal === 'PENDING_EXPIRED';
   const glowClass = SIGNAL_GLOW[signal] || '';
   const icon = SIGNAL_ICONS[signal];
+  
+  const assetType = getAssetType(symbol);
 
   return (
     <div 
@@ -37,14 +39,19 @@ export default function SignalCard({ symbol, signal, close_price, indicator_valu
         isDim && 'opacity-30 grayscale-[0.5]'
       )}
     >
-      {/* Action status label */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className={cn(
-          "text-sm tracking-tight",
-          isActionable ? "font-bold text-white" : "font-semibold text-[--text-secondary]"
-        )}>
-          {symbol}
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className={cn(
+            "text-sm tracking-tight",
+            isActionable ? "font-bold text-white" : "font-semibold text-[--text-secondary]"
+          )}>
+            {symbol}
+          </h3>
+          <span className={`text-[8px] font-black px-1 rounded ${assetType.bg} ${assetType.text} border ${assetType.border} uppercase`}>
+            {assetType.label}
+          </span>
+        </div>
         
         <div className={cn(
           "px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1.5 uppercase transition-colors",
