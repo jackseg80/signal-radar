@@ -1,75 +1,75 @@
-"""Signal endpoints."""
+"""Signals endpoints."""
 
-from fastapi import APIRouter, Depends
+from __future__ import annotations
 
-from data.db import SignalRadarDB
+from fastapi import APIRouter, Depends, Query
+
 from api.dependencies import get_db
+from data.db import SignalRadarDB
 
 router = APIRouter()
-
-STRATEGY_LABELS = {
-    "rsi2": "RSI(2) Mean Reversion",
-    "ibs": "IBS Mean Reversion",
-    "tom": "Turn of the Month",
-}
 
 
 @router.get("/today")
 def get_today_signals(
-    strategy: str | None = None,
+    strategy: str | None = Query(None),
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
-    """Latest signals from the most recent scanner run."""
-    ts, signals = db.get_latest_signals(strategy=strategy)
-    if ts is None:
-        return {"scanner_timestamp": None, "strategies": {}}
+    """Latest entry/exit signals for all enabled strategies."""
+    ts, all_signals = db.get_latest_signals(strategy=strategy)
+    
+    # Get all metadata
+    metadata_map = db.get_all_metadata()
 
-    grouped: dict[str, dict] = {}
-    for s in signals:
+    # Group by strategy
+    strategies: dict[str, dict] = {}
+    for s in all_signals:
         strat = s["strategy"]
-        if strat not in grouped:
-            grouped[strat] = {
-                "label": STRATEGY_LABELS.get(strat, strat),
-                "signals": [],
-            }
-        grouped[strat]["signals"].append({
+        if strat not in strategies:
+            # Short label for UI
+            label = strat.split("_")[0].upper()
+            strategies[strat] = {"label": label, "signals": []}
+        
+        meta = metadata_map.get(s["symbol"], {})
+        
+        strategies[strat]["signals"].append({
             "symbol": s["symbol"],
+            "name": meta.get("name") or s["symbol"],
+            "logo_url": meta.get("logo_url"),
             "signal": s["signal"],
             "close_price": s["close_price"],
             "indicator_value": s["indicator_value"],
             "notes": s["notes"],
         })
 
-    return {"scanner_timestamp": ts, "strategies": grouped}
+    return {
+        "scanner_timestamp": ts,
+        "strategies": strategies,
+    }
 
 
 @router.get("/history")
 def get_signal_history(
-    strategy: str | None = None,
-    symbol: str | None = None,
-    signal_type: str | None = None,
-    days: int = 7,
+    days: int = Query(30, gt=0, le=365),
+    strategy: str | None = Query(None),
+    signal_type: str | None = Query(None),
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
-    """Signal history for the last N days."""
-    signals = db.get_signal_history(
-        strategy=strategy,
-        symbol=symbol,
-        signal_type=signal_type,
-        days=days,
+    """Historical signals for auditing and dashboard trends."""
+    history = db.get_signal_history(
+        strategy=strategy, signal_type=signal_type, days=days
     )
+    
+    # Get all metadata
+    metadata_map = db.get_all_metadata()
+    
+    # Attach metadata to history
+    for s in history:
+        meta = metadata_map.get(s["symbol"], {})
+        s["name"] = meta.get("name") or s["symbol"]
+        s["logo_url"] = meta.get("logo_url")
+
     return {
-        "signals": [
-            {
-                "timestamp": s["timestamp"],
-                "strategy": s["strategy"],
-                "symbol": s["symbol"],
-                "signal": s["signal"],
-                "close_price": s["close_price"],
-                "indicator_value": s["indicator_value"],
-                "notes": s["notes"],
-            }
-            for s in signals
-        ],
-        "total": len(signals),
+        "total": len(history),
+        "signals": history,
     }

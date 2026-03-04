@@ -7,6 +7,7 @@ import Card from '../ui/Card';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
+import AssetIcon from '../ui/AssetIcon';
 import { Table, ChevronUp, ChevronDown, Info } from 'lucide-react';
 
 const STRATEGY_ORDER = ['rsi2', 'ibs', 'tom'];
@@ -157,14 +158,15 @@ export default function MarketOverview({ className, onSymbolClick }) {
                 >
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => onSymbolClick && onSymbolClick(a.symbol)}>
+                      <AssetIcon symbol={a.symbol} logoUrl={a.logo_url} size="sm" />
                       <div className="flex flex-col">
-                        <span className="font-bold text-white group-hover:text-green-400 transition-colors">{a.symbol}</span>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white group-hover:text-green-400 transition-colors">{a.symbol}</span>
                           <span className={`text-[7px] font-black px-1 rounded ${assetType.bg} ${assetType.text} border ${assetType.border} uppercase`}>
                             {assetType.label}
                           </span>
-                          <span className="text-[10px] text-[--text-muted]">Daily OHLCV</span>
                         </div>
+                        <div className="text-[10px] text-[--text-muted] truncate max-w-[120px]">{a.name || 'Daily OHLCV'}</div>
                       </div>
                     </div>
                   </td>

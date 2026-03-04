@@ -221,6 +221,33 @@ class SignalRadarDB:
                 ON live_trades(status, strategy)
             """)
 
+            # -- Asset Metadata (Names, Logos) --
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS asset_metadata (
+                    symbol TEXT PRIMARY KEY,
+                    name TEXT,
+                    logo_url TEXT,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+    def save_asset_metadata(self, symbol: str, name: str, logo_url: str | None = None) -> None:
+        """Enregistre ou met à jour les métadonnées d'un actif."""
+        with self._connect() as conn:
+            conn.execute("""
+                INSERT OR REPLACE INTO asset_metadata (symbol, name, logo_url, updated_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            """, (symbol, name, logo_url))
+
+    def get_asset_metadata(self, symbol: str) -> dict | None:
+        """Récupère les métadonnées d'un actif."""
+        return self._query_one("SELECT * FROM asset_metadata WHERE symbol = ?", (symbol,))
+
+    def get_all_metadata(self) -> dict[str, dict]:
+        """Récupère toutes les métadonnées indexées par symbole."""
+        rows = self._query("SELECT * FROM asset_metadata")
+        return {r["symbol"]: r for r in rows}
+
     # ------------------------------------------------------------------ #
     # OHLCV
     # ------------------------------------------------------------------ #

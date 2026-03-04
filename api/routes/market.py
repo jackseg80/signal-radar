@@ -25,10 +25,7 @@ def _compute_proximity(
     details: dict,
     params: dict,
 ) -> dict | None:
-    """Compute proximity-to-trigger for a non-position asset.
-
-    Returns dict with near/pct/trend_ok/label, or None if not computable.
-    """
+    """Compute proximity-to-trigger for a non-position asset."""
     if not details:
         return None
 
@@ -117,9 +114,12 @@ def get_market_overview(
     """Market overview: latest indicators for all tracked assets."""
     config = load_production_config()
     strategies_cfg = config.get("strategies", {})
+    
+    # Get all metadata at once
+    metadata_map = db.get_all_metadata()
 
     # Build asset -> strategy membership mapping
-    asset_membership: dict[str, dict[str, bool]] = {}  # symbol -> {strat: in_universe}
+    asset_membership: dict[str, dict[str, bool]] = {}
     for strat_name, strat_cfg in strategies_cfg.items():
         if not strat_cfg.get("enabled", False):
             continue
@@ -128,15 +128,12 @@ def get_market_overview(
         for sym in strat_cfg.get("watchlist", []):
             asset_membership.setdefault(sym, {})[strat_name] = False
 
-    # Get latest signals for all strategies
     ts, all_signals = db.get_latest_signals()
 
-    # Index signals by (strategy, symbol)
     signal_map: dict[tuple[str, str], dict] = {}
     for s in all_signals:
         signal_map[(s["strategy"], s["symbol"])] = s
 
-    # Parse details_json once for all signals
     details_map: dict[tuple[str, str], dict] = {}
     for s in all_signals:
         dj = s.get("details_json")
@@ -146,13 +143,11 @@ def get_market_overview(
             except (ValueError, TypeError):
                 pass
 
-    # Get open positions
     open_positions = db.get_open_positions()
-    open_pos_map: dict[str, list[str]] = {}  # symbol -> [strategies]
+    open_pos_map: dict[str, list[str]] = {}
     for p in open_positions:
         open_pos_map.setdefault(p["symbol"], []).append(p["strategy"])
 
-    # Build response
     assets = []
     for sym in sorted(asset_membership.keys()):
         strat_data: dict[str, dict] = {}
@@ -165,7 +160,6 @@ def get_market_overview(
                 if close_price is None:
                     close_price = sig["close_price"]
 
-                # Compute proximity for NO_SIGNAL / WATCH
                 prox = None
                 if sig["signal"] in _PROXIMITY_SIGNALS:
                     details = details_map.get((strat_name, sym))
@@ -189,8 +183,12 @@ def get_market_overview(
                 }
 
         pos_strategies = open_pos_map.get(sym, [])
+        meta = metadata_map.get(sym, {})
+        
         assets.append({
             "symbol": sym,
+            "name": meta.get("name") or sym,
+            "logo_url": meta.get("logo_url"),
             "close": close_price,
             "strategies": strat_data,
             "has_open_position": len(pos_strategies) > 0,
@@ -212,11 +210,12 @@ def get_asset_details(
     config = load_production_config()
     strategies_cfg = config.get("strategies", {})
     
-    # Latest indicators
+    # Get metadata
+    meta = db.get_asset_metadata(symbol) or {}
+    
     ts, all_signals = db.get_latest_signals()
     asset_signals = [s for s in all_signals if s["symbol"] == symbol]
     
-    # Last known price
     last_price = db.get_latest_price(symbol)
     if last_price is None:
         df = db.get_ohlcv(symbol)
@@ -224,7 +223,6 @@ def get_asset_details(
              raise HTTPException(status_code=404, detail=f"Asset {symbol} not found")
         last_price = float(df.iloc[-1]["Close"])
 
-    # Strategy membership
     membership = []
     for s_name, s_cfg in strategies_cfg.items():
         if symbol in s_cfg.get("universe", []):
@@ -232,15 +230,14 @@ def get_asset_details(
         elif symbol in s_cfg.get("watchlist", []):
             membership.append({"strategy": s_name, "type": "watchlist"})
 
-    # Open positions
     open_pos = [p for p in db.get_open_positions() if p["symbol"] == symbol]
-
-    # Best backtest results (from validations)
     validations = db.get_validations_filtered(verdict="VALIDATED")
     asset_validations = [v for v in validations if v["symbol"] == symbol]
 
     return {
         "symbol": symbol,
+        "name": meta.get("name") or symbol,
+        "logo_url": meta.get("logo_url"),
         "last_price": last_price,
         "timestamp": ts,
         "signals": asset_signals,
@@ -257,7 +254,6 @@ def get_asset_history(
     db: SignalRadarDB = Depends(get_db),
 ) -> list:
     """Historical signals for a specific asset."""
-    # We fetch for all strategies to see the timeline
     history = db.get_signal_history(symbol=symbol, days=days)
     return history
 
@@ -273,7 +269,6 @@ def get_asset_prices(
     start_date = (pd.Timestamp.now() - pd.Timedelta(days=days)).strftime("%Y-%m-%d")
     df = db.get_ohlcv(symbol, start=start_date)
     
-    # Convert index to list of dicts
     prices = []
     for date, row in df.iterrows():
         prices.append({

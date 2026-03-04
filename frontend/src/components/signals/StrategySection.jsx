@@ -59,6 +59,8 @@ export default function StrategySection({ strategyKey, strategyData, onSymbolCli
             <SignalCard
               key={sig.symbol}
               symbol={sig.symbol}
+              name={sig.name}
+              logo_url={sig.logo_url}
               signal={sig.signal}
               close_price={sig.close_price}
               indicator_value={sig.indicator_value}

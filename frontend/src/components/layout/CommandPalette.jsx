@@ -2,6 +2,8 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { Search, Command, Activity, ArrowRight, X } from 'lucide-react';
 import { api } from '../../api/client';
 import { useAssetView } from '../../hooks/useAssetView';
+import AssetIcon from '../ui/AssetIcon';
+import { getAssetType } from '../../utils/format';
 
 const CommandPaletteContext = createContext(null);
 
@@ -28,15 +30,9 @@ function CommandPalette() {
   const [loading, setLoading] = useState(false);
   const { openAsset } = useAssetView();
 
-  // Listen for Cmd+K or Ctrl+K
+  // Listen for Escape
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        // Since we can't use toggleSearch here easily without circularity 
-        // if we define it inside provider, we'll keep the direct event listener
-        // but the UI button will use the context.
-      }
       if (e.key === 'Escape') {
         closeSearch();
       }
@@ -50,10 +46,12 @@ function CommandPalette() {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        // Logic to toggle handled by the provider state would be better
-        // but for now we'll just use a custom event or keep it simple.
+        // Since we can't easily use toggleSearch here, we assume the Navbar handles it 
+        // or we dispatch a custom event. For now, the Navbar button works.
       }
     };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Fetch asset list when opening
@@ -70,7 +68,10 @@ function CommandPalette() {
 
   const filteredAssets = query === '' 
     ? assets.slice(0, 10) 
-    : assets.filter(a => a.symbol.toLowerCase().includes(query.toLowerCase())).slice(0, 15);
+    : assets.filter(a => 
+        a.symbol.toLowerCase().includes(query.toLowerCase()) || 
+        (a.name && a.name.toLowerCase().includes(query.toLowerCase()))
+      ).slice(0, 15);
 
   const handleSelect = (symbol) => {
     openAsset(symbol);
@@ -108,27 +109,33 @@ function CommandPalette() {
             <div className="py-12 text-center text-[--text-muted] animate-pulse text-xs uppercase tracking-widest font-bold">Chargement de l'univers...</div>
           ) : filteredAssets.length > 0 ? (
             <div className="grid grid-cols-1 gap-1">
-              {filteredAssets.map(asset => (
-                <button
-                  key={asset.symbol}
-                  onClick={() => handleSelect(asset.symbol)}
-                  className="flex items-center justify-between w-full p-3 rounded-xl hover:bg-white/5 text-left transition-all group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-green-500/10 text-green-400 group-hover:bg-green-500/20 transition-colors">
-                      <Activity size={16} />
+              {filteredAssets.map(asset => {
+                const assetType = getAssetType(asset.symbol);
+                return (
+                  <button
+                    key={asset.symbol}
+                    onClick={() => handleSelect(asset.symbol)}
+                    className="flex items-center justify-between w-full p-3 rounded-xl hover:bg-white/5 text-left transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <AssetIcon symbol={asset.symbol} logoUrl={asset.logo_url} size="sm" />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-bold text-white text-sm tracking-tight">{asset.symbol}</div>
+                          <span className={`text-[7px] font-black px-1 rounded ${assetType.bg} ${assetType.text} border ${assetType.border} uppercase`}>
+                            {assetType.label}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-[--text-muted] uppercase font-medium">{asset.name || 'Daily OHLCV'}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-bold text-white text-sm tracking-tight">{asset.symbol}</div>
-                      <div className="text-[10px] text-[--text-muted] uppercase font-medium">Daily OHLCV</div>
+                    <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-[10px] font-bold text-green-400 uppercase tracking-widest">Ouvrir</span>
+                      <ArrowRight size={14} className="text-green-400" />
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[10px] font-bold text-green-400 uppercase tracking-widest">Ouvrir</span>
-                    <ArrowRight size={14} className="text-green-400" />
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <div className="py-12 text-center text-[--text-muted] text-xs">Aucun actif trouvé pour "{query}"</div>

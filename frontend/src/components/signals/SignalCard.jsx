@@ -1,6 +1,7 @@
 import { cn } from "../../lib/utils";
 import { formatPrice, SIGNAL_COLORS, getAssetType } from '../../utils/format';
 import { ArrowUpCircle, ArrowDownCircle, AlertCircle, Eye, Timer } from 'lucide-react';
+import AssetIcon from '../ui/AssetIcon';
 
 const SIGNAL_GLOW = {
   BUY: 'glow-green',
@@ -18,7 +19,7 @@ const SIGNAL_ICONS = {
   WATCH: <Eye size={14} className="text-amber-400" />,
 };
 
-export default function SignalCard({ symbol, signal, close_price, indicator_value, notes, onClick }) {
+export default function SignalCard({ symbol, name, logo_url, signal, close_price, indicator_value, notes, onClick }) {
   const colors = SIGNAL_COLORS[signal] || SIGNAL_COLORS.NO_SIGNAL;
   const isActionable = signal === 'BUY' || signal === 'SELL' || signal === 'SAFETY_EXIT';
   const isWatch = signal === 'WATCH' || signal === 'PENDING_VALID';
@@ -39,18 +40,24 @@ export default function SignalCard({ symbol, signal, close_price, indicator_valu
         isDim && 'opacity-30 grayscale-[0.5]'
       )}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <h3 className={cn(
-            "text-sm tracking-tight",
-            isActionable ? "font-bold text-white" : "font-semibold text-[--text-secondary]"
-          )}>
-            {symbol}
-          </h3>
-          <span className={`text-[8px] font-black px-1 rounded ${assetType.bg} ${assetType.text} border ${assetType.border} uppercase`}>
-            {assetType.label}
-          </span>
+      {/* Header with Icon and Type */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <AssetIcon symbol={symbol} logoUrl={logo_url} size="sm" />
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <h3 className={cn(
+                "text-sm tracking-tight",
+                isActionable ? "font-bold text-white" : "font-semibold text-[--text-secondary]"
+              )}>
+                {symbol}
+              </h3>
+              <span className={`text-[7px] font-black px-1 rounded ${assetType.bg} ${assetType.text} border ${assetType.border} uppercase`}>
+                {assetType.label}
+              </span>
+            </div>
+            {name && <div className="text-[9px] text-[--text-muted] truncate max-w-[100px]">{name}</div>}
+          </div>
         </div>
         
         <div className={cn(
