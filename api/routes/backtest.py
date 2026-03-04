@@ -2,14 +2,24 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Any
+import itertools
 
 from data.db import SignalRadarDB
 from api.config import load_production_config
 from api.dependencies import get_db
-from cli.runner import STRATEGIES, resolve_market_params
-from data.base_loader import BaseDataLoader
 from engine.indicator_cache import IndicatorCache
 from validation.robustness import run_robustness
+
+# Import strategies directly to avoid circular imports with cli.runner
+from strategies.rsi2_mean_reversion import RSI2MeanReversion
+from strategies.ibs_mean_reversion import IBSMeanReversion
+from strategies.turn_of_month import TurnOfMonth
+
+STRATEGIES_MAP = {
+    "rsi2": RSI2MeanReversion,
+    "ibs": IBSMeanReversion,
+    "tom": TurnOfMonth,
+}
 
 router = APIRouter()
 
@@ -120,14 +130,11 @@ def get_robustness(
     universe: str,
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
-    """Calculate and return robustness matrix for a specific asset/strategy.
-    
-    This recalculates the matrix on the fly (takes ~1s).
-    """
-    if strategy not in STRATEGIES:
+    """Calculate and return robustness matrix for a specific asset/strategy."""
+    if strategy not in STRATEGIES_MAP:
         raise HTTPException(status_code=404, detail=f"Strategy {strategy} unknown")
     
-    strat_class = STRATEGIES[strategy]
+    strat_class = STRATEGIES_MAP[strategy]
     strat_obj = strat_class()
     
     # Load data
@@ -140,14 +147,23 @@ def get_robustness(
     
     # Resolve params
     from config.universe_loader import load_universe
+    from engine.fee_model import US_STOCKS_USD, US_ETFS_USD
+    
     univ_cfg = load_universe(universe)
-    cap, ws, fee_model, _ = resolve_market_params(univ_cfg)
+    cap = univ_cfg.get("capital", 10000.0)
+    ws = univ_cfg.get("whole_shares", True)
+    
+    # Map fee model string to actual model
+    fee_model_name = univ_cfg.get("fee_model", "us_stocks_usd")
+    if "etf" in fee_model_name.lower():
+        fee_model = US_ETFS_USD
+    else:
+        fee_model = US_STOCKS_USD
     
     from engine.backtest_config import BacktestConfig
     config = BacktestConfig(symbol=symbol, capital=cap, whole_shares=ws, fee_model=fee_model)
     
     # Run robustness test
-    # Use full OOS period (2014-today)
     start_idx = cache.get_idx_from_date("2014-01-01") or strat_obj.warmup(strat_obj.default_params())
     end_idx = len(cache.close) - 1
     
@@ -156,21 +172,15 @@ def get_robustness(
         start_idx=start_idx, end_idx=end_idx, symbol=symbol
     )
     
-    # Format for Heatmap (requires a 2D matrix)
-    # The grid is cartesian. We need to decide which params to use for X and Y.
     grid = strat_obj.param_grid()
     keys = list(grid.keys())
     
     if len(keys) < 2:
         return {"robustness": None, "detail": "Grid too small for matrix"}
     
-    # For RSI2: rsi_period (1 value), rsi_entry_threshold (4), sma_trend_period (3), sma_exit_period (4)
-    # Let's pick the two with most variations or hardcode per strategy
     if strategy == "rsi2":
-        # Y: entry_threshold, X: sma_exit_period
         y_key, x_key = "rsi_entry_threshold", "sma_exit_period"
     elif strategy == "ibs":
-        # Y: ibs_threshold, X: exit_threshold
         y_key, x_key = "ibs_entry_threshold", "ibs_exit_threshold"
     elif strategy == "tom":
         y_key, x_key = "entry_days_before_eom", "exit_day_of_new_month"
@@ -180,34 +190,18 @@ def get_robustness(
     y_axis = grid[y_key]
     x_axis = grid[x_key]
     
-    # Re-map profit_factors into 2D values list
-    # The robustness.profit_factors list follows the order of product(*grid.values())
-    # We need to filter/group it for the specific X/Y keys
-    
-    # Simple approach: Re-run a sub-grid or re-sort
-    # Let's rebuild the matrix by matching parameters
     values_2d = []
-    defaults = strat_obj.default_params()
+    grid_keys = list(grid.keys())
+    grid_values = [grid[k] for k in grid_keys]
     
     for y_val in y_axis:
         row = []
         for x_val in x_axis:
-            # For each cell, we take the BEST PF among other param variations
-            # (e.g. if we vary SMA trend too, we pick the best for this X/Y pair)
-            cell_params = {y_key: y_val, x_key: x_val}
-            
-            # Find all results in the full list that match these two params
             matching_pfs = []
-            
-            from itertools import product
-            grid_keys = list(grid.keys())
-            grid_values = [grid[k] for k in grid_keys]
-            
-            for i, combo in enumerate(product(*grid_values)):
+            for i, combo in enumerate(itertools.product(*grid_values)):
                 params_dict = dict(zip(grid_keys, combo))
                 if params_dict[y_key] == y_val and params_dict[x_key] == x_val:
                     matching_pfs.append(result.profit_factors[i])
-            
             row.append(max(matching_pfs) if matching_pfs else 0.0)
         values_2d.append(row)
 
