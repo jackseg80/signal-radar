@@ -3,7 +3,7 @@ import SignalCard from './SignalCard';
 import { STRATEGY_COLORS, sortSignals } from '../../utils/format';
 import { Eye, EyeOff, Filter } from 'lucide-react';
 
-export default function StrategySection({ strategyKey, strategyData }) {
+export default function StrategySection({ strategyKey, strategyData, onSymbolClick }) {
   const [showAll, setShowAll] = useState(false);
   const colors = STRATEGY_COLORS[strategyKey] || STRATEGY_COLORS.rsi2;
   
@@ -63,6 +63,7 @@ export default function StrategySection({ strategyKey, strategyData }) {
               close_price={sig.close_price}
               indicator_value={sig.indicator_value}
               notes={sig.notes}
+              onClick={() => onSymbolClick && onSymbolClick(sig.symbol)}
             />
           ))}
         </div>

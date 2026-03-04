@@ -2,7 +2,7 @@
 
 import json as _json
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query, HTTPException
 
 from data.db import SignalRadarDB
 from api.config import load_production_config
@@ -201,3 +201,63 @@ def get_market_overview(
         "scanner_timestamp": ts,
         "assets": assets,
     }
+
+
+@router.get("/asset/{symbol}")
+def get_asset_details(
+    symbol: str,
+    db: SignalRadarDB = Depends(get_db),
+) -> dict:
+    """Detailed info for a specific asset across all strategies."""
+    config = load_production_config()
+    strategies_cfg = config.get("strategies", {})
+    
+    # Latest indicators
+    ts, all_signals = db.get_latest_signals()
+    asset_signals = [s for s in all_signals if s["symbol"] == symbol]
+    
+    if not asset_signals:
+        # Check if asset exists in DB even without recent signals
+        prices = db.get_ohlcv(symbol, limit=1)
+        if not prices:
+             raise HTTPException(status_code=404, detail=f"Asset {symbol} not found")
+        last_price = prices[0]["close"]
+    else:
+        last_price = asset_signals[0]["close_price"]
+
+    # Strategy membership
+    membership = []
+    for s_name, s_cfg in strategies_cfg.items():
+        if symbol in s_cfg.get("universe", []):
+            membership.append({"strategy": s_name, "type": "universe"})
+        elif symbol in s_cfg.get("watchlist", []):
+            membership.append({"strategy": s_name, "type": "watchlist"})
+
+    # Open positions
+    open_pos = [p for p in db.get_open_positions() if p["symbol"] == symbol]
+
+    # Best backtest results (from validations)
+    validations = db.get_validations_filtered(verdict="VALIDATED")
+    asset_validations = [v for v in validations if v["symbol"] == symbol]
+
+    return {
+        "symbol": symbol,
+        "last_price": last_price,
+        "timestamp": ts,
+        "signals": asset_signals,
+        "membership": membership,
+        "open_positions": open_pos,
+        "validations": asset_validations
+    }
+
+
+@router.get("/asset/{symbol}/history")
+def get_asset_history(
+    symbol: str,
+    days: int = Query(60, gt=0, le=365),
+    db: SignalRadarDB = Depends(get_db),
+) -> list:
+    """Historical signals for a specific asset."""
+    # We fetch for all strategies to see the timeline
+    history = db.get_signal_history(symbol=symbol, days=days)
+    return history

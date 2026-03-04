@@ -18,7 +18,7 @@ const SIGNAL_ICONS = {
   WATCH: <Eye size={14} className="text-amber-400" />,
 };
 
-export default function SignalCard({ symbol, signal, close_price, indicator_value, notes }) {
+export default function SignalCard({ symbol, signal, close_price, indicator_value, notes, onClick }) {
   const colors = SIGNAL_COLORS[signal] || SIGNAL_COLORS.NO_SIGNAL;
   const isActionable = signal === 'BUY' || signal === 'SELL' || signal === 'SAFETY_EXIT';
   const isWatch = signal === 'WATCH' || signal === 'PENDING_VALID';
@@ -27,13 +27,16 @@ export default function SignalCard({ symbol, signal, close_price, indicator_valu
   const icon = SIGNAL_ICONS[signal];
 
   return (
-    <div className={cn(
-      "group relative rounded-xl border border-[--glass-border] p-4 transition-all duration-300",
-      "hover:scale-[1.03] hover:border-white/20 active:scale-[0.98]",
-      (isActionable || isWatch) ? `glass-card ${glowClass}` : 'bg-white/[0.02] shadow-sm',
-      isActionable && signal === 'BUY' && 'animate-border-glow',
-      isDim && 'opacity-30 grayscale-[0.5]'
-    )}>
+    <div 
+      onClick={onClick}
+      className={cn(
+        "group relative rounded-xl border border-[--glass-border] p-4 transition-all duration-300 cursor-pointer",
+        "hover:scale-[1.03] hover:border-white/20 active:scale-[0.98]",
+        (isActionable || isWatch) ? `glass-card ${glowClass}` : 'bg-white/[0.02] shadow-sm',
+        isActionable && signal === 'BUY' && 'animate-border-glow',
+        isDim && 'opacity-30 grayscale-[0.5]'
+      )}
+    >
       {/* Action status label */}
       <div className="flex items-center justify-between mb-3">
         <h3 className={cn(

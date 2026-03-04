@@ -1,9 +1,8 @@
-"""Performance endpoints."""
+"""Performance summary endpoints."""
 
 from fastapi import APIRouter, Depends
 
 from data.db import SignalRadarDB
-from api.config import load_production_config
 from api.dependencies import get_db
 
 router = APIRouter()
@@ -13,55 +12,45 @@ router = APIRouter()
 def get_performance_summary(
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
-    """Paper trading performance summary."""
-    summary = db.get_paper_summary()
-    config = load_production_config()
-    capital = config.get("capital", 5000)
-
-    # Unrealized P&L from open positions (batch fetch)
-    open_positions = db.get_open_positions()
-    symbols = list({p["symbol"] for p in open_positions})
-    prices = db.get_latest_prices(symbols) if symbols else {}
-    total_unrealized = 0.0
-    for p in open_positions:
-        current_price = prices.get(p["symbol"])
-        if current_price is not None and p["entry_price"] > 0:
-            total_unrealized += (current_price - p["entry_price"]) * p["shares"]
-
+    """Consolidated performance KPIs (Paper vs Live)."""
+    paper = db.get_paper_summary()
+    live = db.get_live_summary()
+    
     return {
-        "capital": capital,
-        "n_closed_trades": summary["n_trades"],
-        "n_wins": summary["n_wins"],
-        "win_rate": summary["win_rate"],
-        "total_realized_pnl": summary["total_pnl"],
-        "total_unrealized_pnl": round(total_unrealized, 2),
-        "n_open_positions": summary["n_open"],
-        "by_strategy": summary["by_strategy"],
+        "paper": paper,
+        "live": live,
     }
 
 
 @router.get("/equity-curve")
 def get_equity_curve(
-    strategy: str | None = None,
     db: SignalRadarDB = Depends(get_db),
-) -> dict:
-    """Cumulative P&L over time from closed trades."""
-    trades = db.get_closed_trades(strategy=strategy, limit=10000)
-
-    # Sort by exit_date ASC (get_closed_trades returns DESC)
-    trades.sort(key=lambda t: t["exit_date"] or "")
-
+) -> list[dict]:
+    """Cumulative PnL timeline for the global portfolio (Paper only for now)."""
+    # We fetch paper results and build a cumulative curve
+    closed = db.get_closed_paper_positions()
+    if not closed:
+        return []
+        
+    # Sort by exit_date
+    sorted_trades = sorted(closed, key=lambda x: x["exit_date"])
+    
+    curve = []
     cumulative = 0.0
-    data_points = []
-    for t in trades:
-        pnl = t["pnl_dollars"] or 0.0
-        cumulative += pnl
-        data_points.append({
+    for t in sorted_trades:
+        cumulative += (t["pnl_dollars"] or 0.0)
+        curve.append({
             "date": t["exit_date"],
-            "cumulative_pnl": round(cumulative, 2),
-            "trade_pnl": pnl,
-            "strategy": t["strategy"],
+            "pnl": round(cumulative, 2),
+            "trade_pnl": t["pnl_dollars"],
             "symbol": t["symbol"],
         })
+        
+    return curve
 
-    return {"data_points": data_points}
+@router.get("/validations/all")
+def get_all_validations(
+    db: SignalRadarDB = Depends(get_db),
+) -> list[dict]:
+    """All strategy validations (best version per asset/strategy)."""
+    return db.get_validations_filtered(verdict="VALIDATED")

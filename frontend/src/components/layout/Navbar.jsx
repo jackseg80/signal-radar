@@ -1,20 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
+import { useToasts } from '../../hooks/useToasts.jsx';
 import { useApi } from '../../hooks/useApi';
 import { api } from '../../api/client';
 import { formatTimestamp } from '../../utils/format';
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { LayoutDashboard, LineChart, BookOpen, Activity, RefreshCw, HelpCircle, GraduationCap } from 'lucide-react';
 import GuideModal from './GuideModal';
 
 export default function Navbar() {
   const { refreshKey, refresh } = useRefresh();
+  const { addToast } = useToasts();
   const { data: signalsData } = useApi(() => api.signalsToday(), [refreshKey]);
   const { data: healthData } = useApi(() => api.health());
 
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [now, setNow] = useState(new Date());
+  const [refreshProgress, setRefreshProgress] = useState(0);
+
+  // Update time for relative display
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Visual auto-refresh progress bar (5 min = 300s)
+  useEffect(() => {
+    const interval = 300000;
+    const step = 1000;
+    const timer = setInterval(() => {
+      setRefreshProgress(prev => {
+        if (prev >= 100) return 0;
+        return prev + (step / interval) * 100;
+      });
+    }, step);
+    return () => clearInterval(timer);
+  }, [refreshKey]);
 
   React.useEffect(() => {
     if (scanResult) {
@@ -26,14 +51,20 @@ export default function Navbar() {
   const runScanner = async () => {
     setScanning(true);
     setScanResult(null);
+    addToast("Lancement du scanner...", "info");
     try {
       const res = await api.scannerRun();
       setScanResult(res);
       if (res.status === 'completed') {
+        addToast("Scanner terminé avec succès !");
         refresh();
+        setRefreshProgress(0);
+      } else {
+        addToast("Erreur lors du scan : " + (res.detail || "Inconnue"), "error");
       }
     } catch (err) {
       setScanResult({ status: 'error', detail: err.message });
+      addToast("Échec critique du scanner", "error");
     } finally {
       setScanning(false);
     }
@@ -52,6 +83,10 @@ export default function Navbar() {
         ? 'bg-green-500/10 text-green-400 font-medium'
         : 'text-[--text-muted] hover:bg-white/5 hover:text-[--text-secondary]'
     }`;
+
+  const relativeTime = signalsData?.scanner_timestamp 
+    ? formatDistanceToNow(new Date(signalsData.scanner_timestamp), { addSuffix: true, locale: fr })
+    : null;
 
   return (
     <>
@@ -77,16 +112,20 @@ export default function Navbar() {
         {/* Action Area */}
         <div className="flex items-center gap-2 md:gap-4 shrink-0">
           <div className="hidden md:flex flex-col text-right">
-            <div className="text-[10px] text-[--text-muted]">
-              {signalsData?.scanner_timestamp ? (
-                <span>Last scan: {formatTimestamp(signalsData.scanner_timestamp)}</span>
+            <div className="text-[10px] text-[--text-muted] flex items-center justify-end gap-2">
+              {relativeTime ? (
+                <span>Scan : {relativeTime}</span>
               ) : (
-                <span>Ready to scan</span>
+                <span>Prêt à scanner</span>
               )}
+              {/* Auto-refresh mini bar */}
+              <div className="w-12 h-0.5 bg-white/5 rounded-full overflow-hidden mt-0.5" title="Prochain auto-refresh">
+                <div 
+                  className="h-full bg-blue-500/40 transition-all duration-1000 linear" 
+                  style={{ width: `${refreshProgress}%` }}
+                />
+              </div>
             </div>
-            {scanResult && scanResult.status === 'error' && (
-              <div className="text-[10px] text-red-400">{scanResult.detail || 'Scan failed'}</div>
-            )}
           </div>
 
           <div className="flex gap-2">
@@ -108,12 +147,19 @@ export default function Navbar() {
                     : 'bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500/20 hover:border-green-500/50'
                 }`}
               >
-                {scanning ? <RefreshCw size={14} className="animate-spin" /> : <Activity size={14} />}
-                <span className="hidden sm:inline">{scanning ? 'Wait...' : 'Scanner'}</span>
+                {scanning && <span className="absolute inset-0 animate-shimmer opacity-30" />}
+                <span className="relative z-10 flex items-center gap-2">
+                  {scanning ? <RefreshCw size={14} className="animate-spin" /> : <Activity size={14} />}
+                  <span className="hidden sm:inline">{scanning ? 'Wait...' : 'Scanner'}</span>
+                </span>
               </button>
 
               <button
-                onClick={refresh}
+                onClick={() => {
+                  refresh();
+                  setRefreshProgress(0);
+                  addToast("Données rafraîchies");
+                }}
                 className="p-1.5 rounded-lg border border-[--glass-border] text-[--text-secondary] hover:bg-white/5 hover:text-[--text-primary] transition-colors cursor-pointer flex items-center justify-center bg-[--bg-primary]"
                 title="Refresh Data"
               >

@@ -1,85 +1,73 @@
-const BASE = '/api';
+const API_BASE = '/api';
 
-async function fetchJson(path, params = {}) {
-  const url = new URL(`${BASE}${path}`, window.location.origin);
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== '') {
-      url.searchParams.set(k, v);
-    }
-  });
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  return resp.json();
+async function fetchJson(url, options = {}) {
+  const res = await fetch(`${API_BASE}${url}`, options);
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || res.statusText);
+  }
+  return res.json();
 }
 
-async function postJson(path, params = {}) {
-  const url = new URL(`${BASE}${path}`, window.location.origin);
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== '') {
-      url.searchParams.set(k, v);
-    }
+async function patchJson(url, body) {
+  return fetchJson(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
   });
-  const resp = await fetch(url, { method: 'POST' });
-  if (!resp.ok) {
-    const body = await resp.json().catch(() => ({}));
-    throw new Error(body.detail || `HTTP ${resp.status}`);
-  }
-  return resp.json();
-}
-
-async function deleteJson(path) {
-  const url = new URL(`${BASE}${path}`, window.location.origin);
-  const resp = await fetch(url, { method: 'DELETE' });
-  if (!resp.ok) {
-    const body = await resp.json().catch(() => ({}));
-    throw new Error(body.detail || `HTTP ${resp.status}`);
-  }
-  return resp.json();
-}
-
-async function patchJson(path, params = {}) {
-  const url = new URL(`${BASE}${path}`, window.location.origin);
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== '') {
-      url.searchParams.set(k, v);
-    }
-  });
-  const resp = await fetch(url, { method: 'PATCH' });
-  if (!resp.ok) {
-    const body = await resp.json().catch(() => ({}));
-    throw new Error(body.detail || `HTTP ${resp.status}`);
-  }
-  return resp.json();
 }
 
 export const api = {
-  health:         ()       => fetchJson('/health'),
-  signalsToday:   (p = {}) => fetchJson('/signals/today', p),
-  signalHistory:  (p = {}) => fetchJson('/signals/history', p),
-  openPositions:  (p = {}) => fetchJson('/positions/open', p),
-  closedTrades:   (p = {}) => fetchJson('/positions/closed', p),
-  perfSummary:    ()       => fetchJson('/performance/summary'),
-  equityCurve:    (p = {}) => fetchJson('/performance/equity-curve', p),
-  marketOverview: ()       => fetchJson('/market/overview'),
-  screens:        (p = {}) => fetchJson('/backtest/screens', p),
-  validations:    (p = {}) => fetchJson('/backtest/validations', p),
-  compare:        (p = {}) => fetchJson('/backtest/compare', p),
+  // Signals & Scanner
+  signalsToday: () => fetchJson('/signals/today'),
+  signalsHistory: (days = 30) => fetchJson(`/signals/history?days=${days}`),
+  scannerRun: () => fetchJson('/scanner/run', { method: 'POST' }),
+  scannerStatus: () => fetchJson('/scanner/status'),
+  
+  // Market & Assets
+  marketOverview: () => fetchJson('/market/overview'),
+  assetDetails: (symbol) => fetchJson(`/market/asset/${symbol}`), // À ajouter au backend
+  assetHistory: (symbol, days = 60) => fetchJson(`/market/asset/${symbol}/history?days=${days}`), // À ajouter au backend
 
-  // Scanner trigger
-  scannerRun:     ()       => postJson('/scanner/run'),
-  scannerStatus:  ()       => fetchJson('/scanner/status'),
-
-  // Live trades
-  liveOpen:       (p)      => postJson('/live/open', p),
-  liveClose:      (p)      => postJson('/live/close', p),
-  liveDelete:     (id)     => deleteJson(`/live/${id}`),
-  liveOpenTrades: (p = {}) => fetchJson('/live/open', p),
-  liveClosedTrades: (p = {}) => fetchJson('/live/closed', p),
-  liveSummary:    ()       => fetchJson('/live/summary'),
-  liveCompare:    ()       => fetchJson('/live/compare'),
+  // Positions & Trades
+  positionsOpen: () => fetchJson('/positions/open'),
+  positionsClosed: () => fetchJson('/positions/closed'),
+  
+  // Performance
+  performanceSummary: () => fetchJson('/performance/summary'),
+  equityCurve: () => fetchJson('/performance/equity-curve'),
+  
+  // Backtest
+  backtestScreens: (strategy = '', universe = '') => 
+    fetchJson(`/backtest/screens?strategy=${strategy}&universe=${universe}`),
+  backtestValidations: (strategy = '', universe = '') => 
+    fetchJson(`/backtest/validations?strategy=${strategy}&universe=${universe}`),
+  backtestCompare: () => fetchJson('/backtest/compare'),
+  
+  // Live Trades
+  liveOpen: (data) => fetchJson('/live/open', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }),
+  liveClose: (id, data) => fetchJson(`/live/close/${id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }),
+  liveActive: () => fetchJson('/live/open'),
+  liveClosed: () => fetchJson('/live/closed'),
+  liveSummary: () => fetchJson('/live/summary'),
+  liveCompare: () => fetchJson('/live/compare'),
 
   // Journal
-  journalEntries:    (p = {}) => fetchJson('/journal/entries', p),
-  journalPaperNote:  (id, notes) => patchJson(`/journal/paper/${id}/notes`, { notes }),
-  journalLiveNote:   (id, notes) => patchJson(`/journal/live/${id}/notes`, { notes }),
+  journalEntries: (params = {}) => {
+    const searchParams = new URLSearchParams(params);
+    return fetchJson(`/journal/entries?${searchParams.toString()}`);
+  },
+  journalPaperNote: (id, notes) => patchJson(`/journal/paper/${id}/notes`, { notes }),
+  journalLiveNote: (id, notes) => patchJson(`/journal/live/${id}/notes`, { notes }),
+
+  // Health
+  health: () => fetchJson('/health')
 };

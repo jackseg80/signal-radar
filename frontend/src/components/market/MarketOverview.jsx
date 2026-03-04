@@ -51,7 +51,7 @@ function ProximityBar({ proximity, strategy }) {
   );
 }
 
-export default function MarketOverview({ className }) {
+export default function MarketOverview({ className, onSymbolClick }) {
   const { refreshKey } = useRefresh();
   const { data, loading, error, refetch } = useApi(() => api.marketOverview(), [refreshKey]);
   
@@ -178,7 +178,10 @@ export default function MarketOverview({ className }) {
                 }`}
               >
                 <td className="py-4 px-6">
-                  <div className="flex flex-col">
+                  <div 
+                    className="flex flex-col cursor-pointer"
+                    onClick={() => onSymbolClick && onSymbolClick(a.symbol)}
+                  >
                     <span className="font-bold text-white group-hover:text-green-400 transition-colors">{a.symbol}</span>
                     <span className="text-[10px] text-[--text-muted]">Daily OHLCV</span>
                   </div>
