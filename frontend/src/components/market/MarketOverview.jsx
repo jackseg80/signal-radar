@@ -7,11 +7,17 @@ import Card from '../ui/Card';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
-import { Table, ChevronUp, ChevronDown } from 'lucide-react';
+import { Table, ChevronUp, ChevronDown, Info } from 'lucide-react';
 
 const STRATEGY_ORDER = ['rsi2', 'ibs', 'tom'];
 
-function ProximityBar({ proximity }) {
+const STRATEGY_TOOLTIPS = {
+  rsi2: "RSI(2) : Mesure la force relative sur 2 jours. < 10 (vert) = Survendu, opportunité d'achat. < 20 (jaune) = Proche du signal.",
+  ibs: "IBS (Internal Bar Strength) : Position du prix dans le range du jour. < 0.2 (vert) = Clôture très basse, rebond probable.",
+  tom: "TOM (Turn Of Month) : Anomalie de fin/début de mois. Indique le nombre de jours de bourse restants avant la fin du mois.",
+};
+
+function ProximityBar({ proximity, strategy }) {
   if (!proximity || proximity.pct == null) return null;
 
   const pct = proximity.pct;
@@ -22,9 +28,16 @@ function ProximityBar({ proximity }) {
       : 'var(--text-muted)';
 
   const trendBlocked = proximity.trend_ok === false;
+  
+  const tooltip = trendBlocked 
+    ? "Tendance bloquée (SMA200) : Pas de signal possible." 
+    : `${pct}% de proximité avec le seuil d'achat.`;
 
   return (
-    <div className={`mt-1 flex items-center gap-2 justify-center ${trendBlocked ? 'opacity-40' : ''}`}>
+    <div 
+      className={`mt-1 flex items-center gap-2 justify-center ${trendBlocked ? 'opacity-40' : ''}`}
+      title={tooltip}
+    >
       <div className="w-16 h-1 rounded-full bg-white/5 overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-700 ease-out"
@@ -132,13 +145,15 @@ export default function MarketOverview({ className }) {
                 return (
                   <th 
                     key={s} 
-                    className="text-center py-4 px-4 cursor-pointer hover:text-white transition-colors"
+                    className="text-center py-4 px-4 cursor-pointer hover:text-white transition-colors group/header"
                     onClick={() => requestSort(s)}
+                    title={STRATEGY_TOOLTIPS[s]}
                   >
                     <div className="flex flex-col items-center">
                       <div className="flex items-center gap-1">
                         <span className={`${sc.text}`}>{STRATEGY_LABELS[s] || s}</span>
                         {getSortIcon(s)}
+                        <Info size={10} className="opacity-0 group-hover/header:opacity-50 transition-opacity ml-1" />
                       </div>
                     </div>
                   </th>
@@ -180,23 +195,32 @@ export default function MarketOverview({ className }) {
 
                   let barPct = 0;
                   let barColor = 'var(--text-muted)';
+                  let valueTooltip = "";
+
                   if (s === 'rsi2' && strat.indicator_value != null) {
                     barPct = Math.max(0, Math.min(100, (1 - strat.indicator_value / 30) * 100));
                     barColor = strat.indicator_value < 10 ? 'var(--accent-green)' : strat.indicator_value < 20 ? 'var(--accent-amber)' : 'var(--text-muted)';
+                    valueTooltip = `Valeur RSI(2). < 10 est la zone d'achat idéale.`;
                   } else if (s === 'ibs' && strat.indicator_value != null) {
                     barPct = Math.max(0, Math.min(100, (1 - strat.indicator_value / 0.5) * 100));
                     barColor = strat.indicator_value < 0.2 ? 'var(--accent-green)' : strat.indicator_value < 0.35 ? 'var(--accent-amber)' : 'var(--text-muted)';
+                    valueTooltip = `Valeur IBS. < 0.2 est la zone d'achat idéale.`;
+                  } else if (s === 'tom') {
+                    valueTooltip = `Jours restants avant la fin du mois.`;
                   }
 
                   return (
                     <td key={s} className="py-4 px-4">
                       <div className="flex flex-col items-center gap-1.5">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${sig.bg} ${sig.text}`}>
+                        <span 
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${sig.bg} ${sig.text}`}
+                          title={strat.signal === 'SKIP' ? "SKIP : Condition de tendance non remplie." : ""}
+                        >
                           {strat.signal === 'NO_SIGNAL' ? '--' : strat.signal}
                         </span>
                         
                         {strat.indicator_value != null && (
-                          <div className="flex flex-col items-center">
+                          <div className="flex flex-col items-center" title={valueTooltip}>
                             <span className="text-[10px] text-[--text-secondary] tabular-nums font-medium">
                               {Number(strat.indicator_value).toFixed(s === 'ibs' ? 2 : s === 'rsi2' ? 1 : 0)}
                             </span>
@@ -210,7 +234,7 @@ export default function MarketOverview({ className }) {
                             )}
                           </div>
                         )}
-                        {strat.proximity?.near && <ProximityBar proximity={strat.proximity} />}
+                        {strat.proximity?.near && <ProximityBar proximity={strat.proximity} strategy={s} />}
                       </div>
                     </td>
                   );
