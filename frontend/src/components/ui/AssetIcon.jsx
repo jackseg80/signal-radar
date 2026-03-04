@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { cn } from '../../lib/utils';
 
-export default function AssetIcon({ symbol, logoUrl, className, size = 'md' }) {
+export default function AssetIcon({ symbol, className, size = 'md' }) {
   const [error, setError] = useState(false);
 
   const sizeClasses = {
@@ -12,11 +12,11 @@ export default function AssetIcon({ symbol, logoUrl, className, size = 'md' }) {
   };
 
   const fallback = symbol ? symbol.substring(0, 2).toUpperCase() : '??';
+  
+  // No complex logic here, just point to our robust proxy
+  const proxyUrl = symbol && !symbol.includes('=X') ? `/api/market/asset/${symbol}/logo` : null;
 
-  // We use our own proxy to bypass adblockers
-  const proxyUrl = symbol ? `/api/market/asset/${symbol}/logo` : null;
-
-  if (logoUrl && !error && proxyUrl) {
+  if (proxyUrl && !error) {
     return (
       <div className={cn(
         "rounded-lg bg-white overflow-hidden flex items-center justify-center shrink-0 border border-white/10 shadow-sm",
