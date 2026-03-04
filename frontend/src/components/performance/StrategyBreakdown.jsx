@@ -8,7 +8,7 @@ import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import AnimatedNumber from '../ui/AnimatedNumber';
 import ProgressRing from '../ui/ProgressRing';
-import { Wallet, TrendingUp, BarChart3, PieChart } from 'lucide-react';
+import { Wallet, TrendingUp, BarChart3, PieChart, Activity } from 'lucide-react';
 
 const StrategyBreakdown = forwardRef(({ style, className, onMouseDown, onMouseUp, onTouchEnd }, ref) => {
   const { refreshKey } = useRefresh();
@@ -21,12 +21,14 @@ const StrategyBreakdown = forwardRef(({ style, className, onMouseDown, onMouseUp
   );
   
   if (error) return <Card ref={ref} style={style} className={className}><ErrorState message={error} onRetry={refetch} /></Card>;
-  if (!data) return null;
+  if (!data || !data.paper) return null;
 
+  // Use paper stats for the main KPIs
+  const stats = data.paper;
   const {
     capital, n_closed_trades, win_rate,
     total_realized_pnl, total_unrealized_pnl, n_open_positions, by_strategy,
-  } = data;
+  } = stats;
 
   const realizedPct = capital > 0 ? (total_realized_pnl / capital * 100) : 0;
   const unrealizedPct = capital > 0 ? (total_unrealized_pnl / capital * 100) : 0;
@@ -50,7 +52,7 @@ const StrategyBreakdown = forwardRef(({ style, className, onMouseDown, onMouseUp
     },
     {
       label: 'Unrealized PnL',
-      icon: <ActivityIcon size={14} />,
+      icon: <Activity size={14} />,
       animated: true,
       rawValue: total_unrealized_pnl,
       sub: formatPct(unrealizedPct),
@@ -203,22 +205,5 @@ const StrategyBreakdown = forwardRef(({ style, className, onMouseDown, onMouseUp
 });
 
 StrategyBreakdown.displayName = "StrategyBreakdown";
-
-function ActivityIcon({ size }) {
-  return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    >
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-    </svg>
-  );
-}
 
 export default StrategyBreakdown;

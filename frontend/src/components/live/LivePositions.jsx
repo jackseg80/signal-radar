@@ -9,9 +9,9 @@ import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 import LiveTradeForm from './LiveTradeForm';
 
-const LivePositions = forwardRef(({ style, className, onMouseDown, onMouseUp, onTouchEnd }, ref) => {
+const LivePositions = forwardRef(({ onSymbolClick, style, className, onMouseDown, onMouseUp, onTouchEnd, ...props }, ref) => {
   const { refreshKey, refresh } = useRefresh();
-  const { data, loading, error, refetch } = useApi(() => api.liveOpenTrades(), [refreshKey]);
+  const { data, loading, error, refetch } = useApi(() => api.liveActive(), [refreshKey]);
   const [closingTrade, setClosingTrade] = useState(null);
   const [deleting, setDeleting] = useState(null);
 
@@ -32,6 +32,7 @@ const LivePositions = forwardRef(({ style, className, onMouseDown, onMouseUp, on
     <Card 
       ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
       title="Live Positions"
+      {...props}
     >
       <LoadingState />
     </Card>
@@ -41,6 +42,7 @@ const LivePositions = forwardRef(({ style, className, onMouseDown, onMouseUp, on
     <Card 
       ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
       title="Live Positions"
+      {...props}
     >
       <ErrorState message={error} onRetry={refetch} />
     </Card>
@@ -53,6 +55,7 @@ const LivePositions = forwardRef(({ style, className, onMouseDown, onMouseUp, on
       <Card 
         ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
         title="Live Positions"
+        {...props}
       >
         <EmptyState message="No open live trades" />
       </Card>
@@ -64,6 +67,7 @@ const LivePositions = forwardRef(({ style, className, onMouseDown, onMouseUp, on
       <Card 
         ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
         title="Live Positions"
+        {...props}
       >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -90,7 +94,14 @@ const LivePositions = forwardRef(({ style, className, onMouseDown, onMouseUp, on
                         {STRATEGY_LABELS[t.strategy] || t.strategy}
                       </span>
                     </td>
-                    <td className="py-2.5 px-2 font-medium">{t.symbol}</td>
+                    <td className="py-2.5 px-2 font-medium">
+                      <span 
+                        className="cursor-pointer hover:text-green-400 transition-colors"
+                        onClick={() => onSymbolClick && onSymbolClick(t.symbol)}
+                      >
+                        {t.symbol}
+                      </span>
+                    </td>
                     <td className="py-2.5 px-2 text-[--text-secondary]">{formatDate(t.entry_date)}</td>
                     <td className="py-2.5 px-2 text-right text-[--text-secondary]">{formatPrice(t.entry_price)}</td>
                     <td className="py-2.5 px-2 text-right">{formatPrice(t.current_price)}</td>

@@ -26,18 +26,33 @@ export const api = {
   
   // Market & Assets
   marketOverview: () => fetchJson('/market/overview'),
-  assetDetails: (symbol) => fetchJson(`/market/asset/${symbol}`), // À ajouter au backend
-  assetHistory: (symbol, days = 60) => fetchJson(`/market/asset/${symbol}/history?days=${days}`), // À ajouter au backend
+  assetDetails: (symbol) => fetchJson(`/market/asset/${symbol}`),
+  assetHistory: (symbol, days = 60) => fetchJson(`/market/asset/${symbol}/history?days=${days}`),
 
   // Positions & Trades
-  positionsOpen: () => fetchJson('/positions/open'),
-  positionsClosed: () => fetchJson('/positions/closed'),
+  openPositions: () => fetchJson('/positions/open'),
+  closedTrades: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return fetchJson(`/positions/closed?${q}`);
+  },
   
   // Performance
+  perfSummary: () => fetchJson('/performance/summary'),
   performanceSummary: () => fetchJson('/performance/summary'),
   equityCurve: () => fetchJson('/performance/equity-curve'),
   
   // Backtest
+  screens: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return fetchJson(`/backtest/screens?${q}`);
+  },
+  validations: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return fetchJson(`/backtest/validations?${q}`);
+  },
+  compare: () => fetchJson('/backtest/compare'),
+  
+  // Backtest Legacy/AssetModal names
   backtestScreens: (strategy = '', universe = '') => 
     fetchJson(`/backtest/screens?strategy=${strategy}&universe=${universe}`),
   backtestValidations: (strategy = '', universe = '') => 
@@ -45,18 +60,20 @@ export const api = {
   backtestCompare: () => fetchJson('/backtest/compare'),
   
   // Live Trades
-  liveOpen: (data) => fetchJson('/live/open', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  }),
-  liveClose: (id, data) => fetchJson(`/live/close/${id}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  }),
+  liveOpen: (data) => {
+    const q = new URLSearchParams(data).toString();
+    return fetchJson(`/live/open?${q}`, { method: 'POST' });
+  },
+  liveClose: (data) => {
+    const q = new URLSearchParams(data).toString();
+    return fetchJson(`/live/close?${q}`, { method: 'POST' });
+  },
+  liveDelete: (id) => fetchJson(`/live/${id}`, { method: 'DELETE' }),
   liveActive: () => fetchJson('/live/open'),
-  liveClosed: () => fetchJson('/live/closed'),
+  liveClosed: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return fetchJson(`/live/closed?${q}`);
+  },
   liveSummary: () => fetchJson('/live/summary'),
   liveCompare: () => fetchJson('/live/compare'),
 

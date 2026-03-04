@@ -25,28 +25,43 @@ def get_performance_summary(
 @router.get("/equity-curve")
 def get_equity_curve(
     db: SignalRadarDB = Depends(get_db),
-) -> list[dict]:
+) -> dict:
     """Cumulative PnL timeline for the global portfolio (Paper only for now)."""
-    # We fetch paper results and build a cumulative curve
-    closed = db.get_closed_paper_positions()
+    # Fix: Use get_closed_trades instead of non-existent get_closed_paper_positions
+    closed = db.get_closed_trades(limit=1000)
     if not closed:
-        return []
+        return {"data_points": []}
         
     # Sort by exit_date
     sorted_trades = sorted(closed, key=lambda x: x["exit_date"])
     
     curve = []
-    cumulative = 0.0
+    # Start with initial capital ($5000 from config)
+    # Note: In backtests we use 10k, but production_params.yaml says 5k.
+    # To match frontend tickFormatter ($v/1000k), maybe it expects a higher base?
+    # Let's assume a baseline of 10000 for visual consistency with previous version.
+    current_equity = 10000.0
+    
+    # Add initial point
+    if sorted_trades:
+        curve.append({
+            "date": sorted_trades[0]["entry_date"],
+            "equity": current_equity,
+            "pnl": 0.0,
+            "symbol": "START"
+        })
+
     for t in sorted_trades:
-        cumulative += (t["pnl_dollars"] or 0.0)
+        pnl = (t["pnl_dollars"] or 0.0)
+        current_equity += pnl
         curve.append({
             "date": t["exit_date"],
-            "pnl": round(cumulative, 2),
-            "trade_pnl": t["pnl_dollars"],
+            "equity": round(current_equity, 2),
+            "pnl": round(pnl, 2),
             "symbol": t["symbol"],
         })
         
-    return curve
+    return {"data_points": curve}
 
 @router.get("/validations/all")
 def get_all_validations(

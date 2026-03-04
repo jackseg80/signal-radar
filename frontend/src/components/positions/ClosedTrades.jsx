@@ -9,7 +9,7 @@ import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 import PnlBar from '../ui/PnlBar';
 
-const ClosedTrades = forwardRef(({ style, className, onMouseDown, onMouseUp, onTouchEnd, ...props }, ref) => {
+const ClosedTrades = forwardRef(({ onSymbolClick, style, className, onMouseDown, onMouseUp, onTouchEnd, ...props }, ref) => {
   const { refreshKey } = useRefresh();
   const { data, loading, error, refetch } = useApi(
     () => api.closedTrades({ limit: 10 }),
@@ -81,7 +81,14 @@ const ClosedTrades = forwardRef(({ style, className, onMouseDown, onMouseUp, onT
                       {STRATEGY_LABELS[t.strategy] || t.strategy}
                     </span>
                   </td>
-                  <td className="py-2.5 px-2 font-medium">{t.symbol}</td>
+                  <td className="py-2.5 px-2 font-medium">
+                    <span 
+                      className="cursor-pointer hover:text-green-400 transition-colors"
+                      onClick={() => onSymbolClick && onSymbolClick(t.symbol)}
+                    >
+                      {t.symbol}
+                    </span>
+                  </td>
                   <td className="py-2.5 px-2 text-[--text-secondary] text-xs">
                     {formatDate(t.entry_date)} <br/> {formatDate(t.exit_date)}
                   </td>

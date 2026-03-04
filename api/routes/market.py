@@ -216,14 +216,14 @@ def get_asset_details(
     ts, all_signals = db.get_latest_signals()
     asset_signals = [s for s in all_signals if s["symbol"] == symbol]
     
-    if not asset_signals:
-        # Check if asset exists in DB even without recent signals
-        prices = db.get_ohlcv(symbol, limit=1)
-        if not prices:
+    # Use get_latest_price instead of get_ohlcv(limit=1)
+    last_price = db.get_latest_price(symbol)
+    if last_price is None:
+        # Fallback to last known price in OHLCV table
+        df = db.get_ohlcv(symbol)
+        if df.empty:
              raise HTTPException(status_code=404, detail=f"Asset {symbol} not found")
-        last_price = prices[0]["close"]
-    else:
-        last_price = asset_signals[0]["close_price"]
+        last_price = float(df.iloc[-1]["Close"])
 
     # Strategy membership
     membership = []

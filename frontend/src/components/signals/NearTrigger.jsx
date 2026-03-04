@@ -31,7 +31,7 @@ function extractAlerts(assets) {
   return alerts;
 }
 
-function AlertRow({ alert }) {
+function AlertRow({ alert, onClick }) {
   const sc = STRATEGY_COLORS[alert.strategy] || STRATEGY_COLORS.rsi2;
   const pct = alert.proximity.pct;
   const barColor = pct >= 75
@@ -42,12 +42,15 @@ function AlertRow({ alert }) {
   const trendBlocked = alert.proximity.trend_ok === false;
 
   return (
-    <div className={`group flex flex-col gap-2 p-3 rounded-lg border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all ${
-      trendBlocked ? 'opacity-50' : ''
-    }`}>
+    <div 
+      className={`group flex flex-col gap-2 p-3 rounded-lg border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all cursor-pointer ${
+        trendBlocked ? 'opacity-50' : ''
+      }`}
+      onClick={() => onClick && onClick(alert.symbol)}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-sm text-white">{alert.symbol}</span>
+          <span className="font-bold text-sm text-white group-hover:text-green-400 transition-colors">{alert.symbol}</span>
           <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${sc.bg} ${sc.text}`}>
             {STRATEGY_LABELS[alert.strategy] || alert.strategy}
           </span>
@@ -79,7 +82,7 @@ function AlertRow({ alert }) {
   );
 }
 
-const NearTrigger = forwardRef(({ style, className, onMouseDown, onMouseUp, onTouchEnd, ...props }, ref) => {
+const NearTrigger = forwardRef(({ onSymbolClick, style, className, onMouseDown, onMouseUp, onTouchEnd, ...props }, ref) => {
   const { refreshKey } = useRefresh();
   const { data, loading } = useApi(() => api.marketOverview(), [refreshKey]);
 
@@ -113,7 +116,7 @@ const NearTrigger = forwardRef(({ style, className, onMouseDown, onMouseUp, onTo
       ) : (
         <div className="space-y-3">
           {alerts.map((a) => (
-            <AlertRow key={`${a.symbol}-${a.strategy}`} alert={a} />
+            <AlertRow key={`${a.symbol}-${a.strategy}`} alert={a} onClick={onSymbolClick} />
           ))}
         </div>
       )}

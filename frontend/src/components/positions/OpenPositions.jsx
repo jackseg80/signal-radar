@@ -9,7 +9,7 @@ import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 import PnlBar from '../ui/PnlBar';
 
-const OpenPositions = forwardRef(({ onLogReal, style, className, onMouseDown, onMouseUp, onTouchEnd, ...props }, ref) => {
+const OpenPositions = forwardRef(({ onLogReal, onSymbolClick, style, className, onMouseDown, onMouseUp, onTouchEnd, ...props }, ref) => {
   const { refreshKey } = useRefresh();
   const { data, loading, error, refetch } = useApi(() => api.openPositions(), [refreshKey]);
 
@@ -80,7 +80,14 @@ const OpenPositions = forwardRef(({ onLogReal, style, className, onMouseDown, on
                       {STRATEGY_LABELS[p.strategy] || p.strategy}
                     </span>
                   </td>
-                  <td className="py-2.5 px-2 font-medium">{p.symbol}</td>
+                  <td className="py-2.5 px-2 font-medium">
+                    <span 
+                      className="cursor-pointer hover:text-green-400 transition-colors"
+                      onClick={() => onSymbolClick && onSymbolClick(p.symbol)}
+                    >
+                      {p.symbol}
+                    </span>
+                  </td>
                   <td className="py-2.5 px-2 text-[--text-secondary]">{formatDate(p.entry_date)}</td>
                   <td className="py-2.5 px-2 text-right text-[--text-secondary]">{formatPrice(p.entry_price)}</td>
                   <td className="py-2.5 px-2 text-right">{formatPrice(p.current_price)}</td>

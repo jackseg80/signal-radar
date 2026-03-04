@@ -10,7 +10,7 @@ export default function AssetModal({ symbol, onClose }) {
   const { data: history, loading: loadingHistory } = useApi(() => api.assetHistory(symbol, 60), [symbol]);
 
   const historyData = useMemo(() => {
-    if (!history) return [];
+    if (!history || !Array.isArray(history)) return [];
     return [...history].reverse().map(h => ({
       date: h.timestamp.split(' ')[0],
       price: h.close_price,
@@ -57,35 +57,41 @@ export default function AssetModal({ symbol, onClose }) {
                 <TrendingUp size={14} className="text-blue-400" />
                 <span>Historique des Signaux (60j)</span>
               </div>
-              <div className="h-64 w-full bg-white/[0.02] rounded-xl border border-white/5 p-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={historyData}>
-                    <XAxis dataKey="date" hide />
-                    <YAxis domain={['dataMin - 5', 'dataMax + 5']} hide />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#1a1d27', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '10px' }}
-                      itemStyle={{ color: '#fff' }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="price" 
-                      stroke="#3b82f6" 
-                      strokeWidth={2} 
-                      dot={(props) => {
-                        const { cx, cy, payload } = props;
-                        if (payload.signal === 'BUY') return <circle cx={cx} cy={cy} r={4} fill="#22c55e" stroke="none" />;
-                        if (payload.signal === 'SELL') return <circle cx={cx} cy={cy} r={4} fill="#ef4444" stroke="none" />;
-                        return null;
-                      }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+              <div className="h-64 w-full bg-white/[0.02] rounded-xl border border-white/5 p-4 min-h-[256px]">
+                {historyData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={historyData}>
+                      <XAxis dataKey="date" hide />
+                      <YAxis domain={['dataMin - 5', 'dataMax + 5']} hide />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#1a1d27', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '10px' }}
+                        itemStyle={{ color: '#fff' }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="price" 
+                        stroke="#3b82f6" 
+                        strokeWidth={2} 
+                        dot={(props) => {
+                          const { cx, cy, payload } = props;
+                          if (payload.signal === 'BUY') return <circle key={`buy-${payload.date}`} cx={cx} cy={cy} r={4} fill="#22c55e" stroke="none" />;
+                          if (payload.signal === 'SELL') return <circle key={`sell-${payload.date}`} cx={cx} cy={cy} r={4} fill="#ef4444" stroke="none" />;
+                          return null;
+                        }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-[--text-muted] text-xs">
+                    {loadingHistory ? "Chargement du graphique..." : "Aucun historique disponible"}
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Strategy Status Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {details?.signals.map(sig => {
+              {details?.signals && details.signals.length > 0 ? details.signals.map(sig => {
                 const colors = STRATEGY_COLORS[sig.strategy] || STRATEGY_COLORS.rsi2;
                 const sigColor = SIGNAL_COLORS[sig.signal] || SIGNAL_COLORS.NO_SIGNAL;
                 return (
@@ -106,14 +112,18 @@ export default function AssetModal({ symbol, onClose }) {
                         </div>
                       </div>
                       {sig.notes && (
-                        <div className="text-[10px] text-[--text-muted] italic max-w-[120px] truncate text-right">
+                        <div className="text-[10px] text-[--text-muted] italic max-w-[120px] truncate text-right" title={sig.notes}>
                           {sig.notes}
                         </div>
                       )}
                     </div>
                   </div>
                 );
-              })}
+              }) : (
+                <div className="col-span-2 py-8 text-center bg-white/5 rounded-xl border border-white/5 text-[--text-muted] text-xs">
+                  Aucun signal récent détecté.
+                </div>
+              )}
             </div>
           </div>
 
@@ -126,10 +136,10 @@ export default function AssetModal({ symbol, onClose }) {
                   <span>Performance Validée (OOS)</span>
                </div>
                <div className="space-y-3">
-                 {details?.validations.map(v => (
-                   <div key={v.strategy} className="p-4 rounded-xl bg-green-500/[0.03] border border-green-500/10 space-y-2">
+                 {details?.validations && details.validations.length > 0 ? details.validations.map(v => (
+                   <div key={`${v.strategy}-${v.symbol}`} className="p-4 rounded-xl bg-green-500/[0.03] border border-green-500/10 space-y-2">
                      <div className="flex justify-between items-center">
-                       <span className="text-xs font-bold text-white uppercase">{STRATEGY_LABELS[v.strategy.split('_')[0]]}</span>
+                       <span className="text-xs font-bold text-white uppercase">{STRATEGY_LABELS[v.strategy.split('_')[0]] || v.strategy}</span>
                        <span className="text-[10px] font-bold text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded">VALIDATED</span>
                      </div>
                      <div className="grid grid-cols-2 gap-4">
@@ -143,8 +153,7 @@ export default function AssetModal({ symbol, onClose }) {
                         </div>
                      </div>
                    </div>
-                 ))}
-                 {details?.validations.length === 0 && (
+                 )) : (
                    <div className="p-4 rounded-xl border border-dashed border-white/10 text-center">
                      <span className="text-xs text-[--text-muted]">Aucun backtest validé pour cet asset.</span>
                    </div>
@@ -153,7 +162,7 @@ export default function AssetModal({ symbol, onClose }) {
             </div>
 
             {/* Positions Actuelles */}
-            {details?.open_positions.length > 0 && (
+            {details?.open_positions && details.open_positions.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-[10px] font-bold text-amber-400 uppercase tracking-widest">
                     <Calendar size={14} />
@@ -162,7 +171,7 @@ export default function AssetModal({ symbol, onClose }) {
                 {details.open_positions.map(p => (
                   <div key={p.id} className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-white">{STRATEGY_LABELS[p.strategy]}</span>
+                      <span className="text-xs font-bold text-white">{STRATEGY_LABELS[p.strategy] || p.strategy}</span>
                       <span className="text-[10px] text-[--text-muted] tabular-nums">{p.entry_date}</span>
                     </div>
                     <div className="flex justify-between items-center">
