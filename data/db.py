@@ -6,6 +6,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any, List, Dict, Optional
 import json
+from datetime import datetime
 
 import pandas as pd
 from loguru import logger
@@ -196,7 +197,43 @@ class SignalRadarDB:
             conn.execute("INSERT OR REPLACE INTO asset_metadata (symbol, name, logo_url, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)", (symbol, name, logo_url))
 
     def get_asset_metadata(self, symbol: str) -> dict | None:
-        return self._query_one("SELECT * FROM asset_metadata WHERE symbol = ?", (symbol,))
+        """Récupère les métadonnées d'un actif. Si absent, tente de les récupérer."""
+        meta = self._query_one("SELECT * FROM asset_metadata WHERE symbol = ?", (symbol,))
+        if meta:
+            return meta
+            
+        # On-the-fly fetch if missing
+        return self._fetch_and_save_metadata(symbol)
+
+    def _fetch_and_save_metadata(self, symbol: str) -> dict | None:
+        """Fetch from Yahoo/Clearbit and save to DB."""
+        try:
+            import yfinance as yf
+            
+            if symbol.endswith("=X"):
+                name = symbol.replace("=X", "")
+                name = f"{name[:3]}/{name[3:]} Forex"
+                self.save_asset_metadata(symbol, name, None)
+                return {"symbol": symbol, "name": name, "logo_url": None}
+
+            ticker = yf.Ticker(symbol)
+            info = ticker.info
+            name = info.get("longName") or info.get("shortName") or symbol
+            logo_url = None
+            
+            website = info.get("website")
+            if website:
+                domain = website.replace("http://", "").replace("https://", "").replace("www.", "").split("/")[0]
+                if domain:
+                    logo_url = f"https://logo.clearbit.com/{domain}"
+            
+            if not logo_url and (symbol.startswith("XL") or symbol in ["SPY", "QQQ"]):
+                logo_url = "https://api.faviconkit.com/ssga.com/144"
+
+            self.save_asset_metadata(symbol, name, logo_url)
+            return {"symbol": symbol, "name": name, "logo_url": logo_url}
+        except:
+            return None
 
     def get_all_metadata(self) -> dict[str, dict]:
         rows = self._query("SELECT * FROM asset_metadata")
@@ -208,7 +245,7 @@ class SignalRadarDB:
         records = []
         for date, row in df.iterrows():
             date_str = pd.Timestamp(date).strftime("%Y-%m-%d")
-            records.append((symbol, date_str, float(row["Open"]), float(row["High"]), float(row["Low"]), float(row["Close"]), float(row.get("Volume", 0))))
+            records.append((symbol, date_str, float(row["open"]), float(row["high"]), float(row["low"]), float(row["close"]), float(row.get("volume", 0))))
         with self._connect() as conn:
             conn.executemany("INSERT OR REPLACE INTO ohlcv (symbol, date, open, high, low, close, volume) VALUES (?, ?, ?, ?, ?, ?, ?)", records)
 
@@ -221,6 +258,8 @@ class SignalRadarDB:
         with self._connect() as conn:
             df = pd.read_sql_query(query, conn, params=params, index_col="date")
             df.index = pd.to_datetime(df.index)
+            # Standardize columns to lowercase for consistency
+            df.columns = [c.lower() for c in df.columns]
             return df
 
     def list_assets(self) -> list[dict]:

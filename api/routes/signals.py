@@ -30,11 +30,14 @@ def get_today_signals(
             label = strat.split("_")[0].upper()
             strategies[strat] = {"label": label, "signals": []}
         
-        meta = metadata_map.get(s["symbol"], {})
+        sym = s["symbol"]
+        meta = metadata_map.get(sym)
+        if not meta:
+            meta = db.get_asset_metadata(sym) or {}
         
         strategies[strat]["signals"].append({
-            "symbol": s["symbol"],
-            "name": meta.get("name") or s["symbol"],
+            "symbol": sym,
+            "name": meta.get("name") or sym,
             "logo_url": meta.get("logo_url"),
             "signal": s["signal"],
             "close_price": s["close_price"],
@@ -65,8 +68,12 @@ def get_signal_history(
     
     # Attach metadata to history
     for s in history:
-        meta = metadata_map.get(s["symbol"], {})
-        s["name"] = meta.get("name") or s["symbol"]
+        sym = s["symbol"]
+        meta = metadata_map.get(sym)
+        if not meta:
+            meta = db.get_asset_metadata(sym) or {}
+            
+        s["name"] = meta.get("name") or sym
         s["logo_url"] = meta.get("logo_url")
 
     return {

@@ -183,7 +183,11 @@ def get_market_overview(
                 }
 
         pos_strategies = open_pos_map.get(sym, [])
-        meta = metadata_map.get(sym, {})
+        
+        # Get metadata, fetch if missing
+        meta = metadata_map.get(sym)
+        if not meta:
+            meta = db.get_asset_metadata(sym) or {}
         
         assets.append({
             "symbol": sym,
@@ -210,7 +214,7 @@ def get_asset_details(
     config = load_production_config()
     strategies_cfg = config.get("strategies", {})
     
-    # Get metadata
+    # Get metadata, fetch if missing
     meta = db.get_asset_metadata(symbol) or {}
     
     ts, all_signals = db.get_latest_signals()
@@ -221,7 +225,7 @@ def get_asset_details(
         df = db.get_ohlcv(symbol)
         if df.empty:
              raise HTTPException(status_code=404, detail=f"Asset {symbol} not found")
-        # Fix: use lowercase column name 'close'
+        # Ensure lowercase column access
         last_price = float(df.iloc[-1]["close"])
 
     membership = []
@@ -274,7 +278,6 @@ def get_asset_prices(
     for date, row in df.iterrows():
         prices.append({
             "date": date.strftime("%Y-%m-%d") if isinstance(date, pd.Timestamp) else str(date),
-            # Fix: use lowercase column name 'close'
             "close": float(row["close"])
         })
     return prices
