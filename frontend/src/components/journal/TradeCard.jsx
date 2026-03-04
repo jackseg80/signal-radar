@@ -140,9 +140,11 @@ export default function TradeCard({ entry, onSaved }) {
         </div>
       )}
 
-      {/* Notes */}
+      {/* Notes & Tags & Sentiment */}
       <NoteEditor
         notes={entry.notes}
+        tags={entry.tags}
+        sentiment={entry.sentiment}
         source={entry.source}
         id={entry.id}
         onSaved={onSaved}

@@ -68,6 +68,16 @@ export const api = {
 
   // Journal
   journalEntries: (params = {}) => fetchJson(`/journal/entries${buildQueryString(params)}`),
+  journalUpdatePaper: (id, data) => fetchJson(`/journal/paper/${id}/update`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }),
+  journalUpdateLive: (id, data) => fetchJson(`/journal/live/${id}/update`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }),
   journalPaperNote: (id, notes) => patchJson(`/journal/paper/${id}/notes`, { notes }),
   journalLiveNote: (id, notes) => patchJson(`/journal/live/${id}/notes`, { notes }),
 

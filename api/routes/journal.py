@@ -1,55 +1,66 @@
-"""Trade journal endpoints -- unified paper + live trades timeline."""
-
-from __future__ import annotations
+"""Journal entries and notes endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 from api.dependencies import get_db
 from data.db import SignalRadarDB
 
 router = APIRouter()
 
+class JournalUpdate(BaseModel):
+    notes: str | None = None
+    tags: str | None = None
+    sentiment: str | None = None
 
 @router.get("/entries")
 def get_journal_entries(
-    strategy: str | None = None,
-    symbol: str | None = None,
-    source: str | None = None,
-    search: str | None = None,
-    limit: int = Query(50, ge=1, le=1000),
-    offset: int = Query(0, ge=0),
+    strategy: str | None = Query(None),
+    symbol: str | None = Query(None),
+    source: str | None = Query(None),
+    search: str | None = Query(None),
+    limit: int = Query(50, ge=1, le=200),
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
-    """Unified timeline of paper + live trades with signal context."""
+    """Consolidated trade timeline with stats."""
     return db.get_journal_entries(
         strategy=strategy,
         symbol=symbol,
         source=source,
         search=search,
         limit=limit,
-        offset=offset,
     )
 
-
-@router.patch("/paper/{position_id}/notes")
-def update_paper_notes(
-    position_id: int,
-    notes: str = Query(""),
+@router.patch("/paper/{id}/update")
+def update_paper_entry(
+    id: int,
+    update: JournalUpdate,
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
-    """Update notes on a paper position."""
-    if not db.update_paper_notes(position_id, notes):
-        raise HTTPException(status_code=404, detail="Paper position not found")
-    return {"status": "updated", "id": position_id}
+    """Update paper trade details (notes, tags, sentiment)."""
+    # Note: We'll update the db method to support multiple fields
+    success = db.update_paper_entry(id, notes=update.notes, tags=update.tags, sentiment=update.sentiment)
+    if not success:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return {"status": "updated"}
 
-
-@router.patch("/live/{trade_id}/notes")
-def update_live_notes(
-    trade_id: int,
-    notes: str = Query(""),
+@router.patch("/live/{id}/update")
+def update_live_entry(
+    id: int,
+    update: JournalUpdate,
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
-    """Update notes on a live trade."""
-    if not db.update_live_notes(trade_id, notes):
-        raise HTTPException(status_code=404, detail="Live trade not found")
-    return {"status": "updated", "id": trade_id}
+    """Update live trade details (notes, tags, sentiment)."""
+    success = db.update_live_entry(id, notes=update.notes, tags=update.tags, sentiment=update.sentiment)
+    if not success:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return {"status": "updated"}
+
+# Backward compatibility routes
+@router.patch("/paper/{id}/notes")
+def update_paper_notes(id: int, notes: str = Query(...), db: SignalRadarDB = Depends(get_db)):
+    return update_paper_entry(id, JournalUpdate(notes=notes), db)
+
+@router.patch("/live/{id}/notes")
+def update_live_notes(id: int, notes: str = Query(...), db: SignalRadarDB = Depends(get_db)):
+    return update_live_entry(id, JournalUpdate(notes=notes), db)

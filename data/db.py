@@ -1131,23 +1131,59 @@ class SignalRadarDB:
     # TRADE JOURNAL
     # ------------------------------------------------------------------ #
 
+    def update_paper_entry(self, id: int, notes: str | None = None, tags: str | None = None, sentiment: str | None = None) -> bool:
+        """Update paper position fields (notes, tags, sentiment)."""
+        updates = []
+        params = []
+        if notes is not None:
+            updates.append("notes = ?")
+            params.append(notes)
+        if tags is not None:
+            updates.append("tags = ?")
+            params.append(tags)
+        if sentiment is not None:
+            updates.append("sentiment = ?")
+            params.append(sentiment)
+        
+        if not updates:
+            return True
+            
+        params.append(id)
+        query = f"UPDATE paper_positions SET {', '.join(updates)} WHERE id = ?"
+        with self._connect() as conn:
+            cur = conn.execute(query, params)
+            return cur.rowcount > 0
+
+    def update_live_entry(self, id: int, notes: str | None = None, tags: str | None = None, sentiment: str | None = None) -> bool:
+        """Update live trade fields (notes, tags, sentiment)."""
+        updates = []
+        params = []
+        if notes is not None:
+            updates.append("notes = ?")
+            params.append(notes)
+        if tags is not None:
+            updates.append("tags = ?")
+            params.append(tags)
+        if sentiment is not None:
+            updates.append("sentiment = ?")
+            params.append(sentiment)
+            
+        if not updates:
+            return True
+            
+        params.append(id)
+        query = f"UPDATE live_trades SET {', '.join(updates)} WHERE id = ?"
+        with self._connect() as conn:
+            cur = conn.execute(query, params)
+            return cur.rowcount > 0
+
     def update_paper_notes(self, position_id: int, notes: str) -> bool:
         """Met a jour les notes d'une position paper. Retourne True si modifie."""
-        with self._connect() as conn:
-            cur = conn.execute(
-                "UPDATE paper_positions SET notes = ? WHERE id = ?",
-                (notes, position_id),
-            )
-            return cur.rowcount > 0
+        return self.update_paper_entry(position_id, notes=notes)
 
     def update_live_notes(self, trade_id: int, notes: str) -> bool:
         """Met a jour les notes d'un trade live. Retourne True si modifie."""
-        with self._connect() as conn:
-            cur = conn.execute(
-                "UPDATE live_trades SET notes = ? WHERE id = ?",
-                (notes, trade_id),
-            )
-            return cur.rowcount > 0
+        return self.update_live_entry(trade_id, notes=notes)
 
     def get_journal_entries(
         self,
@@ -1207,6 +1243,8 @@ class SignalRadarDB:
                             d["entry_date"], d.get("exit_date")
                         ),
                         "notes": d.get("notes") or "",
+                        "tags": d.get("tags") or "",
+                        "sentiment": d.get("sentiment") or "",
                         "signal_details": None,
                         "slippage": None,
                     })
@@ -1244,6 +1282,8 @@ class SignalRadarDB:
                             d["entry_date"], d.get("exit_date")
                         ),
                         "notes": d.get("notes") or "",
+                        "tags": d.get("tags") or "",
+                        "sentiment": d.get("sentiment") or "",
                         "signal_details": None,
                         "slippage": None,
                         "paper_position_id": d.get("paper_position_id"),

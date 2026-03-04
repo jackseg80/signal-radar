@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Responsive, WidthProvider } from 'react-grid-layout/legacy';
 import { useApi } from '../hooks/useApi';
 import { useRefresh } from '../hooks/useRefresh.jsx';
+import { useAssetView } from '../hooks/useAssetView.jsx';
 import { api } from '../api/client';
 import Card from '../components/ui/Card';
 import LoadingState from '../components/ui/LoadingState';
@@ -17,7 +18,6 @@ import NearTrigger from '../components/signals/NearTrigger';
 import LivePositions from '../components/live/LivePositions';
 import PaperVsLive from '../components/live/PaperVsLive';
 import LiveTradeForm from '../components/live/LiveTradeForm';
-import AssetModal from '../components/ui/AssetModal';
 import { LayoutDashboard, Activity, RotateCcw } from 'lucide-react';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
@@ -81,7 +81,7 @@ const DEFAULT_LAYOUTS = {
 
 export default function Dashboard() {
   const [showTradeForm, setShowTradeForm] = useState(false);
-  const [selectedSymbol, setSelectedSymbol] = useState(null);
+  const { openAsset } = useAssetView();
   const { refresh } = useRefresh();
   
   const initialLayouts = useMemo(() => {
@@ -155,17 +155,17 @@ export default function Dashboard() {
         </div>
 
         <div key="near">
-          <NearTrigger className={cardClass} />
+          <NearTrigger className={cardClass} onSymbolClick={openAsset} />
         </div>
 
         <div key="signals">
-          <SignalsPanel className={cardClass} onSymbolClick={setSelectedSymbol} />
+          <SignalsPanel className={cardClass} onSymbolClick={openAsset} />
         </div>
 
         <div key="open-pos">
           <OpenPositions 
             onLogReal={(prefill) => setShowTradeForm(prefill || true)} 
-            onSymbolClick={setSelectedSymbol}
+            onSymbolClick={openAsset}
             className={cardClass} 
           />
         </div>
@@ -175,15 +175,15 @@ export default function Dashboard() {
         </div>
 
         <div key="trades">
-          <ClosedTrades onSymbolClick={setSelectedSymbol} className={cardClass} />
+          <ClosedTrades onSymbolClick={openAsset} className={cardClass} />
         </div>
 
         <div key="live-pos">
-          <LivePositions onSymbolClick={setSelectedSymbol} className={cardClass} />
+          <LivePositions onSymbolClick={openAsset} className={cardClass} />
         </div>
 
         <div key="market">
-          <MarketOverview onSymbolClick={setSelectedSymbol} className={cardClass} />
+          <MarketOverview onSymbolClick={openAsset} className={cardClass} />
         </div>
 
         <div key="comparison">
@@ -196,13 +196,6 @@ export default function Dashboard() {
           prefill={typeof showTradeForm === 'object' ? showTradeForm : {}}
           onDone={() => { setShowTradeForm(false); refresh(); }}
           onCancel={() => setShowTradeForm(false)}
-        />
-      )}
-
-      {selectedSymbol && (
-        <AssetModal
-          symbol={selectedSymbol}
-          onClose={() => setSelectedSymbol(null)}
         />
       )}
     </div>

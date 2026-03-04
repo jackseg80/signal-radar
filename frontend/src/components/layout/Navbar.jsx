@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { useToasts } from '../../hooks/useToasts.jsx';
@@ -7,8 +7,9 @@ import { api } from '../../api/client';
 import { formatTimestamp } from '../../utils/format';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { LayoutDashboard, LineChart, BookOpen, Activity, RefreshCw, HelpCircle, GraduationCap } from 'lucide-react';
+import { LayoutDashboard, LineChart, BookOpen, Activity, RefreshCw, HelpCircle, GraduationCap, Search, Command, Terminal } from 'lucide-react';
 import GuideModal from './GuideModal';
+import CommandPalette from './CommandPalette';
 
 export default function Navbar() {
   const { refreshKey, refresh } = useRefresh();
@@ -17,18 +18,13 @@ export default function Navbar() {
   const { data: healthData } = useApi(() => api.health());
 
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState(null);
+  const [scanOutput, setScanOutput] = useState([]);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [now, setNow] = useState(new Date());
   const [refreshProgress, setRefreshProgress] = useState(0);
+  
+  const statusInterval = useRef(null);
 
-  // Update time for relative display
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 30000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Visual auto-refresh progress bar (5 min = 300s)
+  // Auto-refresh progress bar (5 min = 300s)
   useEffect(() => {
     const interval = 300000;
     const step = 1000;
@@ -41,32 +37,40 @@ export default function Navbar() {
     return () => clearInterval(timer);
   }, [refreshKey]);
 
-  React.useEffect(() => {
-    if (scanResult) {
-      const timer = setTimeout(() => setScanResult(null), 4000);
-      return () => clearTimeout(timer);
+  // Poll scanner status if running
+  useEffect(() => {
+    if (scanning) {
+      statusInterval.current = setInterval(async () => {
+        try {
+          const res = await api.scannerStatus();
+          setScanOutput(res.output || []);
+          if (!res.running) {
+            setScanning(false);
+            clearInterval(statusInterval.current);
+            if (res.status === 'completed') {
+              addToast("Scanner terminé avec succès !");
+              refresh();
+            } else if (res.status === 'error') {
+              addToast("Le scanner a échoué", "error");
+            }
+          }
+        } catch (err) {
+          console.error("Failed to poll status", err);
+        }
+      }, 2000);
     }
-  }, [scanResult]);
+    return () => clearInterval(statusInterval.current);
+  }, [scanning, addToast, refresh]);
 
   const runScanner = async () => {
-    setScanning(true);
-    setScanResult(null);
-    addToast("Lancement du scanner...", "info");
+    if (scanning) return;
     try {
-      const res = await api.scannerRun();
-      setScanResult(res);
-      if (res.status === 'completed') {
-        addToast("Scanner terminé avec succès !");
-        refresh();
-        setRefreshProgress(0);
-      } else {
-        addToast("Erreur lors du scan : " + (res.detail || "Inconnue"), "error");
-      }
+      await api.scannerRun();
+      setScanning(true);
+      setScanOutput(["Initialisation..."]);
+      addToast("Scanner démarré", "info");
     } catch (err) {
-      setScanResult({ status: 'error', detail: err.message });
-      addToast("Échec critique du scanner", "error");
-    } finally {
-      setScanning(false);
+      addToast(err.message, "error");
     }
   };
 
@@ -111,24 +115,41 @@ export default function Navbar() {
 
         {/* Action Area */}
         <div className="flex items-center gap-2 md:gap-4 shrink-0">
-          <div className="hidden md:flex flex-col text-right">
-            <div className="text-[10px] text-[--text-muted] flex items-center justify-end gap-2">
-              {relativeTime ? (
-                <span>Scan : {relativeTime}</span>
-              ) : (
-                <span>Prêt à scanner</span>
-              )}
-              {/* Auto-refresh mini bar */}
-              <div className="w-12 h-0.5 bg-white/5 rounded-full overflow-hidden mt-0.5" title="Prochain auto-refresh">
-                <div 
-                  className="h-full bg-blue-500/40 transition-all duration-1000 linear" 
-                  style={{ width: `${refreshProgress}%` }}
-                />
+          <div className="hidden md:flex flex-col text-right max-w-[200px]">
+            {scanning ? (
+              <div className="flex items-center gap-2 justify-end">
+                <span className="text-[9px] text-amber-400 font-bold animate-pulse truncate">
+                  {scanOutput[scanOutput.length - 1] || 'Scanning...'}
+                </span>
+                <Terminal size={10} className="text-amber-400" />
               </div>
-            </div>
+            ) : (
+              <div className="text-[10px] text-[--text-muted] flex items-center justify-end gap-2">
+                {relativeTime ? (
+                  <span>Scan : {relativeTime}</span>
+                ) : (
+                  <span>Prêt à scanner</span>
+                )}
+                <div className="w-12 h-0.5 bg-white/5 rounded-full overflow-hidden mt-0.5" title="Prochain auto-refresh">
+                  <div className={`h-full bg-blue-500/40 transition-all duration-1000 linear`} style={{ width: `${refreshProgress}%` }} />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2">
+             <button
+                onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, metaKey: true }))}
+                className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all duration-300 cursor-pointer bg-white/5 text-[--text-muted] hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10"
+                title="Recherche Globale (Ctrl+K)"
+              >
+                <Search size={16} />
+                <div className="flex items-center gap-1 text-[10px] opacity-50">
+                  <Command size={10} />
+                  <span>K</span>
+                </div>
+              </button>
+
              <button
                 onClick={() => setIsGuideOpen(true)}
                 className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all duration-300 cursor-pointer bg-white/5 text-[--text-muted] hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10"
@@ -157,7 +178,6 @@ export default function Navbar() {
               <button
                 onClick={() => {
                   refresh();
-                  setRefreshProgress(0);
                   addToast("Données rafraîchies");
                 }}
                 className="p-1.5 rounded-lg border border-[--glass-border] text-[--text-secondary] hover:bg-white/5 hover:text-[--text-primary] transition-colors cursor-pointer flex items-center justify-center bg-[--bg-primary]"
@@ -176,6 +196,7 @@ export default function Navbar() {
       </header>
 
       <GuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+      <CommandPalette />
     </>
   );
 }
