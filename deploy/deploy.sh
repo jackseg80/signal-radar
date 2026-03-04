@@ -19,8 +19,21 @@ fi
 
 # 2. Mise à jour du code (Force le nettoyage)
 echo "[*] Mise à jour du code depuis master..."
-git fetch origin
+OLD_REV=$(git rev-parse HEAD)
+git fetch origin master
 git reset --hard origin/master
+NEW_REV=$(git rev-parse HEAD)
+
+if [ "$OLD_REV" != "$NEW_REV" ]; then
+    echo "[*] Changements détectés ($OLD_REV -> $NEW_REV) :"
+    git diff --stat "$OLD_REV" "$NEW_REV"
+    echo ""
+    echo "[*] Dernier commit :"
+    git log -1 --pretty=format:"%h - %s (%cr) <%an>"
+    echo ""
+else
+    echo "[*] Le code est déjà à jour (version $NEW_REV)."
+fi
 
 # 3. Build Docker
 echo "[*] Construction des images..."
