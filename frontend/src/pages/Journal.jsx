@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import { formatDate } from '../utils/format';
 import JournalFilters from '../components/journal/JournalFilters';
 import JournalStats from '../components/journal/JournalStats';
+import JournalCharts from '../components/journal/JournalCharts';
 import TradeCard from '../components/journal/TradeCard';
 
 export default function Journal() {
@@ -55,6 +56,13 @@ export default function Journal() {
         </h2>
         <JournalStats stats={data?.stats} />
       </div>
+
+      {/* Analytics Charts */}
+      {data?.entries && (
+        <div className="animate-slide-up" style={{ animationDelay: '20ms' }}>
+          <JournalCharts entries={data.entries} />
+        </div>
+      )}
 
       {/* Filters */}
       <div className="animate-slide-up" style={{ animationDelay: '40ms' }}>
