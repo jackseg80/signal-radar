@@ -7,7 +7,7 @@ import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 import RobustnessHeatmap from './RobustnessHeatmap';
-import { X, Filter, ChevronUp, ChevronDown, Info, ShieldCheck, Target, Activity, TrendingUp } from 'lucide-react';
+import { X, Filter, ChevronUp, ChevronDown, Info, ShieldCheck, Activity } from 'lucide-react';
 
 const STRATEGY_MAPPING = {
   'rsi2': 'rsi2_mean_reversion',
@@ -20,7 +20,7 @@ const COLUMN_TOOLTIPS = {
   wr: "Win Rate : Pourcentage de trades gagnants sur le total.",
   pf: "Profit Factor : Somme des gains / Somme des pertes. > 1.0 est profitable, > 1.5 est excellent.",
   sharpe: "Ratio de Sharpe : Mesure de la rentabilité par rapport au risque (volatilité).",
-  robust: "Pourcentage de combinaisons de paramètres (ex: RSI 2,3,4) qui restent profitables. Un score élevé (> 80%) prouve que la stratégie n'est pas due au hasard.",
+  robust: "Pourcentage de combinaisons de paramètres (ex: RSI 2,3,4) qui restent profitables.",
   verdict: "Sceau final de qualité basé sur la robustesse, la stabilité et la significativité statistique."
 };
 
@@ -86,58 +86,48 @@ export default function ValidationsTable() {
   const selectClass = "bg-[#1a1d27] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-green-500/50 cursor-pointer appearance-none min-w-[140px]";
 
   return (
-    <div className="space-y-6">
-      {/* Filters Bar */}
-      <div className="flex flex-wrap gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl items-center">
-        <div className="flex items-center gap-2 mr-2">
-          <Filter size={14} className="text-[--text-muted]" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[--text-muted]">Filtrer l'élite :</span>
-        </div>
-        
-        <select
-          value={filters.strategy}
-          onChange={(e) => setFilters({ ...filters, strategy: e.target.value })}
-          className={selectClass}
-        >
-          <option value="" className="bg-[#1a1d27]">Toutes les Stratégies</option>
-          {allStrategies.map(s => <option key={s} value={s} className="bg-[#1a1d27]">{STRATEGY_LABELS[s] || s}</option>)}
-        </select>
-
-        <select
-          value={filters.verdict}
-          onChange={(e) => setFilters({ ...filters, verdict: e.target.value })}
-          className={selectClass}
-        >
-          <option value="" className="bg-[#1a1d27]">Tous les Verdicts</option>
-          <option value="VALIDATED" className="bg-[#1a1d27]">VALIDATED</option>
-          <option value="CONDITIONAL" className="bg-[#1a1d27]">CONDITIONAL</option>
-          <option value="REJECTED" className="bg-[#1a1d27]">REJECTED</option>
-        </select>
-
-        {allUniverses.length > 0 && (
-          <select
-            value={filters.universe}
-            onChange={(e) => setFilters({ ...filters, universe: e.target.value })}
-            className={selectClass}
-          >
-            <option value="" className="bg-[#1a1d27]">Tous les Univers</option>
-            {allUniverses.map(u => <option key={u} value={u} className="bg-[#1a1d27]">{u}</option>)}
+    <div className="space-y-0">
+      {/* Filters Bar - Sticky below Tabs (top-16 + tabs height) */}
+      <div className="sticky top-[136px] z-30 bg-[--bg-primary] pb-4">
+        <div className="flex flex-wrap gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl items-center shadow-lg backdrop-blur-md">
+          <div className="flex items-center gap-2 mr-2">
+            <Filter size={14} className="text-[--text-muted]" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[--text-muted]">Filtrer l'élite :</span>
+          </div>
+          
+          <select value={filters.strategy} onChange={(e) => setFilters({ ...filters, strategy: e.target.value })} className={selectClass}>
+            <option value="">Toutes les Stratégies</option>
+            {allStrategies.map(s => <option key={s} value={s}>{STRATEGY_LABELS[s] || s}</option>)}
           </select>
-        )}
 
-        <div className="flex-1" />
-        <div className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-          {sortedResults.length} Tests affichés
+          <select value={filters.verdict} onChange={(e) => setFilters({ ...filters, verdict: e.target.value })} className={selectClass}>
+            <option value="">Tous les Verdicts</option>
+            <option value="VALIDATED">VALIDATED</option>
+            <option value="CONDITIONAL">CONDITIONAL</option>
+            <option value="REJECTED">REJECTED</option>
+          </select>
+
+          {allUniverses.length > 0 && (
+            <select value={filters.universe} onChange={(e) => setFilters({ ...filters, universe: e.target.value })} className={selectClass}>
+              <option value="">Tous les Univers</option>
+              {allUniverses.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+          )}
+
+          <div className="flex-1" />
+          <div className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+            {sortedResults.length} Tests affichés
+          </div>
         </div>
       </div>
 
       {sortedResults.length === 0 ? (
-        <EmptyState message="Aucun test ne correspond à ces critères." />
+        <div className="pt-8"><EmptyState message="Aucun test ne correspond à ces critères." /></div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-white/[0.02] border-b border-[--glass-border] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold">
+            <thead className="sticky top-[216px] z-20 bg-[--bg-primary]">
+              <tr className="bg-white/[0.05] border-b border-[--glass-border] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold">
                 <th className="text-left py-4 px-4 cursor-pointer hover:text-white" onClick={() => requestSort('symbol')}>
                   <div className="flex items-center gap-1">Actif {getSortIcon('symbol')}</div>
                 </th>
@@ -164,7 +154,7 @@ export default function ValidationsTable() {
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-[--bg-primary]">
               {sortedResults.map((r, idx) => {
                 const v = VERDICT_COLORS[r.verdict] || VERDICT_COLORS.REJECTED;
                 const isSelected = selectedValidation?.symbol === r.symbol && selectedValidation?.strategy === r.strategy;
@@ -186,43 +176,28 @@ export default function ValidationsTable() {
                         {STRATEGY_LABELS[baseStrategy] || baseStrategy}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-right tabular-nums text-[--text-secondary] font-medium">
-                      {r.n_trades}
-                    </td>
-                    <td className="py-4 px-4 text-right tabular-nums text-[--text-secondary]">
-                      {(r.win_rate * 100).toFixed(0)}%
-                    </td>
+                    <td className="py-4 px-4 text-right tabular-nums text-[--text-secondary] font-medium">{r.n_trades}</td>
+                    <td className="py-4 px-4 text-right tabular-nums text-[--text-secondary]">{(r.win_rate * 100).toFixed(0)}%</td>
                     <td className="py-4 px-4 text-right tabular-nums">
                        <div className="flex flex-col items-end gap-1">
-                          <span className={`font-bold ${r.profit_factor >= 1.5 ? 'text-green-400' : r.profit_factor >= 1 ? 'text-white' : 'text-red-400'}`}>
-                            {r.profit_factor.toFixed(2)}
-                          </span>
+                          <span className={`font-bold ${r.profit_factor >= 1.5 ? 'text-green-400' : r.profit_factor >= 1 ? 'text-white' : 'text-red-400'}`}>{r.profit_factor.toFixed(2)}</span>
                           <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
                              <div className={`h-full ${r.profit_factor >= 1.5 ? 'bg-green-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(100, (r.profit_factor / 3) * 100)}%` }} />
                           </div>
                        </div>
                     </td>
-                    <td className={`py-4 px-4 text-right tabular-nums font-medium ${r.sharpe >= 2 ? 'text-blue-400' : 'text-[--text-secondary]'}`}>
-                      {r.sharpe ? r.sharpe.toFixed(2) : '--'}
-                    </td>
+                    <td className={`py-4 px-4 text-right tabular-nums font-medium ${r.sharpe >= 2 ? 'text-blue-400' : 'text-[--text-secondary]'}`}>{r.sharpe ? r.sharpe.toFixed(2) : '--'}</td>
                     <td className="py-4 px-4 text-right tabular-nums">
                       <div className="flex flex-col items-end gap-1">
-                        <span className={`font-bold ${r.robustness_pct >= 80 ? 'text-green-400' : 'text-amber-400'}`}>
-                          {r.robustness_pct.toFixed(0)}%
-                        </span>
+                        <span className={`font-bold ${r.robustness_pct >= 80 ? 'text-green-400' : 'text-amber-400'}`}>{r.robustness_pct.toFixed(0)}%</span>
                         <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full ${r.robustness_pct >= 80 ? 'bg-green-500' : 'bg-amber-500'}`}
-                            style={{ width: `${r.robustness_pct}%` }}
-                          />
+                          <div className={`h-full ${r.robustness_pct >= 80 ? 'bg-green-500' : 'bg-amber-500'}`} style={{ width: `${r.robustness_pct}%` }} />
                         </div>
                       </div>
                     </td>
                     <td className="py-4 px-4 text-center">
                       <div className="flex flex-col items-center gap-1">
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter border ${v.bg} ${v.text} ${v.border} shadow-sm`}>
-                          {r.verdict}
-                        </span>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter border ${v.bg} ${v.text} ${v.border} shadow-sm`}>{r.verdict}</span>
                         {r.verdict === 'VALIDATED' && <ShieldCheck size={10} className="text-green-400" />}
                       </div>
                     </td>
@@ -235,31 +210,20 @@ export default function ValidationsTable() {
       )}
 
       {selectedValidation && (
-        <div className="animate-fade-in relative mt-8">
+        <div className="animate-fade-in relative mt-8 pb-20">
           <div className="glass-card rounded-2xl border border-green-500/20 overflow-hidden shadow-2xl">
             <div className="p-4 bg-green-500/10 border-b border-green-500/20 flex justify-between items-center">
                <div className="flex items-center gap-3">
                   <Activity size={18} className="text-green-400" />
                   <div>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                      Robustesse Paramétrique : {selectedValidation.symbol} ({selectedValidation.strategy.split('_')[0]})
-                    </h3>
-                    <p className="text-[10px] text-green-400/70 font-medium">Analyse des 48 variantes de la stratégie</p>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Robustesse Paramétrique : {selectedValidation.symbol}</h3>
+                    <p className="text-[10px] text-green-400/70 font-medium">Analyse des 48 variantes</p>
                   </div>
                </div>
-               <button 
-                onClick={() => setSelectedValidation(null)}
-                className="p-2 rounded-full hover:bg-white/10 text-white transition-colors cursor-pointer"
-              >
-                <X size={20} />
-              </button>
+               <button onClick={() => setSelectedValidation(null)} className="p-2 rounded-full hover:bg-white/10 text-white transition-colors cursor-pointer"><X size={20} /></button>
             </div>
             <div className="p-6">
-              <RobustnessHeatmap 
-                strategy={selectedValidation.strategy.split('_')[0]} 
-                symbol={selectedValidation.symbol} 
-                universe={selectedValidation.universe}
-              />
+              <RobustnessHeatmap strategy={selectedValidation.strategy.split('_')[0]} symbol={selectedValidation.symbol} universe={selectedValidation.universe} />
             </div>
           </div>
         </div>
