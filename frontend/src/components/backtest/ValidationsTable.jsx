@@ -2,12 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { api } from '../../api/client';
-import { VERDICT_COLORS, STRATEGY_LABELS } from '../../utils/format';
+import { VERDICT_COLORS, STRATEGY_LABELS, formatPF } from '../../utils/format';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 import RobustnessHeatmap from './RobustnessHeatmap';
-import { X, Filter, ChevronUp, ChevronDown, Info, ShieldCheck, AlertCircle } from 'lucide-react';
+import { X, Filter, ChevronUp, ChevronDown, Info, ShieldCheck, Target, Activity, TrendingUp } from 'lucide-react';
 
 const STRATEGY_MAPPING = {
   'rsi2': 'rsi2_mean_reversion',
@@ -21,11 +21,11 @@ const COLUMN_TOOLTIPS = {
   pf: "Profit Factor : Somme des gains / Somme des pertes. > 1.0 est profitable, > 1.5 est excellent.",
   sharpe: "Ratio de Sharpe : Mesure de la rentabilité par rapport au risque (volatilité).",
   robust: "Pourcentage de combinaisons de paramètres (ex: RSI 2,3,4) qui restent profitables. Un score élevé (> 80%) prouve que la stratégie n'est pas due au hasard.",
-  verdict: "VALIDATED: Robuste + Stable + Significatif.\nCONDITIONAL: Robuste mais manque de stabilité ou de volume.\nREJECTED: Fragile ou instable."
+  verdict: "Sceau final de qualité basé sur la robustesse, la stabilité et la significativité statistique."
 };
 
 export default function ValidationsTable() {
-  const { refreshKey } = refresh = useRefresh();
+  const { refreshKey } = useRefresh();
   const [filters, setFilters] = useState({
     strategy: '',
     universe: '',
@@ -88,10 +88,10 @@ export default function ValidationsTable() {
   return (
     <div className="space-y-6">
       {/* Filters Bar */}
-      <div className="flex flex-wrap gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+      <div className="flex flex-wrap gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl items-center">
         <div className="flex items-center gap-2 mr-2">
           <Filter size={14} className="text-[--text-muted]" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[--text-muted]">Filtres :</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[--text-muted]">Filtrer l'élite :</span>
         </div>
         
         <select
@@ -124,38 +124,43 @@ export default function ValidationsTable() {
             {allUniverses.map(u => <option key={u} value={u} className="bg-[#1a1d27]">{u}</option>)}
           </select>
         )}
+
+        <div className="flex-1" />
+        <div className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+          {sortedResults.length} Tests affichés
+        </div>
       </div>
 
       {sortedResults.length === 0 ? (
-        <EmptyState message="Aucune validation ne correspond aux filtres" />
+        <EmptyState message="Aucun test ne correspond à ces critères." />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-white/[0.02] border-b border-[--glass-border] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold">
-                <th className="text-left py-4 px-4 cursor-pointer hover:text-white" onClick={() => requestSort('strategy')}>
-                  Stratégie {getSortIcon('strategy')}
-                </th>
                 <th className="text-left py-4 px-4 cursor-pointer hover:text-white" onClick={() => requestSort('symbol')}>
-                  Actif {getSortIcon('symbol')}
+                  <div className="flex items-center gap-1">Actif {getSortIcon('symbol')}</div>
+                </th>
+                <th className="text-left py-4 px-4 cursor-pointer hover:text-white" onClick={() => requestSort('strategy')}>
+                  <div className="flex items-center gap-1">Stratégie {getSortIcon('strategy')}</div>
                 </th>
                 <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('n_trades')} title={COLUMN_TOOLTIPS.trades}>
-                  <div className="flex items-center justify-end gap-1">Trades <Info size={10} className="opacity-0 group-hover/h:opacity-100" /> {getSortIcon('n_trades')}</div>
+                  <div className="flex items-center justify-end gap-1">Trades <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('n_trades')}</div>
                 </th>
                 <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('win_rate')} title={COLUMN_TOOLTIPS.wr}>
-                  <div className="flex items-center justify-end gap-1">Win Rate <Info size={10} className="opacity-0 group-hover/h:opacity-100" /> {getSortIcon('win_rate')}</div>
+                  <div className="flex items-center justify-end gap-1">Win Rate <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('win_rate')}</div>
                 </th>
                 <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('profit_factor')} title={COLUMN_TOOLTIPS.pf}>
-                  <div className="flex items-center justify-end gap-1">PF <Info size={10} className="opacity-0 group-hover/h:opacity-100" /> {getSortIcon('profit_factor')}</div>
+                  <div className="flex items-center justify-end gap-1 text-green-400">PF <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('profit_factor')}</div>
                 </th>
                 <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('sharpe')} title={COLUMN_TOOLTIPS.sharpe}>
-                  <div className="flex items-center justify-end gap-1">Sharpe <Info size={10} className="opacity-0 group-hover/h:opacity-100" /> {getSortIcon('sharpe')}</div>
+                  <div className="flex items-center justify-end gap-1">Sharpe <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('sharpe')}</div>
                 </th>
                 <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('robustness_pct')} title={COLUMN_TOOLTIPS.robust}>
-                  <div className="flex items-center justify-end gap-1">Robust% <Info size={10} className="opacity-0 group-hover/h:opacity-100" /> {getSortIcon('robustness_pct')}</div>
+                  <div className="flex items-center justify-end gap-1">Robust% <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('robustness_pct')}</div>
                 </th>
                 <th className="text-center py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('verdict')} title={COLUMN_TOOLTIPS.verdict}>
-                  <div className="flex items-center justify-center gap-1">Verdict <Info size={10} className="opacity-0 group-hover/h:opacity-100" /> {getSortIcon('verdict')}</div>
+                  <div className="flex items-center justify-center gap-1">Verdict <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('verdict')}</div>
                 </th>
               </tr>
             </thead>
@@ -168,46 +173,58 @@ export default function ValidationsTable() {
                 return (
                   <tr
                     key={`${r.strategy}-${r.symbol}-${idx}`}
-                    className={`border-b border-white/5 hover:bg-white/[0.04] transition-colors cursor-pointer group ${
+                    className={`border-b border-white/5 hover:bg-white/[0.04] transition-all cursor-pointer group ${
                       isSelected ? 'bg-green-500/[0.05] border-green-500/20' : ''
                     }`}
                     onClick={() => setSelectedValidation(r)}
                   >
                     <td className="py-4 px-4">
-                      <span className="text-white font-medium">{STRATEGY_LABELS[baseStrategy] || baseStrategy}</span>
+                      <span className="text-white font-bold group-hover:text-green-400 transition-colors text-base">{r.symbol}</span>
                     </td>
                     <td className="py-4 px-4">
-                      <span className="text-white font-bold group-hover:text-green-400 transition-colors">{r.symbol}</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-white/5 text-[--text-muted]`}>
+                        {STRATEGY_LABELS[baseStrategy] || baseStrategy}
+                      </span>
                     </td>
-                    <td className="py-4 px-4 text-right tabular-nums text-[--text-secondary]">
+                    <td className="py-4 px-4 text-right tabular-nums text-[--text-secondary] font-medium">
                       {r.n_trades}
                     </td>
                     <td className="py-4 px-4 text-right tabular-nums text-[--text-secondary]">
                       {(r.win_rate * 100).toFixed(0)}%
                     </td>
-                    <td className={`py-4 px-4 text-right tabular-nums font-bold ${r.profit_factor >= 1.5 ? 'text-green-400' : r.profit_factor >= 1 ? 'text-white' : 'text-red-400'}`}>
-                      {r.profit_factor.toFixed(2)}
+                    <td className="py-4 px-4 text-right tabular-nums">
+                       <div className="flex flex-col items-end gap-1">
+                          <span className={`font-bold ${r.profit_factor >= 1.5 ? 'text-green-400' : r.profit_factor >= 1 ? 'text-white' : 'text-red-400'}`}>
+                            {r.profit_factor.toFixed(2)}
+                          </span>
+                          <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
+                             <div className={`h-full ${r.profit_factor >= 1.5 ? 'bg-green-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(100, (r.profit_factor / 3) * 100)}%` }} />
+                          </div>
+                       </div>
                     </td>
-                    <td className="py-4 px-4 text-right tabular-nums text-[--text-secondary]">
+                    <td className={`py-4 px-4 text-right tabular-nums font-medium ${r.sharpe >= 2 ? 'text-blue-400' : 'text-[--text-secondary]'}`}>
                       {r.sharpe ? r.sharpe.toFixed(2) : '--'}
                     </td>
                     <td className="py-4 px-4 text-right tabular-nums">
-                      <div className="flex flex-col items-end">
-                        <span className={r.robustness_pct >= 80 ? 'text-green-400' : 'text-amber-400'}>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`font-bold ${r.robustness_pct >= 80 ? 'text-green-400' : 'text-amber-400'}`}>
                           {r.robustness_pct.toFixed(0)}%
                         </span>
-                        <div className="w-12 h-0.5 bg-white/5 rounded-full mt-1">
+                        <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
                           <div 
-                            className={`h-full rounded-full ${r.robustness_pct >= 80 ? 'bg-green-500' : 'bg-amber-500'}`}
+                            className={`h-full ${r.robustness_pct >= 80 ? 'bg-green-500' : 'bg-amber-500'}`}
                             style={{ width: `${r.robustness_pct}%` }}
                           />
                         </div>
                       </div>
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${v.bg} ${v.text} ${v.border}`}>
-                        {r.verdict}
-                      </span>
+                      <div className="flex flex-col items-center gap-1">
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter border ${v.bg} ${v.text} ${v.border} shadow-sm`}>
+                          {r.verdict}
+                        </span>
+                        {r.verdict === 'VALIDATED' && <ShieldCheck size={10} className="text-green-400" />}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -218,25 +235,33 @@ export default function ValidationsTable() {
       )}
 
       {selectedValidation && (
-        <div className="animate-fade-in relative">
-          <button 
-            onClick={() => setSelectedValidation(null)}
-            className="absolute right-4 top-4 z-10 p-2 rounded-full hover:bg-white/5 text-[--text-muted] hover:text-white transition-colors cursor-pointer"
-          >
-            <X size={20} />
-          </button>
-          <div className="p-4 bg-green-500/5 rounded-xl border border-green-500/10 mb-4 flex gap-3 items-center">
-             <ShieldCheck size={18} className="text-green-400" />
-             <div>
-                <p className="text-xs text-white font-bold">Analyse de Robustesse : {selectedValidation.symbol}</p>
-                <p className="text-[10px] text-[--text-muted]">Cette matrice montre le Profit Factor pour 48 variantes de paramètres. Si la zone est majoritairement verte, la stratégie est fiable.</p>
-             </div>
+        <div className="animate-fade-in relative mt-8">
+          <div className="glass-card rounded-2xl border border-green-500/20 overflow-hidden shadow-2xl">
+            <div className="p-4 bg-green-500/10 border-b border-green-500/20 flex justify-between items-center">
+               <div className="flex items-center gap-3">
+                  <Activity size={18} className="text-green-400" />
+                  <div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                      Robustesse Paramétrique : {selectedValidation.symbol} ({selectedValidation.strategy.split('_')[0]})
+                    </h3>
+                    <p className="text-[10px] text-green-400/70 font-medium">Analyse des 48 variantes de la stratégie</p>
+                  </div>
+               </div>
+               <button 
+                onClick={() => setSelectedValidation(null)}
+                className="p-2 rounded-full hover:bg-white/10 text-white transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              <RobustnessHeatmap 
+                strategy={selectedValidation.strategy.split('_')[0]} 
+                symbol={selectedValidation.symbol} 
+                universe={selectedValidation.universe}
+              />
+            </div>
           </div>
-          <RobustnessHeatmap 
-            strategy={selectedValidation.strategy.split('_')[0]} 
-            symbol={selectedValidation.symbol} 
-            universe={selectedValidation.universe}
-          />
         </div>
       )}
     </div>
