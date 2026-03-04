@@ -61,7 +61,6 @@ export default function ValidationsTable() {
   const filteredResults = useMemo(() => {
     let results = data?.results || [];
     
-    // Apply client-side asset type filter
     if (filters.assetType) {
       results = results.filter(r => getAssetType(r.symbol, r.universe).label.toUpperCase().includes(filters.assetType.toUpperCase()));
     }
@@ -90,15 +89,13 @@ export default function ValidationsTable() {
   if (loading && !filteredResults.length) return <LoadingState rows={10} />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
 
-  const selectClass = "bg-[#1a1d27] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-green-500/50 cursor-pointer appearance-none min-w-[120px]";
+  const selectClass = "bg-[#1a1d27] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-green-500/50 cursor-pointer appearance-none min-w-[140px]";
 
-  // Calculations: Navbar(64) + Tabs(68) = 132
   const filterStickyTop = "top-[132px]";
   const headerStickyTop = "top-[204px]";
 
   return (
     <div className="space-y-0 relative">
-      {/* Filters Bar */}
       <div className={`sticky ${filterStickyTop} z-[35] bg-[--bg-primary] pb-4`}>
         <div className="flex flex-wrap gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl items-center shadow-2xl backdrop-blur-md">
           <div className="flex items-center gap-2 mr-2">
@@ -133,7 +130,7 @@ export default function ValidationsTable() {
           )}
 
           <div className="flex-1" />
-          <div className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+          <div className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest bg-white/5 px-3 py-1 rounded-lg border border-white/5">
             {filteredResults.length} Tests affichés
           </div>
         </div>

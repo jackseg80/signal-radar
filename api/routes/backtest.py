@@ -101,10 +101,11 @@ def get_robustness(
 ) -> dict:
     """Calculate and return robustness matrix for a specific asset/strategy."""
     strat_key = None
-    for k in STRATEGIES_MAP:
-        if k in strategy.lower():
-            strat_key = k
-            break
+    if strategy:
+        for k in STRATEGIES_MAP:
+            if k in strategy.lower():
+                strat_key = k
+                break
             
     if not strat_key:
         raise HTTPException(status_code=404, detail=f"Strategy {strategy} unknown")
