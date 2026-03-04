@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from api.dependencies import get_db
+from api.routes.market import get_proxy_url
 from data.db import SignalRadarDB
 
 router = APIRouter()
@@ -23,13 +24,20 @@ def get_journal_entries(
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Consolidated trade timeline with stats."""
-    return db.get_journal_entries(
+    res = db.get_journal_entries(
         strategy=strategy,
         symbol=symbol,
         source=source,
         search=search,
         limit=limit,
     )
+    
+    # Attach logo URLs to entries
+    if "entries" in res:
+        for entry in res["entries"]:
+            entry["logo_url"] = get_proxy_url(entry["symbol"])
+            
+    return res
 
 @router.patch("/paper/{id}/update")
 def update_paper_entry(
@@ -38,7 +46,6 @@ def update_paper_entry(
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Update paper trade details (notes, tags, sentiment)."""
-    # Note: We'll update the db method to support multiple fields
     success = db.update_paper_entry(id, notes=update.notes, tags=update.tags, sentiment=update.sentiment)
     if not success:
         raise HTTPException(status_code=404, detail="Entry not found")

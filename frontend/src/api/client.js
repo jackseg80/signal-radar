@@ -9,10 +9,14 @@ async function fetchJson(url, options = {}) {
   return res.json();
 }
 
+/**
+ * Filter out null, undefined and empty strings from params
+ * to avoid sending them to the backend which expects true nulls.
+ */
 function buildQueryString(params = {}) {
   const cleanParams = {};
   Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
+    if (value !== undefined && value !== null && value !== '' && value !== 'undefined') {
       cleanParams[key] = value;
     }
   });
@@ -30,8 +34,8 @@ async function patchJson(url, body) {
 
 export const api = {
   // Signals & Scanner
-  signalsToday: () => fetchJson('/signals/today'),
-  signalsHistory: (days = 30) => fetchJson(`/signals/history?days=${days}`),
+  signalsToday: (strategy) => fetchJson(`/signals/today${buildQueryString({ strategy })}`),
+  signalsHistory: (params = {}) => fetchJson(`/signals/history${buildQueryString(params)}`),
   scannerRun: () => fetchJson('/scanner/run', { method: 'POST' }),
   scannerStatus: () => fetchJson('/scanner/status'),
   
@@ -42,26 +46,25 @@ export const api = {
   assetPrices: (symbol, days = 60) => fetchJson(`/market/asset/${symbol}/prices?days=${days}`),
 
   // Positions & Trades
-  openPositions: () => fetchJson('/positions/open'),
+  openPositions: (strategy) => fetchJson(`/positions/open${buildQueryString({ strategy })}`),
   closedTrades: (params = {}) => fetchJson(`/positions/closed${buildQueryString(params)}`),
   
   // Performance
-  perfSummary: () => fetchJson('/performance/summary'),
   performanceSummary: () => fetchJson('/performance/summary'),
   equityCurve: () => fetchJson('/performance/equity-curve'),
   
   // Backtest
   screens: (params = {}) => fetchJson(`/backtest/screens${buildQueryString(params)}`),
   validations: (params = {}) => fetchJson(`/backtest/validations${buildQueryString(params)}`),
-  compare: () => fetchJson('/backtest/compare'),
+  compare: (params = {}) => fetchJson(`/backtest/compare${buildQueryString(params)}`),
   backtestRobustness: (strategy, symbol, universe) => 
-    fetchJson(`/backtest/robustness?strategy=${strategy}&symbol=${symbol}&universe=${universe}`),
+    fetchJson(`/backtest/robustness${buildQueryString({ strategy, symbol, universe })}`),
   
   // Live Trades
   liveOpen: (data) => fetchJson(`/live/open${buildQueryString(data)}`, { method: 'POST' }),
   liveClose: (data) => fetchJson(`/live/close${buildQueryString(data)}`, { method: 'POST' }),
   liveDelete: (id) => fetchJson(`/live/${id}`, { method: 'DELETE' }),
-  liveActive: () => fetchJson('/live/open'),
+  liveActive: (strategy) => fetchJson(`/live/open${buildQueryString({ strategy })}`),
   liveClosed: (params = {}) => fetchJson(`/live/closed${buildQueryString(params)}`),
   liveSummary: () => fetchJson('/live/summary'),
   liveCompare: () => fetchJson('/live/compare'),

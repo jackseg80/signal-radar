@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from data.db import SignalRadarDB
 from api.dependencies import get_db
+from api.routes.market import get_proxy_url
 
 router = APIRouter()
 
@@ -16,7 +17,7 @@ def get_open_positions(
     """Open paper positions with unrealized P&L."""
     positions = db.get_open_positions(strategy=strategy)
 
-    # Batch fetch prices (avoids N+1 queries)
+    # Batch fetch prices
     symbols = list({p["symbol"] for p in positions})
     prices = db.get_latest_prices(symbols) if symbols else {}
 
@@ -27,17 +28,15 @@ def get_open_positions(
         unrealized_pnl = 0.0
         unrealized_pct = 0.0
         if current_price is not None and p["entry_price"] > 0:
-            unrealized_pnl = round(
-                (current_price - p["entry_price"]) * p["shares"], 2
-            )
-            unrealized_pct = round(
-                (current_price - p["entry_price"]) / p["entry_price"] * 100, 2
-            )
+            unrealized_pnl = round((current_price - p["entry_price"]) * p["shares"], 2)
+            unrealized_pct = round((current_price - p["entry_price"]) / p["entry_price"] * 100, 2)
+        
         total_unrealized += unrealized_pnl
         enriched.append({
             "id": p["id"],
             "strategy": p["strategy"],
             "symbol": p["symbol"],
+            "logo_url": get_proxy_url(p["symbol"]), # Added logo support
             "entry_date": p["entry_date"],
             "entry_price": p["entry_price"],
             "shares": p["shares"],
@@ -67,6 +66,7 @@ def get_closed_positions(
                 "id": t["id"],
                 "strategy": t["strategy"],
                 "symbol": t["symbol"],
+                "logo_url": get_proxy_url(t["symbol"]), # Added logo support
                 "entry_date": t["entry_date"],
                 "entry_price": t["entry_price"],
                 "exit_date": t["exit_date"],
