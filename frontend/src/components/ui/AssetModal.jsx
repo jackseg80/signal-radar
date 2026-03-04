@@ -3,7 +3,9 @@ import { useApi } from '../../hooks/useApi';
 import { api } from '../../api/client';
 import { formatPrice, SIGNAL_COLORS, STRATEGY_COLORS, STRATEGY_LABELS } from '../../utils/format';
 import { X, TrendingUp, History, ShieldCheck, ExternalLink, Calendar, Activity } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { format, parseISO } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export default function AssetModal({ symbol, onClose }) {
   const { data: details, loading: loadingDetails } = useApi(() => api.assetDetails(symbol), [symbol]);
@@ -13,12 +15,10 @@ export default function AssetModal({ symbol, onClose }) {
   const historyData = useMemo(() => {
     if (!prices || !Array.isArray(prices)) return [];
     
-    // Create a map of signals by date for quick lookup
     const signalMap = {};
     if (history && Array.isArray(history)) {
       history.forEach(h => {
         const date = h.timestamp.split(' ')[0];
-        // Only keep important signals for the chart dots
         if (h.signal === 'BUY' || h.signal === 'SELL' || h.signal === 'SAFETY_EXIT') {
           signalMap[date] = h.signal;
         }
@@ -27,6 +27,7 @@ export default function AssetModal({ symbol, onClose }) {
 
     return prices.map(p => ({
       date: p.date,
+      displayDate: format(parseISO(p.date), 'dd MMM', { locale: fr }),
       price: p.close,
       signal: signalMap[p.date] || null
     }));
@@ -62,24 +63,46 @@ export default function AssetModal({ symbol, onClose }) {
         </div>
 
         <div className="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Chart & History */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Chart Area */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-[10px] font-bold text-[--text-muted] uppercase tracking-widest">
                 <TrendingUp size={14} className="text-blue-400" />
-                <span>Price History & Signals (60d)</span>
+                <span>Analyse Graphique (60j)</span>
               </div>
-              <div className="h-64 w-full bg-white/[0.02] rounded-xl border border-white/5 p-4 min-h-[256px]">
+              <div className="h-80 w-full bg-white/[0.01] rounded-xl border border-white/5 p-4">
                 {historyData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={historyData}>
-                      <XAxis dataKey="date" hide />
-                      <YAxis domain={['auto', 'auto']} hide />
+                    <LineChart data={historyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                      <XAxis 
+                        dataKey="displayDate" 
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#64748b', fontSize: 9 }}
+                        minTickGap={30}
+                      />
+                      <YAxis 
+                        orientation="right"
+                        domain={['auto', 'auto']} 
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#64748b', fontSize: 9 }}
+                        tickFormatter={(v) => `$${v}`}
+                      />
                       <Tooltip 
-                        contentStyle={{ backgroundColor: '#1a1d27', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '10px' }}
+                        contentStyle={{ backgroundColor: '#1a1d27', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '10px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}
                         itemStyle={{ color: '#fff' }}
-                        labelStyle={{ color: '#64748b', marginBottom: '4px' }}
+                        labelStyle={{ color: '#64748b', marginBottom: '4px', fontWeight: 'bold' }}
+                        formatter={(value, name, props) => {
+                          if (name === 'price') {
+                            const res = [formatPrice(value)];
+                            if (props.payload.signal) {
+                              res.push(`SIGNAL: ${props.payload.signal}`);
+                            }
+                            return res;
+                          }
+                          return value;
+                        }}
                       />
                       <Line 
                         type="monotone" 
@@ -92,19 +115,20 @@ export default function AssetModal({ symbol, onClose }) {
                           if (payload.signal === 'SELL' || payload.signal === 'SAFETY_EXIT') return <circle key={`sell-${payload.date}`} cx={cx} cy={cy} r={5} fill="#ef4444" stroke="white" strokeWidth={1} />;
                           return null;
                         }}
-                        isAnimationActive={false}
+                        activeDot={{ r: 6, fill: '#3b82f6', stroke: 'white', strokeWidth: 2 }}
+                        isAnimationActive={true}
+                        animationDuration={1000}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-full flex items-center justify-center text-[--text-muted] text-xs">
-                    {loadingPrices ? "Chargement des prix..." : "Données de prix non disponibles"}
+                    {loadingPrices ? "Chargement des données..." : "Données non disponibles"}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Strategy Status Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {details?.signals && details.signals.length > 0 ? details.signals.map(sig => {
                 const colors = STRATEGY_COLORS[sig.strategy] || STRATEGY_COLORS.rsi2;
@@ -142,13 +166,11 @@ export default function AssetModal({ symbol, onClose }) {
             </div>
           </div>
 
-          {/* Right Sidebar: Backtest & Stats */}
           <div className="space-y-8">
-            {/* Performance Validée */}
             <div className="space-y-4">
                <div className="flex items-center gap-2 text-[10px] font-bold text-[--text-muted] uppercase tracking-widest">
                   <ShieldCheck size={14} className="text-green-400" />
-                  <span>Performance Validée (OOS)</span>
+                  <span>Performance Validée</span>
                </div>
                <div className="space-y-3">
                  {details?.validations && details.validations.length > 0 ? details.validations.map(v => (
@@ -170,13 +192,12 @@ export default function AssetModal({ symbol, onClose }) {
                    </div>
                  )) : (
                    <div className="p-4 rounded-xl border border-dashed border-white/10 text-center">
-                     <span className="text-xs text-[--text-muted]">Aucun backtest validé pour cet asset.</span>
+                     <span className="text-xs text-[--text-muted]">Aucun backtest validé.</span>
                    </div>
                  )}
                </div>
             </div>
 
-            {/* Positions Actuelles */}
             {details?.open_positions && details.open_positions.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-[10px] font-bold text-amber-400 uppercase tracking-widest">
@@ -202,7 +223,6 @@ export default function AssetModal({ symbol, onClose }) {
           </div>
         </div>
 
-        {/* Footer actions */}
         <div className="p-6 border-t border-white/5 bg-white/[0.02] flex justify-end gap-3">
           <button 
             className="px-4 py-2 rounded-lg bg-white/5 text-[--text-muted] hover:text-white hover:bg-white/10 text-sm font-bold transition-all cursor-pointer flex items-center gap-2"
