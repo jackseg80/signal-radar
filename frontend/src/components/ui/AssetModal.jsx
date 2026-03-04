@@ -14,11 +14,18 @@ export default function AssetModal({ symbol, onClose }) {
   const [pricesLoading, setPricesLoading] = useState(true);
 
   useEffect(() => {
+    if (!symbol) return;
     setPricesLoading(true);
     api.assetPrices(symbol, 60)
-      .then(res => setPrices(r => res || []))
-      .catch(() => setPrices([]))
-      .finally(() => setPricesLoading(false));
+      .then(res => {
+        setPrices(res || []);
+      })
+      .catch(() => {
+        setPrices([]);
+      })
+      .finally(() => {
+        setPricesLoading(false);
+      });
   }, [symbol]);
 
   if (!symbol) return null;
@@ -103,7 +110,7 @@ export default function AssetModal({ symbol, onClose }) {
                 />
                 <StatBox 
                   label="Win Rate" 
-                  value={`${((data?.validations?.reduce((acc, v) => acc + v.win_rate, 0) / (data?.validations?.length || 1)) * 100).toFixed(0)}%`}
+                  value={`${((data?.validations?.reduce((acc, v) => acc + v.win_rate, 0) / Math.max(1, data?.validations?.length || 1)) * 100).toFixed(0)}%`}
                   sub="Moyenne"
                   icon={<Target size={16} className="text-purple-400" />}
                 />
@@ -118,11 +125,11 @@ export default function AssetModal({ symbol, onClose }) {
                   <div className="h-[300px] w-full bg-white/[0.02] rounded-3xl border border-white/5 p-4">
                     {pricesLoading ? (
                       <div className="h-full flex items-center justify-center"><LoadingState rows={3} /></div>
-                    ) : (
+                    ) : prices && prices.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={prices}>
                           <defs>
-                            <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="colorPrice" x1="0" x2="0" x2="0" y2="1">
                               <stop offset="5%" stopColor="#22c55e" stopOpacity={0.1}/>
                               <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
                             </linearGradient>
@@ -156,6 +163,8 @@ export default function AssetModal({ symbol, onClose }) {
                           />
                         </AreaChart>
                       </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-[--text-muted] text-xs">Aucune donnée de prix disponible.</div>
                     )}
                   </div>
                 </div>
@@ -189,8 +198,8 @@ export default function AssetModal({ symbol, onClose }) {
                     data.signals.map((s, i) => (
                       <div key={i} className="p-4 bg-white/[0.03] border border-white/5 rounded-2xl flex items-center justify-between group hover:bg-white/[0.05] transition-all">
                         <div>
-                          <p className={`text-xs font-bold uppercase tracking-widest ${(STRATEGY_COLORS[s.strategy] || {}).text}`}>
-                            {STRATEGY_LABELS[s.strategy.split('_')[0]] || s.strategy}
+                          <p className={`text-xs font-bold uppercase tracking-widest ${(STRATEGY_COLORS[s.strategy] || STRATEGY_COLORS[s.strategy.split('_')[0]] || {}).text}`}>
+                            {STRATEGY_LABELS[s.strategy] || STRATEGY_LABELS[s.strategy.split('_')[0]] || s.strategy}
                           </p>
                           <p className="text-[10px] text-[--text-muted] mt-1 italic">{s.notes || 'Scan technique OK'}</p>
                         </div>
@@ -250,12 +259,14 @@ function StatBox({ label, value, sub, icon }) {
 function ValidationCard({ validation }) {
   const v = VERDICT_COLORS[validation.verdict] || VERDICT_COLORS.REJECTED;
   const s = validation.strategy.split('_')[0];
+  const strategyLabel = STRATEGY_LABELS[validation.strategy] || STRATEGY_LABELS[s] || validation.strategy;
+  const strategyColors = STRATEGY_COLORS[validation.strategy] || STRATEGY_COLORS[s] || {};
   
   return (
     <div className="p-4 bg-white/[0.03] border border-white/5 rounded-3xl group hover:border-green-500/30 transition-all">
       <div className="flex items-center justify-between mb-4">
-        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${STRATEGY_COLORS[s]?.bg} ${STRATEGY_COLORS[s]?.text}`}>
-          {STRATEGY_LABELS[s]}
+        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${strategyColors.bg || 'bg-white/5'} ${strategyColors.text || 'text-white'}`}>
+          {strategyLabel}
         </span>
         <span className={`px-2 py-0.5 rounded text-[9px] font-black border ${v.bg} ${v.text} ${v.border} uppercase`}>
           {validation.verdict}
@@ -272,7 +283,7 @@ function ValidationCard({ validation }) {
         <div className="text-right">
           <p className="text-[9px] font-bold text-[--text-muted] uppercase tracking-widest mb-1">Robustesse</p>
           <p className="text-sm font-mono font-bold text-white">
-            {validation.robustness_pct.toFixed(0)}%
+            {(validation.robustness_pct || 0).toFixed(0)}%
           </p>
         </div>
       </div>
