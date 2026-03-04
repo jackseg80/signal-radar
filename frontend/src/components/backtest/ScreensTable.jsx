@@ -9,6 +9,12 @@ import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 import { Filter, ChevronUp, ChevronDown } from 'lucide-react';
 
+const STRATEGY_MAPPING = {
+  'rsi2': 'rsi2',
+  'ibs': 'ibs',
+  'tom': 'tom'
+};
+
 export default function ScreensTable() {
   const { refreshKey } = useRefresh();
   const [filters, setFilters] = useState({
@@ -57,20 +63,22 @@ export default function ScreensTable() {
     });
   }, [data, sortConfig]);
 
-  const allStrategies = useMemo(() => ['rsi2', 'ibs', 'tom'], []);
+  const allStrategies = ['rsi2', 'ibs', 'tom'];
   const allUniverses = useMemo(() => {
     if (!data?.results?.length) return [];
-    return [...new Set(data.results.map((r) => r.universe))].sort();
+    return [...new Set(data.results.map((r) => r.universe))].filter(Boolean).sort();
   }, [data]);
 
   if (loading && !sortedResults.length) return <LoadingState rows={10} />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
 
+  const selectClass = "bg-[#1a1d27] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-green-500/50 cursor-pointer appearance-none min-w-[140px]";
+
   return (
     <div className="space-y-6">
       {/* Filters Bar */}
       <div className="flex flex-wrap gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mr-2">
           <Filter size={14} className="text-[--text-muted]" />
           <span className="text-[10px] font-bold uppercase tracking-widest text-[--text-muted]">Filtres :</span>
         </div>
@@ -78,22 +86,22 @@ export default function ScreensTable() {
         <select
           value={filters.strategy}
           onChange={(e) => setFilters({ ...filters, strategy: e.target.value })}
-          className="bg-[--bg-primary] border border-[--glass-border] rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-green-500/50 cursor-pointer"
+          className={selectClass}
         >
-          <option value="">Toutes les Stratégies</option>
-          {allStrategies.map(s => <option key={s} value={s}>{STRATEGY_LABELS[s] || s}</option>)}
+          <option value="" className="bg-[#1a1d27]">Toutes les Stratégies</option>
+          {allStrategies.map(s => <option key={s} value={s} className="bg-[#1a1d27]">{STRATEGY_LABELS[s] || s}</option>)}
         </select>
 
         <select
           value={filters.universe}
           onChange={(e) => setFilters({ ...filters, universe: e.target.value })}
-          className="bg-[--bg-primary] border border-[--glass-border] rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-green-500/50 cursor-pointer"
+          className={selectClass}
         >
-          <option value="">Tous les Univers</option>
-          {allUniverses.map(u => <option key={u} value={u}>{u}</option>)}
+          <option value="" className="bg-[#1a1d27]">Tous les Univers</option>
+          {allUniverses.map(u => <option key={u} value={u} className="bg-[#1a1d27]">{u}</option>)}
         </select>
 
-        <div className="flex items-center gap-2 bg-[--bg-primary] border border-[--glass-border] rounded-lg px-3 py-1.5">
+        <div className="flex items-center gap-2 bg-[#1a1d27] border border-white/10 rounded-lg px-3 py-1.5">
           <label className="text-[10px] font-bold text-[--text-muted] uppercase">Min PF:</label>
           <input
             type="number"
