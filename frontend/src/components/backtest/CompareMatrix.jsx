@@ -78,10 +78,11 @@ export default function CompareMatrix() {
       title="Matrice de Confiance Stratégique" 
       subtitle="Visualisation de la robustesse croisée par actif"
       noPadding
+      noScroll
     >
       <div className="overflow-visible">
         <table className="w-full text-sm border-separate border-spacing-0">
-          <thead className="sticky top-[140px] z-[30] bg-[--bg-primary]">
+          <thead className="sticky top-[124px] z-[30] bg-[--bg-primary]">
             <tr className="bg-[#1a1d27] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold shadow-sm">
               <th className="text-left py-4 px-6 border-b border-[--glass-border] cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: 'symbol', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
                 Actif

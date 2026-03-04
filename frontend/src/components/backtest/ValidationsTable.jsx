@@ -3,6 +3,7 @@ import { useApi } from '../../hooks/useApi';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { api } from '../../api/client';
 import { VERDICT_COLORS, STRATEGY_LABELS, formatPF } from '../../utils/format';
+import Card from '../ui/Card';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
@@ -87,9 +88,9 @@ export default function ValidationsTable() {
 
   return (
     <div className="space-y-0 relative">
-      {/* Filters Bar - Sticky below Tabs (Navbar 64px + Tabs 76px = 140px) */}
-      <div className="sticky top-[140px] z-[30] bg-[--bg-primary] py-2">
-        <div className="flex flex-wrap gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl items-center shadow-2xl backdrop-blur-md">
+      {/* Filters Bar - Sticky below Tabs (top-64 + py-4 + tabs height ~= 124px) */}
+      <div className="sticky top-[124px] z-[30] bg-[--bg-primary] pb-4">
+        <div className="flex flex-wrap gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl items-center shadow-lg backdrop-blur-md">
           <div className="flex items-center gap-2 mr-2">
             <Filter size={14} className="text-[--text-muted]" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-[--text-muted]">Filtrer l'élite :</span>
@@ -126,7 +127,7 @@ export default function ValidationsTable() {
       ) : (
         <div className="overflow-visible">
           <table className="w-full text-sm border-collapse">
-            <thead className="sticky top-[216px] z-[20]">
+            <thead className="sticky top-[200px] z-[20]">
               <tr className="bg-[#1a1d27] border-b border-[--glass-border] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold shadow-sm">
                 <th className="text-left py-4 px-4 cursor-pointer hover:text-white" onClick={() => requestSort('symbol')}>
                   <div className="flex items-center gap-1">Actif {getSortIcon('symbol')}</div>
@@ -154,7 +155,7 @@ export default function ValidationsTable() {
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-[--bg-primary]">
               {sortedResults.map((r, idx) => {
                 const v = VERDICT_COLORS[r.verdict] || VERDICT_COLORS.REJECTED;
                 const isSelected = selectedValidation?.symbol === r.symbol && selectedValidation?.strategy === r.strategy;
