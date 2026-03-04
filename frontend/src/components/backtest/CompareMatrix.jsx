@@ -7,44 +7,62 @@ import Card from '../ui/Card';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
-import { ChevronUp, ChevronDown, Info } from 'lucide-react';
+import { ChevronUp, ChevronDown, Info, ShieldCheck, AlertTriangle } from 'lucide-react';
 
-const VERDICT_EXPLANATIONS = {
-  VALIDATED: "Robuste, stable sur toutes les périodes et statistiquement significatif.",
-  CONDITIONAL: "Robuste, mais manque soit de stabilité temporelle, soit de volume de trades suffisant.",
-  REJECTED: "Échec aux tests de robustesse ou de stabilité. Performance probablement due au hasard (Overfitting)."
+const getHeatmapColor = (pf, verdict) => {
+  if (!pf || pf <= 0) return 'bg-white/[0.02] text-[--text-muted]';
+  
+  // Base colors based on Profit Factor
+  let colorClass = 'bg-red-500/20';
+  if (pf >= 1.0) colorClass = 'bg-amber-500/20';
+  if (pf >= 1.2) colorClass = 'bg-green-500/20';
+  if (pf >= 1.5) colorClass = 'bg-green-500/40';
+  if (pf >= 2.0) colorClass = 'bg-green-500/70';
+
+  // Context: If rejected, we dim the color significantly to show it's "fake" profit
+  if (verdict === 'REJECTED') {
+    return 'bg-slate-500/10 text-slate-500 grayscale opacity-40';
+  }
+  
+  if (verdict === 'CONDITIONAL') {
+    return `${colorClass} opacity-70`;
+  }
+
+  return `${colorClass} text-white font-bold border-b-2 border-green-400/30`;
 };
 
 export default function CompareMatrix() {
   const { refreshKey } = useRefresh();
   const { data, loading, error, refetch } = useApi(() => api.compare(), [refreshKey]);
-  const [sortConfig, setSortConfig] = useState({ key: 'symbol', direction: 'asc' });
-
-  const requestSort = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key) => {
-    if (sortConfig.key !== key) return <div className="w-4" />;
-    return sortConfig.direction === 'asc' ? <ChevronUp size={14} className="text-green-400" /> : <ChevronDown size={14} className="text-green-400" />;
-  };
+  const [sortConfig, setSortConfig] = useState({ key: 'score', direction: 'desc' });
 
   const sortedAssets = useMemo(() => {
     if (!data?.assets) return [];
     
-    return [...data.assets].sort((a, b) => {
+    const assetsWithScores = data.assets.map(symbol => {
+      const strats = data.matrix[symbol] || {};
+      const validStrats = Object.values(strats).filter(s => s.verdict === 'VALIDATED');
+      // Score = Number of validated strats + average PF of validated ones
+      const avgPf = validStrats.length > 0 
+        ? validStrats.reduce((sum, s) => sum + s.pf, 0) / validStrats.length 
+        : 0;
+      return { 
+        symbol, 
+        score: validStrats.length + (avgPf / 10),
+        avgPf,
+        validCount: validStrats.length
+      };
+    });
+
+    return assetsWithScores.sort((a, b) => {
       let aVal, bVal;
-      
       if (sortConfig.key === 'symbol') {
-        aVal = a;
-        bVal = b;
+        aVal = a.symbol; bVal = b.symbol;
+      } else if (sortConfig.key === 'score') {
+        aVal = a.score; bVal = b.score;
       } else {
-        aVal = data.matrix[a]?.[sortConfig.key]?.pf || 0;
-        bVal = data.matrix[b]?.[sortConfig.key]?.pf || 0;
+        aVal = data.matrix[a.symbol]?.[sortConfig.key]?.pf || 0;
+        bVal = data.matrix[b.symbol]?.[sortConfig.key]?.pf || 0;
       }
 
       if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -53,65 +71,65 @@ export default function CompareMatrix() {
     });
   }, [data, sortConfig]);
 
-  if (loading) return <Card title="Cross-Strategy Comparison"><LoadingState rows={10} /></Card>;
-  if (error) return <Card title="Cross-Strategy Comparison"><ErrorState message={error} onRetry={refetch} /></Card>;
+  if (loading) return <Card title="Matrice de Confiance"><LoadingState rows={10} /></Card>;
+  if (error) return <Card title="Matrice de Confiance"><ErrorState message={error} onRetry={refetch} /></Card>;
 
-  const assets = sortedAssets;
   const strategies = data?.strategies || [];
-
-  if (assets.length === 0) {
-    return <Card title="Cross-Strategy Comparison"><EmptyState message="No comparisons available" /></Card>;
-  }
 
   return (
     <Card 
-      title="Cross-Strategy Comparison" 
-      subtitle="Comparaison du Profit Factor par actif et stratégie"
+      title="Matrice de Confiance Stratégique" 
+      subtitle="Visualisation de la robustesse croisée par actif"
       noPadding
     >
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="bg-white/[0.02] border-b border-[--glass-border] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold">
-              <th className="text-left py-4 px-6 cursor-pointer hover:text-white transition-colors" onClick={() => requestSort('symbol')}>
-                <div className="flex items-center gap-1">Asset {getSortIcon('symbol')}</div>
+              <th className="text-left py-4 px-6 cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: 'symbol', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
+                Actif
+              </th>
+              <th className="text-center py-4 px-4 cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: 'score', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
+                Confiance
               </th>
               {strategies.map((s) => (
-                <th key={s} className="text-center py-4 px-4 cursor-pointer hover:text-white transition-colors" onClick={() => requestSort(s)}>
-                  <div className="flex items-center justify-center gap-1">
-                    {s.split('_')[0]} {getSortIcon(s)}
-                  </div>
+                <th key={s} className="text-center py-4 px-4 cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: s, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
+                  {s.split('_')[0]}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {assets.map((asset) => (
-              <tr key={asset} className="border-b border-white/5 hover:bg-white/[0.04] transition-all duration-200 group">
+            {sortedAssets.map(({ symbol, validCount, avgPf }) => (
+              <tr key={symbol} className="border-b border-white/5 hover:bg-white/[0.02] transition-all group">
                 <td className="py-4 px-6 font-bold text-white group-hover:text-green-400 transition-colors">
-                  {asset}
+                  {symbol}
+                </td>
+                <td className="py-4 px-4">
+                  <div className="flex justify-center gap-1">
+                    {[...Array(3)].map((_, i) => (
+                      <ShieldCheck 
+                        key={i} 
+                        size={12} 
+                        className={i < validCount ? 'text-green-400' : 'text-white/5'} 
+                      />
+                    ))}
+                  </div>
                 </td>
                 {strategies.map((strat) => {
-                  const val = data.matrix[asset]?.[strat];
-                  if (!val) return <td key={strat} className="py-4 px-4 text-center text-[--text-muted] opacity-20">--</td>;
-                  
-                  const pf = val.pf;
-                  const verdict = val.verdict;
-                  const v = VERDICT_COLORS[verdict] || VERDICT_COLORS.REJECTED;
+                  const val = data.matrix[symbol]?.[strat];
+                  const pf = val?.pf || 0;
+                  const verdict = val?.verdict || 'NONE';
                   
                   return (
-                    <td key={strat} className="py-4 px-4 text-center">
-                      <div className="flex flex-col items-center gap-1 group/item relative">
-                        <span className={`text-sm font-bold tabular-nums ${pf >= 1.5 ? 'text-green-400' : pf >= 1 ? 'text-white' : 'text-red-400'}`}>
-                          {formatPF(pf)}
-                        </span>
-                        <div 
-                          className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${v.text} ${v.bg} border ${v.border} cursor-help flex items-center gap-1`}
-                          title={VERDICT_EXPLANATIONS[verdict]}
-                        >
-                          {verdict}
-                          <Info size={8} />
-                        </div>
+                    <td key={strat} className="p-1">
+                      <div 
+                        className={`h-12 flex flex-col items-center justify-center rounded-lg transition-all ${getHeatmapColor(pf, verdict)}`}
+                        title={`${symbol} ${strat}: PF ${pf.toFixed(2)} (${verdict})`}
+                      >
+                        <span className="text-xs tabular-nums">{pf > 0 ? pf.toFixed(2) : '--'}</span>
+                        {verdict === 'REJECTED' && <AlertTriangle size={8} className="mt-1" />}
+                        {verdict === 'VALIDATED' && <div className="w-1 h-1 rounded-full bg-white/50 mt-1" />}
                       </div>
                     </td>
                   );
@@ -122,12 +140,28 @@ export default function CompareMatrix() {
         </table>
       </div>
       
-      <div className="p-4 bg-blue-500/5 border-t border-white/5 flex gap-3">
-        <Info size={16} className="text-blue-400 shrink-0 mt-0.5" />
-        <p className="text-[10px] text-[--text-muted] leading-relaxed">
-          <strong>Note :</strong> Un Profit Factor élevé ne garantit pas la validation. Le système exige que la stratégie soit 
-          stable dans le temps et robuste face aux changements de paramètres pour éliminer le hasard.
-        </p>
+      <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/[0.01] border-t border-white/5">
+        <div className="space-y-2">
+          <h5 className="text-[10px] font-bold uppercase tracking-widest text-white flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-500" />
+            Lecture de la Matrice
+          </h5>
+          <p className="text-[10px] text-[--text-muted] leading-relaxed">
+            Les cases <strong>lumineuses</strong> indiquent une performance robuste (VALIDATED). 
+            Les cases <strong>grisées</strong> indiquent une performance "trompeuse" (REJECTED) : 
+            le Profit Factor peut être élevé, mais il n'a pas passé les tests de stabilité ou de robustesse.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <h5 className="text-[10px] font-bold uppercase tracking-widest text-white flex items-center gap-2">
+            <ShieldCheck size={12} className="text-green-400" />
+            Score de Confiance
+          </h5>
+          <p className="text-[10px] text-[--text-muted] leading-relaxed">
+            Plus un actif a de boucliers, plus il est validé sur un grand nombre de stratégies différentes. 
+            C'est un excellent indicateur pour la diversification de votre portefeuille.
+          </p>
+        </div>
       </div>
     </Card>
   );
