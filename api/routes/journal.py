@@ -32,10 +32,10 @@ def get_journal_entries(
         limit=limit,
     )
     
-    # Attach logo URLs to entries
-    if "entries" in res:
+    # Attach logo URLs to entries safely
+    if res and "entries" in res:
         for entry in res["entries"]:
-            entry["logo_url"] = get_proxy_url(entry["symbol"])
+            entry["logo_url"] = get_proxy_url(entry.get("symbol"))
             
     return res
 
