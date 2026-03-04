@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { api } from '../../api/client';
@@ -7,7 +7,7 @@ import Card from '../ui/Card';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
-import { Table } from 'lucide-react';
+import { Table, ChevronUp, ChevronDown } from 'lucide-react';
 
 const STRATEGY_ORDER = ['rsi2', 'ibs', 'tom'];
 
@@ -41,17 +41,62 @@ function ProximityBar({ proximity }) {
 export default function MarketOverview({ className }) {
   const { refreshKey } = useRefresh();
   const { data, loading, error, refetch } = useApi(() => api.marketOverview(), [refreshKey]);
+  
+  const [sortConfig, setSortConfig] = useState({ key: 'symbol', direction: 'asc' });
+
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return <div className="w-4" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp size={14} className="text-green-400" /> : <ChevronDown size={14} className="text-green-400" />;
+  };
+
+  const sortedAssets = useMemo(() => {
+    if (!data?.assets) return [];
+    
+    const assets = [...data.assets];
+    return assets.sort((a, b) => {
+      let aValue, bValue;
+
+      if (sortConfig.key === 'symbol') {
+        aValue = a.symbol;
+        bValue = b.symbol;
+      } else if (sortConfig.key === 'price') {
+        aValue = a.close;
+        bValue = b.close;
+      } else if (sortConfig.key === 'positions') {
+        aValue = a.has_open_position ? 1 : 0;
+        bValue = b.has_open_position ? 1 : 0;
+      } else if (STRATEGY_ORDER.includes(sortConfig.key)) {
+        aValue = a.strategies[sortConfig.key]?.indicator_value ?? -Infinity;
+        bValue = b.strategies[sortConfig.key]?.indicator_value ?? -Infinity;
+      }
+
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [data, sortConfig]);
 
   if (loading) return <Card title="Market Overview" className={className}><LoadingState rows={8} /></Card>;
   if (error) return <Card title="Market Overview" className={className}><ErrorState message={error} onRetry={refetch} /></Card>;
 
-  const assets = data?.assets || [];
-  if (assets.length === 0) {
+  if (sortedAssets.length === 0) {
     return <Card title="Market Overview" className={className}><EmptyState message="No market data" /></Card>;
   }
 
   const activeStrategies = STRATEGY_ORDER.filter((s) =>
-    assets.some((a) => a.strategies[s])
+    data.assets.some((a) => a.strategies[s])
   );
 
   return (
@@ -66,23 +111,51 @@ export default function MarketOverview({ className }) {
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="bg-white/[0.02] border-b border-[--glass-border] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold">
-              <th className="text-left py-4 px-6">Asset</th>
-              <th className="text-right py-4 px-4">Price</th>
+              <th 
+                className="text-left py-4 px-6 cursor-pointer hover:text-white transition-colors"
+                onClick={() => requestSort('symbol')}
+              >
+                <div className="flex items-center gap-1">
+                  Asset {getSortIcon('symbol')}
+                </div>
+              </th>
+              <th 
+                className="text-right py-4 px-4 cursor-pointer hover:text-white transition-colors"
+                onClick={() => requestSort('price')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Price {getSortIcon('price')}
+                </div>
+              </th>
               {activeStrategies.map((s) => {
                 const sc = STRATEGY_COLORS[s] || STRATEGY_COLORS.rsi2;
                 return (
-                  <th key={s} className="text-center py-4 px-4">
+                  <th 
+                    key={s} 
+                    className="text-center py-4 px-4 cursor-pointer hover:text-white transition-colors"
+                    onClick={() => requestSort(s)}
+                  >
                     <div className="flex flex-col items-center">
-                      <span className={`${sc.text}`}>{STRATEGY_LABELS[s] || s}</span>
+                      <div className="flex items-center gap-1">
+                        <span className={`${sc.text}`}>{STRATEGY_LABELS[s] || s}</span>
+                        {getSortIcon(s)}
+                      </div>
                     </div>
                   </th>
                 );
               })}
-              <th className="text-center py-4 px-6">Positions</th>
+              <th 
+                className="text-center py-4 px-6 cursor-pointer hover:text-white transition-colors"
+                onClick={() => requestSort('positions')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  Positions {getSortIcon('positions')}
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {assets.map((a) => (
+            {sortedAssets.map((a) => (
               <tr
                 key={a.symbol}
                 className={`border-b border-white/5 hover:bg-white/[0.04] transition-all duration-200 group ${
