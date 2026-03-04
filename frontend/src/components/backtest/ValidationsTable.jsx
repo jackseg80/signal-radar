@@ -2,11 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { api } from '../../api/client';
-import { VERDICT_COLORS, STRATEGY_LABELS, formatPF, getAssetType, ASSET_TYPES } from '../../utils/format';
+import { VERDICT_COLORS, STRATEGY_LABELS, getAssetType } from '../../utils/format';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 import RobustnessHeatmap from './RobustnessHeatmap';
+import AssetIcon from '../ui/AssetIcon';
 import { X, Filter, ChevronUp, ChevronDown, Info, ShieldCheck, Activity } from 'lucide-react';
 
 const STRATEGY_MAPPING = {
@@ -92,7 +93,6 @@ export default function ValidationsTable() {
   const selectClass = "bg-[#1a1d27] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-green-500/50 cursor-pointer appearance-none min-w-[140px]";
 
   const filterStickyTop = "top-[132px]";
-  const headerStickyTop = "top-[204px]";
 
   return (
     <div className="space-y-0 relative">
@@ -185,11 +185,14 @@ export default function ValidationsTable() {
                     onClick={() => setSelectedValidation(r)}
                   >
                     <td className="py-4 px-4">
-                      <div className="flex flex-col">
-                        <span className="text-white font-bold group-hover:text-green-400 transition-colors text-base">{r.symbol}</span>
-                        <span className={`w-fit text-[7px] font-black px-1 rounded ${assetType.bg} ${assetType.text} border ${assetType.border} uppercase mt-0.5`}>
-                          {assetType.label}
-                        </span>
+                      <div className="flex items-center gap-3">
+                        <AssetIcon symbol={r.symbol} size="sm" />
+                        <div className="flex flex-col">
+                          <span className="text-white font-bold group-hover:text-green-400 transition-colors text-base">{r.symbol}</span>
+                          <span className={`w-fit text-[7px] font-black px-1 rounded ${assetType.bg} ${assetType.text} border ${assetType.border} uppercase mt-0.5`}>
+                            {assetType.label}
+                          </span>
+                        </div>
                       </div>
                     </td>
                     <td className="py-4 px-4">

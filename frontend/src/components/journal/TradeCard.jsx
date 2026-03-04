@@ -8,6 +8,7 @@ import {
   STRATEGY_LABELS,
 } from '../../utils/format';
 import NoteEditor from './NoteEditor';
+import AssetIcon from '../ui/AssetIcon';
 
 const SOURCE_BADGE = {
   paper: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'PAPER' },
@@ -51,21 +52,24 @@ export default function TradeCard({ entry, onSaved }) {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span
-            className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${srcBadge.bg} ${srcBadge.text}`}
-          >
-            {srcBadge.label}
-          </span>
-          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${stratColors.bg} ${stratColors.text}`}>
-            {stratLabel}
-          </span>
-          {isOpen && (
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/20 text-amber-400">
-              OPEN
+        <div className="flex items-center gap-3">
+          <AssetIcon symbol={entry.symbol} size="sm" />
+          <div className="flex items-center gap-2">
+            <span
+              className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${srcBadge.bg} ${srcBadge.text}`}
+            >
+              {srcBadge.label}
             </span>
-          )}
-          <span className="text-sm font-semibold text-[--text-primary]">{entry.symbol}</span>
+            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${stratColors.bg} ${stratColors.text}`}>
+              {stratLabel}
+            </span>
+            {isOpen && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/20 text-amber-400">
+                OPEN
+              </span>
+            )}
+            <span className="text-sm font-bold text-white tracking-tight">{entry.symbol}</span>
+          </div>
         </div>
 
         {entry.pnl_dollars != null && (

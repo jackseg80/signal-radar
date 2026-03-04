@@ -7,6 +7,7 @@ import Card from '../ui/Card';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
+import AssetIcon from '../ui/AssetIcon';
 import { ChevronUp, ChevronDown, Info, ShieldCheck, AlertTriangle, Filter, Activity, Target } from 'lucide-react';
 
 const getHeatmapColor = (pf, verdict) => {
@@ -153,11 +154,14 @@ export default function CompareMatrix() {
               {filteredAndSortedAssets.map(({ symbol, validCount, type, totalTrades, avgWr }) => (
                 <tr key={symbol} className="border-b border-white/5 hover:bg-white/[0.02] transition-all group">
                   <td className="py-4 px-6">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-white group-hover:text-green-400 transition-colors">{symbol}</span>
-                      <span className={`w-fit text-[7px] font-black px-1 rounded ${type.bg} ${type.text} border ${type.border} uppercase mt-0.5`}>
-                        {type.label}
-                      </span>
+                    <div className="flex items-center gap-3">
+                      <AssetIcon symbol={symbol} size="sm" />
+                      <div className="flex flex-col">
+                        <span className="font-bold text-white group-hover:text-green-400 transition-colors">{symbol}</span>
+                        <span className={`w-fit text-[7px] font-black px-1 rounded ${type.bg} ${type.text} border ${type.border} uppercase mt-0.5`}>
+                          {type.label}
+                        </span>
+                      </div>
                     </div>
                   </td>
                   <td className="py-4 px-4">
