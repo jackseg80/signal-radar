@@ -12,7 +12,8 @@ export default function Card({
 }) {
   return (
     <div className={cn(
-      "glass-card rounded-xl border border-[--glass-border] flex flex-col overflow-hidden animate-fade-in transition-shadow duration-300 h-full w-full",
+      "glass-card rounded-xl border border-[--glass-border] flex flex-col animate-fade-in transition-shadow duration-300 h-full w-full",
+      noScroll ? "overflow-visible" : "overflow-hidden",
       glow,
       className
     )}>
@@ -42,7 +43,7 @@ export default function Card({
       )}
       <div className={cn(
         "flex-1",
-        !noScroll && "overflow-y-auto custom-scrollbar",
+        !noScroll ? "overflow-y-auto custom-scrollbar" : "overflow-visible",
         !noPadding && "p-5"
       )}>
         {children}

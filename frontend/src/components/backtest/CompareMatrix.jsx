@@ -73,6 +73,9 @@ export default function CompareMatrix() {
 
   const strategies = data?.strategies || [];
 
+  // Sticky top calculation: Navbar (64) + Tabs (68) = 132px
+  const stickyTop = "top-[132px]";
+
   return (
     <Card 
       title="Matrice de Confiance Stratégique" 
@@ -82,16 +85,26 @@ export default function CompareMatrix() {
     >
       <div className="overflow-visible">
         <table className="w-full text-sm border-separate border-spacing-0">
-          <thead className="sticky top-[124px] z-[30] bg-[--bg-primary]">
-            <tr className="bg-[#1a1d27] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold shadow-sm">
-              <th className="text-left py-4 px-6 border-b border-[--glass-border] cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: 'symbol', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
+          <thead>
+            <tr className="text-[--text-muted] text-[10px] uppercase tracking-widest font-bold shadow-sm">
+              <th 
+                className={`sticky ${stickyTop} z-[30] bg-[#1a1d27] text-left py-4 px-6 border-b border-[--glass-border] cursor-pointer hover:text-white transition-colors`}
+                onClick={() => setSortConfig({ key: 'symbol', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}
+              >
                 Actif
               </th>
-              <th className="text-center py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: 'score', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
+              <th 
+                className={`sticky ${stickyTop} z-[30] bg-[#1a1d27] text-center py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white transition-colors`}
+                onClick={() => setSortConfig({ key: 'score', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}
+              >
                 Confiance
               </th>
               {strategies.map((s) => (
-                <th key={s} className="text-center py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: s, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
+                <th 
+                  key={s} 
+                  className={`sticky ${stickyTop} z-[30] bg-[#1a1d27] text-center py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white transition-colors`}
+                  onClick={() => setSortConfig({ key: s, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}
+                >
                   {s.split('_')[0]}
                 </th>
               ))}

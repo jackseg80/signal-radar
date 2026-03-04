@@ -86,11 +86,16 @@ export default function ValidationsTable() {
 
   const selectClass = "bg-[#1a1d27] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-green-500/50 cursor-pointer appearance-none min-w-[140px]";
 
+  // Calculations: Navbar(64) + Tabs(68) = 132
+  const filterStickyTop = "top-[132px]";
+  // Calculations: FilterBar height is approx 72px. 132 + 72 = 204
+  const headerStickyTop = "top-[204px]";
+
   return (
     <div className="space-y-0 relative">
-      {/* Filters Bar - Sticky below Tabs (top-64 + py-4 + tabs height ~= 124px) */}
-      <div className="sticky top-[124px] z-[30] bg-[--bg-primary] pb-4">
-        <div className="flex flex-wrap gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl items-center shadow-lg backdrop-blur-md">
+      {/* Filters Bar */}
+      <div className={`sticky ${filterStickyTop} z-[35] bg-[--bg-primary] pb-4`}>
+        <div className="flex flex-wrap gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl items-center shadow-2xl backdrop-blur-md">
           <div className="flex items-center gap-2 mr-2">
             <Filter size={14} className="text-[--text-muted]" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-[--text-muted]">Filtrer l'élite :</span>
@@ -126,31 +131,55 @@ export default function ValidationsTable() {
         <div className="pt-8"><EmptyState message="Aucun test ne correspond à ces critères." /></div>
       ) : (
         <div className="overflow-visible">
-          <table className="w-full text-sm border-collapse">
-            <thead className="sticky top-[200px] z-[20]">
-              <tr className="bg-[#1a1d27] border-b border-[--glass-border] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold shadow-sm">
-                <th className="text-left py-4 px-4 cursor-pointer hover:text-white" onClick={() => requestSort('symbol')}>
+          <table className="w-full text-sm border-separate border-spacing-0">
+            <thead>
+              <tr className="text-[--text-muted] text-[10px] uppercase tracking-widest font-bold shadow-sm">
+                <th 
+                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-left py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white transition-colors`}
+                  onClick={() => requestSort('symbol')}
+                >
                   <div className="flex items-center gap-1">Actif {getSortIcon('symbol')}</div>
                 </th>
-                <th className="text-left py-4 px-4 cursor-pointer hover:text-white" onClick={() => requestSort('strategy')}>
+                <th 
+                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-left py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white transition-colors`}
+                  onClick={() => requestSort('strategy')}
+                >
                   <div className="flex items-center gap-1">Stratégie {getSortIcon('strategy')}</div>
                 </th>
-                <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('n_trades')} title={COLUMN_TOOLTIPS.trades}>
+                <th 
+                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-right py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white group/h`}
+                  onClick={() => requestSort('n_trades')} title={COLUMN_TOOLTIPS.trades}
+                >
                   <div className="flex items-center justify-end gap-1">Trades <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('n_trades')}</div>
                 </th>
-                <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('win_rate')} title={COLUMN_TOOLTIPS.wr}>
+                <th 
+                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-right py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white group/h`}
+                  onClick={() => requestSort('win_rate')} title={COLUMN_TOOLTIPS.wr}
+                >
                   <div className="flex items-center justify-end gap-1">Win Rate <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('win_rate')}</div>
                 </th>
-                <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('profit_factor')} title={COLUMN_TOOLTIPS.pf}>
+                <th 
+                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-right py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white group/h`}
+                  onClick={() => requestSort('profit_factor')} title={COLUMN_TOOLTIPS.pf}
+                >
                   <div className="flex items-center justify-end gap-1 text-green-400">PF <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('profit_factor')}</div>
                 </th>
-                <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('sharpe')} title={COLUMN_TOOLTIPS.sharpe}>
+                <th 
+                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-right py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white group/h`}
+                  onClick={() => requestSort('sharpe')} title={COLUMN_TOOLTIPS.sharpe}
+                >
                   <div className="flex items-center justify-end gap-1">Sharpe <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('sharpe')}</div>
                 </th>
-                <th className="text-right py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('robustness_pct')} title={COLUMN_TOOLTIPS.robust}>
+                <th 
+                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-right py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white group/h`}
+                  onClick={() => requestSort('robustness_pct')} title={COLUMN_TOOLTIPS.robust}
+                >
                   <div className="flex items-center justify-end gap-1">Robust% <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('robustness_pct')}</div>
                 </th>
-                <th className="text-center py-4 px-4 cursor-pointer hover:text-white group/h" onClick={() => requestSort('verdict')} title={COLUMN_TOOLTIPS.verdict}>
+                <th 
+                  className={`sticky ${headerStickyTop} z-[30] bg-[#1a1d27] text-center py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white group/h`}
+                  onClick={() => requestSort('verdict')} title={COLUMN_TOOLTIPS.verdict}
+                >
                   <div className="flex items-center justify-center gap-1">Verdict <Info size={10} className="opacity-30 group-hover/h:opacity-100" /> {getSortIcon('verdict')}</div>
                 </th>
               </tr>
