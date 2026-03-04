@@ -32,7 +32,6 @@ export default function AssetModal({ symbol, onClose }) {
 
   const assetType = getAssetType(symbol);
 
-  // Close on backdrop click
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) onClose();
   };
@@ -88,7 +87,6 @@ export default function AssetModal({ symbol, onClose }) {
           ) : (
             <div className="space-y-10">
               
-              {/* Quick Stats Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <StatBox 
                   label="Score Stratégies" 
@@ -116,55 +114,54 @@ export default function AssetModal({ symbol, onClose }) {
                 />
               </div>
 
-              {/* Charts Section */}
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 <div className="xl:col-span-2 space-y-4">
                   <h3 className="text-xs font-bold text-[--text-muted] uppercase tracking-widest flex items-center gap-2">
                     <TrendingUp size={14} /> Performance Historique (60j)
                   </h3>
-                  <div className="h-[300px] w-full bg-white/[0.02] rounded-3xl border border-white/5 p-4">
+                  {/* Stabilized container with min-height */}
+                  <div className="h-[300px] min-h-[300px] w-full bg-white/[0.02] rounded-3xl border border-white/5 p-4 flex flex-col">
                     {pricesLoading ? (
-                      <div className="h-full flex items-center justify-center"><LoadingState rows={3} /></div>
+                      <div className="flex-1 flex items-center justify-center"><LoadingState rows={3} /></div>
                     ) : prices && prices.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={prices}>
-                          <defs>
-                            <linearGradient id="colorPrice" x1="0" x2="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#22c55e" stopOpacity={0.1}/>
-                              <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                          <XAxis 
-                            dataKey="date" 
-                            hide 
-                          />
-                          <YAxis 
-                            domain={['auto', 'auto']} 
-                            orientation="right"
-                            tick={{ fill: '#64748b', fontSize: 10 }}
-                            axisLine={false}
-                            tickLine={false}
-                            tickFormatter={(val) => val.toFixed(0)}
-                          />
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: '#1a1d27', border: '1px solid #ffffff10', borderRadius: '12px' }}
-                            itemStyle={{ color: '#fff', fontSize: '12px' }}
-                            labelStyle={{ color: '#64748b', fontSize: '10px', marginBottom: '4px' }}
-                          />
-                          <Area 
-                            type="monotone" 
-                            dataKey="close" 
-                            stroke="#22c55e" 
-                            strokeWidth={2}
-                            fillOpacity={1} 
-                            fill="url(#colorPrice)" 
-                            animationDuration={1500}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
+                      <div className="flex-1 w-full overflow-hidden">
+                        <ResponsiveContainer width="99%" height="99%">
+                          <AreaChart data={prices} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.1}/>
+                                <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                            <XAxis dataKey="date" hide />
+                            <YAxis 
+                              domain={['auto', 'auto']} 
+                              orientation="right"
+                              tick={{ fill: '#64748b', fontSize: 10 }}
+                              axisLine={false}
+                              tickLine={false}
+                              tickFormatter={(val) => val.toFixed(0)}
+                            />
+                            <Tooltip 
+                              contentStyle={{ backgroundColor: '#1a1d27', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                              itemStyle={{ color: '#fff', fontSize: '12px' }}
+                              labelStyle={{ color: '#64748b', fontSize: '10px', marginBottom: '4px' }}
+                            />
+                            <Area 
+                              type="monotone" 
+                              dataKey="close" 
+                              stroke="#22c55e" 
+                              strokeWidth={2}
+                              fillOpacity={1} 
+                              fill="url(#colorPrice)" 
+                              animationDuration={1500}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
                     ) : (
-                      <div className="h-full flex items-center justify-center text-[--text-muted] text-xs">Aucune donnée de prix disponible.</div>
+                      <div className="flex-1 flex items-center justify-center text-[--text-muted] text-xs">Aucune donnée de prix disponible.</div>
                     )}
                   </div>
                 </div>
@@ -188,13 +185,12 @@ export default function AssetModal({ symbol, onClose }) {
                 </div>
               </div>
 
-              {/* Signals History Section */}
               <div className="space-y-4">
                 <h3 className="text-xs font-bold text-[--text-muted] uppercase tracking-widest flex items-center gap-2">
                   <Clock size={14} /> Derniers Signaux Détectés
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {data?.signals?.length > 0 ? (
+                  {(data?.signals || []).length > 0 ? (
                     data.signals.map((s, i) => (
                       <div key={i} className="p-4 bg-white/[0.03] border border-white/5 rounded-2xl flex items-center justify-between group hover:bg-white/[0.05] transition-all">
                         <div>
@@ -222,7 +218,6 @@ export default function AssetModal({ symbol, onClose }) {
           )}
         </div>
 
-        {/* Footer Action */}
         <div className="p-6 bg-white/[0.02] border-t border-white/5 flex justify-between items-center">
           <div className="flex items-center gap-2 text-[10px] text-[--text-muted] uppercase font-bold tracking-widest">
             <Calendar size={12} /> Dernière mise à jour : {new Date().toLocaleDateString()}

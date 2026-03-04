@@ -1,106 +1,97 @@
 import React, { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
-import { formatPnl } from '../../utils/format';
-import { parseISO, getDay } from 'date-fns';
-
-const DAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
+import Card from '../ui/Card';
 
 export default function JournalCharts({ entries }) {
-  // 1. PnL Distribution (Histogram)
-  const distributionData = useMemo(() => {
-    if (!entries) return [];
-    const closed = entries.filter(e => e.status === 'closed');
-    if (closed.length === 0) return [];
+  const closedTrades = useMemo(() => 
+    entries.filter(e => e.status === 'closed' && e.pnl_dollars != null), 
+    [entries]
+  );
 
+  // 1. PnL Distribution
+  const pnlData = useMemo(() => {
+    if (closedTrades.length === 0) return [];
+    
+    // Create bins for PnL
     const bins = {};
-    const binSize = 50; // $50 buckets
-
-    closed.forEach(e => {
-      const pnl = e.pnl_dollars || 0;
-      const bin = Math.floor(pnl / binSize) * binSize;
+    const binSize = 50; // $50 increments
+    
+    closedTrades.forEach(t => {
+      const bin = Math.floor(t.pnl_dollars / binSize) * binSize;
       bins[bin] = (bins[bin] || 0) + 1;
     });
-
-    return Object.entries(bins)
-      .map(([bin, count]) => ({ bin: Number(bin), count }))
-      .sort((a, b) => a.bin - b.bin);
-  }, [entries]);
-
-  // 2. Performance by Weekday
-  const weekdayData = useMemo(() => {
-    if (!entries) return [];
-    const closed = entries.filter(e => e.status === 'closed');
     
-    const days = [1, 2, 3, 4, 5].map(d => ({
-      day: DAYS[d],
-      pnl: 0,
-      trades: 0
-    }));
+    return Object.entries(bins)
+      .map(([bin, count]) => ({
+        range: `${bin}$`,
+        value: Number(bin),
+        count
+      }))
+      .sort((a, b) => a.value - b.value);
+  }, [closedTrades]);
 
-    closed.forEach(e => {
-      const dayIdx = getDay(parseISO(e.entry_date));
-      if (dayIdx >= 1 && dayIdx <= 5) {
-        days[dayIdx - 1].pnl += (e.pnl_dollars || 0);
-        days[dayIdx - 1].trades += 1;
-      }
+  // 2. Day of Week Performance
+  const weekdayData = useMemo(() => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const stats = days.map(d => ({ name: d, pnl: 0, count: 0 }));
+    
+    closedTrades.forEach(t => {
+      const date = new Date(t.entry_date);
+      const dayIdx = date.getDay();
+      stats[dayIdx].pnl += t.pnl_dollars;
+      stats[dayIdx].count += 1;
     });
+    
+    return stats.filter(s => s.count > 0);
+  }, [closedTrades]);
 
-    return days;
-  }, [entries]);
-
-  if (!entries || entries.filter(e => e.status === 'closed').length === 0) return null;
+  if (closedTrades.length === 0) return null;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      {/* PnL Distribution */}
-      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
-        <h4 className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest mb-6">Distribution des Gains/Pertes</h4>
-        <div className="h-48 w-full">
+      <Card title="Distribution des PnL" subtitle="Nombre de trades par tranche de gain/perte" noScroll>
+        <div className="h-[250px] min-h-[250px] w-full pt-4">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={distributionData}>
-              <XAxis 
-                dataKey="bin" 
-                fontSize={10} 
-                stroke="#64748b" 
-                tickFormatter={(v) => `${v}$`}
-              />
-              <YAxis fontSize={10} stroke="#64748b" />
+            <BarChart data={pnlData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+              <XAxis dataKey="range" tick={{fill: '#64748b', fontSize: 10}} axisLine={false} />
+              <YAxis tick={{fill: '#64748b', fontSize: 10}} axisLine={false} tickLine={false} />
               <Tooltip 
-                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                contentStyle={{ backgroundColor: '#1a1d27', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '10px' }}
+                contentStyle={{ backgroundColor: '#1a1d27', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                itemStyle={{ color: '#fff', fontSize: '12px' }}
               />
-              <Bar dataKey="count">
-                {distributionData.map((entry, index) => (
-                  <Cell key={index} fill={entry.bin >= 0 ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)'} />
+              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                {pnlData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.value >= 0 ? '#22c55e' : '#ef4444'} fillOpacity={0.6} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </Card>
 
-      {/* Weekday Performance */}
-      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
-        <h4 className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest mb-6">Performance par Jour d'Entrée</h4>
-        <div className="h-48 w-full">
+      <Card title="Performance par Jour" subtitle="PnL cumulé par jour d'entrée" noScroll>
+        <div className="h-[250px] min-h-[250px] w-full pt-4">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={weekdayData}>
-              <XAxis dataKey="day" fontSize={10} stroke="#64748b" />
-              <YAxis fontSize={10} stroke="#64748b" tickFormatter={(v) => `${v}$`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+              <XAxis dataKey="name" tick={{fill: '#64748b', fontSize: 10}} axisLine={false} />
+              <YAxis tick={{fill: '#64748b', fontSize: 10}} axisLine={false} tickLine={false} />
               <Tooltip 
-                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                contentStyle={{ backgroundColor: '#1a1d27', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '10px' }}
-                formatter={(value) => [formatPnl(value), 'PnL Total']}
+                contentStyle={{ backgroundColor: '#1a1d27', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                itemStyle={{ color: '#fff', fontSize: '12px' }}
+                formatter={(value) => [`$${value.toFixed(2)}`, 'PnL']}
               />
-              <Bar dataKey="pnl">
+              <ReferenceLine y={0} stroke="#ffffff10" />
+              <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
                 {weekdayData.map((entry, index) => (
-                  <Cell key={index} fill={entry.pnl >= 0 ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)'} />
+                  <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? '#22c55e' : '#ef4444'} fillOpacity={0.6} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
