@@ -50,6 +50,8 @@ export const api = {
     const q = new URLSearchParams(params).toString();
     return fetchJson(`/backtest/validations?${q}`);
   },
+  backtestRobustness: (strategy, symbol, universe) => 
+    fetchJson(`/backtest/robustness?strategy=${strategy}&symbol=${symbol}&universe=${universe}`),
   compare: () => fetchJson('/backtest/compare'),
   
   // Backtest Legacy/AssetModal names

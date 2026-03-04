@@ -1,119 +1,117 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { api } from '../../api/client';
-import { formatPF, STRATEGY_COLORS, STRATEGY_LABELS, VERDICT_COLORS } from '../../utils/format';
-import Card from '../ui/Card';
+import { VERDICT_COLORS } from '../../utils/format';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
+import RobustnessHeatmap from './RobustnessHeatmap';
+import { X } from 'lucide-react';
 
-export default function ValidationsTable() {
+export default function ValidationsTable({ strategy, universe, verdict }) {
   const { refreshKey } = useRefresh();
-  const [strategy, setStrategy] = useState('');
-  const [universe, setUniverse] = useState('');
-  const [verdict, setVerdict] = useState('');
-
   const { data, loading, error, refetch } = useApi(
     () => api.validations({ strategy: strategy || undefined, universe: universe || undefined, verdict: verdict || undefined }),
-    [refreshKey, strategy, universe, verdict],
+    [refreshKey, strategy, universe, verdict]
   );
 
-  const results = data?.results || [];
+  const [selectedValidation, setSelectedValidation] = useState(null);
 
-  // Extract unique values for filter dropdowns
-  const allStrategies = [...new Set(results.map((r) => r.strategy))].sort();
-  const allUniverses = [...new Set(results.map((r) => r.universe))].sort();
+  if (loading) return <LoadingState rows={10} />;
+  if (error) return <ErrorState message={error} onRetry={refetch} />;
+
+  const results = data?.results || [];
+  if (results.length === 0) return <EmptyState message="No validations found matching filters" />;
 
   return (
-    <Card title="Validations">
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <select
-          value={strategy}
-          onChange={(e) => setStrategy(e.target.value)}
-          className="bg-[--bg-primary] border border-[--border-subtle] rounded px-3 py-1.5 text-xs text-[--text-secondary] cursor-pointer"
-        >
-          <option value="">All strategies</option>
-          {allStrategies.map((s) => (
-            <option key={s} value={s}>{STRATEGY_LABELS[s] || s}</option>
-          ))}
-        </select>
-        <select
-          value={universe}
-          onChange={(e) => setUniverse(e.target.value)}
-          className="bg-[--bg-primary] border border-[--border-subtle] rounded px-3 py-1.5 text-xs text-[--text-secondary] cursor-pointer"
-        >
-          <option value="">All universes</option>
-          {allUniverses.map((u) => (
-            <option key={u} value={u}>{u}</option>
-          ))}
-        </select>
-        <select
-          value={verdict}
-          onChange={(e) => setVerdict(e.target.value)}
-          className="bg-[--bg-primary] border border-[--border-subtle] rounded px-3 py-1.5 text-xs text-[--text-secondary] cursor-pointer"
-        >
-          <option value="">All verdicts</option>
-          <option value="VALIDATED">VALIDATED</option>
-          <option value="CONDITIONAL">CONDITIONAL</option>
-          <option value="REJECTED">REJECTED</option>
-        </select>
+    <div className="space-y-6">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="bg-white/[0.02] border-b border-[--glass-border] text-[--text-muted] text-[10px] uppercase tracking-widest font-bold">
+              <th className="text-left py-4 px-4">Strategy</th>
+              <th className="text-left py-4 px-4">Asset</th>
+              <th className="text-right py-4 px-4">Trades</th>
+              <th className="text-right py-4 px-4">Win Rate</th>
+              <th className="text-right py-4 px-4">PF</th>
+              <th className="text-right py-4 px-4">Sharpe</th>
+              <th className="text-right py-4 px-4">Robust%</th>
+              <th className="text-center py-4 px-4">Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            {results.map((r, idx) => {
+              const v = VERDICT_COLORS[r.verdict] || VERDICT_COLORS.REJECTED;
+              const isSelected = selectedValidation?.symbol === r.symbol && selectedValidation?.strategy === r.strategy;
+              
+              return (
+                <tr
+                  key={`${r.strategy}-${r.symbol}-${idx}`}
+                  className={`border-b border-white/5 hover:bg-white/[0.04] transition-colors cursor-pointer group ${
+                    isSelected ? 'bg-green-500/[0.05] border-green-500/20' : ''
+                  }`}
+                  onClick={() => setSelectedValidation(r)}
+                >
+                  <td className="py-4 px-4">
+                    <span className="text-white font-medium">{r.strategy.split('_')[0].toUpperCase()}</span>
+                  </td>
+                  <td className="py-4 px-4">
+                    <span className="text-white font-bold group-hover:text-green-400 transition-colors">{r.symbol}</span>
+                  </td>
+                  <td className="py-4 px-4 text-right tabular-nums text-[--text-secondary]">
+                    {r.n_trades}
+                  </td>
+                  <td className="py-4 px-4 text-right tabular-nums text-[--text-secondary]">
+                    {(r.win_rate * 100).toFixed(0)}%
+                  </td>
+                  <td className={`py-4 px-4 text-right tabular-nums font-bold ${r.profit_factor >= 1.5 ? 'text-green-400' : r.profit_factor >= 1 ? 'text-white' : 'text-red-400'}`}>
+                    {r.profit_factor.toFixed(2)}
+                  </td>
+                  <td className="py-4 px-4 text-right tabular-nums text-[--text-secondary]">
+                    {r.sharpe.toFixed(2)}
+                  </td>
+                  <td className="py-4 px-4 text-right tabular-nums">
+                    <div className="flex flex-col items-end">
+                      <span className={r.robustness_pct >= 80 ? 'text-green-400' : 'text-amber-400'}>
+                        {r.robustness_pct.toFixed(0)}%
+                      </span>
+                      <div className="w-12 h-0.5 bg-white/5 rounded-full mt-1">
+                        <div 
+                          className={`h-full rounded-full ${r.robustness_pct >= 80 ? 'bg-green-500' : 'bg-amber-500'}`}
+                          style={{ width: `${r.robustness_pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-4 px-4 text-center">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${v.bg} ${v.text} ${v.border}`}>
+                      {r.verdict}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
-      {loading && <LoadingState rows={5} />}
-      {error && <ErrorState message={error} onRetry={refetch} />}
-      {!loading && !error && results.length === 0 && (
-        <EmptyState message="No validation results found" />
-      )}
-      {!loading && !error && results.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[--border-subtle] text-[--text-muted] text-xs uppercase tracking-wider">
-                <th className="text-left py-2 px-2">Symbol</th>
-                <th className="text-left py-2 px-2">Strategy</th>
-                <th className="text-left py-2 px-2">Universe</th>
-                <th className="text-right py-2 px-2">Trades</th>
-                <th className="text-right py-2 px-2">WR</th>
-                <th className="text-right py-2 px-2">PF</th>
-                <th className="text-right py-2 px-2">Sharpe</th>
-                <th className="text-right py-2 px-2">Robust%</th>
-                <th className="text-right py-2 px-2">p-val</th>
-                <th className="text-center py-2 px-2">Verdict</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((r, i) => {
-                const sc = STRATEGY_COLORS[r.strategy] || STRATEGY_COLORS.rsi2;
-                const vc = VERDICT_COLORS[r.verdict] || {};
-                return (
-                  <tr key={i} className="border-b border-[--border-subtle]/50 hover:bg-[--bg-card-hover] transition-colors">
-                    <td className="py-2.5 px-2 font-medium">{r.symbol}</td>
-                    <td className="py-2.5 px-2">
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${sc.bg} ${sc.text}`}>
-                        {STRATEGY_LABELS[r.strategy] || r.strategy}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-2 text-[--text-secondary] text-xs">{r.universe}</td>
-                    <td className="py-2.5 px-2 text-right">{r.n_trades}</td>
-                    <td className="py-2.5 px-2 text-right">{r.win_rate != null ? `${(r.win_rate * 100).toFixed(1)}%` : '--'}</td>
-                    <td className="py-2.5 px-2 text-right font-medium">{formatPF(r.profit_factor)}</td>
-                    <td className="py-2.5 px-2 text-right text-[--text-secondary]">{r.sharpe != null ? r.sharpe.toFixed(2) : '--'}</td>
-                    <td className="py-2.5 px-2 text-right">{r.robustness_pct != null ? `${r.robustness_pct.toFixed(0)}%` : '--'}</td>
-                    <td className="py-2.5 px-2 text-right text-[--text-secondary]">{r.p_value != null ? r.p_value.toFixed(4) : '--'}</td>
-                    <td className="py-2.5 px-2 text-center">
-                      <span className={`px-2 py-0.5 rounded text-xs font-semibold ${vc.bg || ''} ${vc.text || ''}`}>
-                        {r.verdict}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      {/* Robustness Matrix View */}
+      {selectedValidation && (
+        <div className="animate-fade-in relative">
+          <button 
+            onClick={() => setSelectedValidation(null)}
+            className="absolute right-4 top-4 z-10 p-2 rounded-full hover:bg-white/5 text-[--text-muted] hover:text-white transition-colors cursor-pointer"
+          >
+            <X size={20} />
+          </button>
+          <RobustnessHeatmap 
+            strategy={selectedValidation.strategy.split('_')[0]} 
+            symbol={selectedValidation.symbol} 
+            universe={selectedValidation.universe}
+          />
         </div>
       )}
-    </Card>
+    </div>
   );
 }
