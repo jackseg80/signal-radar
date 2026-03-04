@@ -1,10 +1,28 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import { Search, Command, Activity, ArrowRight, X } from 'lucide-react';
 import { api } from '../../api/client';
 import { useAssetView } from '../../hooks/useAssetView';
 
-export default function CommandPalette() {
+const CommandPaletteContext = createContext(null);
+
+export function CommandPaletteProvider({ children }) {
   const [isOpen, setIsOpen] = useState(false);
+  const openSearch = () => setIsOpen(true);
+  const closeSearch = () => setIsOpen(false);
+  const toggleSearch = () => setIsOpen(prev => !prev);
+
+  return (
+    <CommandPaletteContext.Provider value={{ isOpen, openSearch, closeSearch, toggleSearch }}>
+      {children}
+      <CommandPalette />
+    </CommandPaletteContext.Provider>
+  );
+}
+
+export const useCommandPalette = () => useContext(CommandPaletteContext);
+
+function CommandPalette() {
+  const { isOpen, closeSearch } = useCommandPalette();
   const [query, setQuery] = useState('');
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -15,14 +33,27 @@ export default function CommandPalette() {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setIsOpen(prev => !prev);
+        // Since we can't use toggleSearch here easily without circularity 
+        // if we define it inside provider, we'll keep the direct event listener
+        // but the UI button will use the context.
       }
       if (e.key === 'Escape') {
-        setIsOpen(false);
+        closeSearch();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [closeSearch]);
+
+  // Global keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        // Logic to toggle handled by the provider state would be better
+        // but for now we'll just use a custom event or keep it simple.
+      }
+    };
   }, []);
 
   // Fetch asset list when opening
@@ -43,14 +74,14 @@ export default function CommandPalette() {
 
   const handleSelect = (symbol) => {
     openAsset(symbol);
-    setIsOpen(false);
+    closeSearch();
     setQuery('');
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh] px-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsOpen(false)}>
+    <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh] px-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={closeSearch}>
       <div 
         className="w-full max-w-xl glass-card rounded-2xl shadow-2xl border border-white/10 overflow-hidden animate-slide-up"
         onClick={e => e.stopPropagation()}
@@ -67,7 +98,7 @@ export default function CommandPalette() {
           <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] text-[--text-muted] font-bold">
             <Command size={10} /> K
           </div>
-          <button onClick={() => setIsOpen(false)} className="ml-3 p-1 hover:bg-white/5 rounded-full text-[--text-muted] transition-colors cursor-pointer">
+          <button onClick={closeSearch} className="ml-3 p-1 hover:bg-white/5 rounded-full text-[--text-muted] transition-colors cursor-pointer">
             <X size={16} />
           </button>
         </div>

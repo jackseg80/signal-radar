@@ -3,17 +3,18 @@ import { NavLink } from 'react-router-dom';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { useToasts } from '../../hooks/useToasts.jsx';
 import { useApi } from '../../hooks/useApi';
+import { useCommandPalette } from './CommandPalette.jsx';
 import { api } from '../../api/client';
 import { formatTimestamp } from '../../utils/format';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { LayoutDashboard, LineChart, BookOpen, Activity, RefreshCw, HelpCircle, GraduationCap, Search, Command, Terminal } from 'lucide-react';
 import GuideModal from './GuideModal';
-import CommandPalette from './CommandPalette';
 
 export default function Navbar() {
   const { refreshKey, refresh } = useRefresh();
   const { addToast } = useToasts();
+  const { toggleSearch } = useCommandPalette();
   const { data: signalsData } = useApi(() => api.signalsToday(), [refreshKey]);
   const { data: healthData } = useApi(() => api.health());
 
@@ -75,16 +76,16 @@ export default function Navbar() {
   };
 
   const navItems = [
-    { to: "/", icon: <LayoutDashboard size={18} />, label: "Dashboard", end: true },
-    { to: "/strategies", icon: <GraduationCap size={18} />, label: "Stratégies" },
-    { to: "/backtest", icon: <LineChart size={18} />, label: "Backtest" },
-    { to: "/journal", icon: <BookOpen size={18} />, label: "Journal" },
+    { to: "/", icon: <LayoutDashboard size={16} />, label: "Dashboard", end: true },
+    { to: "/strategies", icon: <GraduationCap size={16} />, label: "Stratégies" },
+    { to: "/backtest", icon: <LineChart size={16} />, label: "Backtest" },
+    { to: "/journal", icon: <BookOpen size={16} />, label: "Journal" },
   ];
 
   const linkClass = ({ isActive }) =>
-    `flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all duration-200 ${
+    `flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 ${
       isActive
-        ? 'bg-green-500/10 text-green-400 font-medium'
+        ? 'bg-green-500/10 text-green-400 font-bold'
         : 'text-[--text-muted] hover:bg-white/5 hover:text-[--text-secondary]'
     }`;
 
@@ -95,27 +96,28 @@ export default function Navbar() {
   return (
     <>
       <header className="h-16 flex items-center justify-between px-6 bg-[--bg-card]/80 backdrop-blur-md border-b border-[--glass-border] sticky top-0 z-50">
-        {/* Logo Area */}
-        <div className="flex items-center shrink-0">
-          <span className="font-bold text-lg tracking-tight text-green-400 flex items-center gap-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            <Activity size={20} className={healthData?.status === 'ok' ? 'animate-pulse-dot flex-shrink-0' : 'flex-shrink-0'} />
-            <span className="hidden xs:inline">SIGNAL RADAR</span>
-          </span>
+        {/* Left Area: Logo + Navigation */}
+        <div className="flex items-center gap-8">
+          <div className="flex items-center shrink-0 mr-4">
+            <span className="font-bold text-lg tracking-tight text-green-400 flex items-center gap-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              <Activity size={20} className={healthData?.status === 'ok' ? 'animate-pulse-dot flex-shrink-0' : 'flex-shrink-0'} />
+              <span className="hidden sm:inline">SIGNAL RADAR</span>
+            </span>
+          </div>
+
+          <nav className="hidden lg:flex items-center gap-1">
+            {navItems.map((item) => (
+              <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>
+                {item.icon}
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+          </nav>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex items-center gap-1 mx-4">
-          {navItems.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>
-              {item.icon}
-              <span className="hidden sm:inline">{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
-
-        {/* Action Area */}
+        {/* Right Area: Actions + Search + Status */}
         <div className="flex items-center gap-2 md:gap-4 shrink-0">
-          <div className="hidden md:flex flex-col text-right max-w-[200px]">
+          <div className="hidden md:flex flex-col text-right max-w-[180px]">
             {scanning ? (
               <div className="flex items-center gap-2 justify-end">
                 <span className="text-[9px] text-amber-400 font-bold animate-pulse truncate">
@@ -125,11 +127,7 @@ export default function Navbar() {
               </div>
             ) : (
               <div className="text-[10px] text-[--text-muted] flex items-center justify-end gap-2">
-                {relativeTime ? (
-                  <span>Scan : {relativeTime}</span>
-                ) : (
-                  <span>Prêt à scanner</span>
-                )}
+                {relativeTime ? <span>Scan : {relativeTime}</span> : <span>Prêt à scanner</span>}
                 <div className="w-12 h-0.5 bg-white/5 rounded-full overflow-hidden mt-0.5" title="Prochain auto-refresh">
                   <div className={`h-full bg-blue-500/40 transition-all duration-1000 linear`} style={{ width: `${refreshProgress}%` }} />
                 </div>
@@ -139,12 +137,12 @@ export default function Navbar() {
 
           <div className="flex gap-2">
              <button
-                onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, metaKey: true }))}
-                className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all duration-300 cursor-pointer bg-white/5 text-[--text-muted] hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10"
+                onClick={toggleSearch}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all duration-300 cursor-pointer bg-white/5 text-[--text-muted] hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10"
                 title="Recherche Globale (Ctrl+K)"
               >
                 <Search size={16} />
-                <div className="flex items-center gap-1 text-[10px] opacity-50">
+                <div className="hidden xl:flex items-center gap-1 text-[10px] opacity-50">
                   <Command size={10} />
                   <span>K</span>
                 </div>
@@ -152,11 +150,11 @@ export default function Navbar() {
 
              <button
                 onClick={() => setIsGuideOpen(true)}
-                className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all duration-300 cursor-pointer bg-white/5 text-[--text-muted] hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10"
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all duration-300 cursor-pointer bg-white/5 text-[--text-muted] hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10"
                 title="Aide Rapide"
               >
                 <HelpCircle size={16} />
-                <span>Aide</span>
+                <span className="hidden xl:inline text-xs">Aide</span>
               </button>
 
              <button
@@ -178,6 +176,7 @@ export default function Navbar() {
               <button
                 onClick={() => {
                   refresh();
+                  setRefreshProgress(0);
                   addToast("Données rafraîchies");
                 }}
                 className="p-1.5 rounded-lg border border-[--glass-border] text-[--text-secondary] hover:bg-white/5 hover:text-[--text-primary] transition-colors cursor-pointer flex items-center justify-center bg-[--bg-primary]"
@@ -190,13 +189,12 @@ export default function Navbar() {
           {/* Status indicator */}
           <div className="flex items-center gap-1.5 ml-1 md:ml-2 md:pl-4 border-l border-[--glass-border]">
              <span className={`w-1.5 h-1.5 rounded-full ${healthData?.status === 'ok' ? 'bg-green-500' : 'bg-red-500'}`} />
-             <span className="text-[10px] text-[--text-muted] hidden lg:inline uppercase tracking-widest">v1.0</span>
+             <span className="text-[10px] text-[--text-muted] hidden lg:inline uppercase tracking-widest">v3.0</span>
           </div>
         </div>
       </header>
 
       <GuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
-      <CommandPalette />
     </>
   );
 }
