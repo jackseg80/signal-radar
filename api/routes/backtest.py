@@ -80,6 +80,9 @@ def compare_strategies(
             matrix.setdefault(sym, {})[strat] = {
                 "pf": v["profit_factor"],
                 "verdict": v["verdict"],
+                "win_rate": v["win_rate"],
+                "n_trades": v["n_trades"],
+                "sharpe": v["sharpe"]
             }
 
     return {
@@ -97,7 +100,6 @@ def get_robustness(
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Calculate and return robustness matrix for a specific asset/strategy."""
-    # Find matching strategy key (handle short or long names)
     strat_key = None
     for k in STRATEGIES_MAP:
         if k in strategy.lower():
@@ -117,7 +119,6 @@ def get_robustness(
     cache = IndicatorCache(df)
     strat_obj.build_cache(cache)
     
-    # Simple defaults for on-the-fly robustness
     from engine.backtest_config import BacktestConfig
     from engine.fee_model import US_STOCKS_USD
     config = BacktestConfig(symbol=symbol, capital=10000.0, whole_shares=True, fee_model=US_STOCKS_USD)

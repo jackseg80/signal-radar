@@ -2,12 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useRefresh } from '../../hooks/useRefresh.jsx';
 import { api } from '../../api/client';
-import { formatPF, VERDICT_COLORS, getAssetType, ASSET_TYPES } from '../../utils/format';
+import { formatPF, VERDICT_COLORS, getAssetType } from '../../utils/format';
 import Card from '../ui/Card';
 import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
-import { ChevronUp, ChevronDown, Info, ShieldCheck, AlertTriangle, Filter } from 'lucide-react';
+import { ChevronUp, ChevronDown, Info, ShieldCheck, AlertTriangle, Filter, Activity, Target } from 'lucide-react';
 
 const getHeatmapColor = (pf, verdict) => {
   if (!pf || pf <= 0) return 'bg-white/[0.02] text-[--text-muted]';
@@ -38,12 +38,18 @@ export default function CompareMatrix() {
   const filteredAndSortedAssets = useMemo(() => {
     if (!data?.assets) return [];
     
-    // 1. Calculate scores and types
     let assets = data.assets.map(symbol => {
       const strats = data.matrix[symbol] || {};
-      const validStrats = Object.values(strats).filter(s => s.verdict === 'VALIDATED');
+      const allStrats = Object.values(strats);
+      const validStrats = allStrats.filter(s => s.verdict === 'VALIDATED');
+      
       const avgPf = validStrats.length > 0 
         ? validStrats.reduce((sum, s) => sum + s.pf, 0) / validStrats.length 
+        : 0;
+      
+      const totalTrades = allStrats.reduce((sum, s) => sum + (s.n_trades || 0), 0);
+      const avgWr = allStrats.length > 0
+        ? allStrats.reduce((sum, s) => sum + (s.win_rate || 0), 0) / allStrats.length
         : 0;
       
       const assetType = getAssetType(symbol);
@@ -53,22 +59,26 @@ export default function CompareMatrix() {
         score: validStrats.length + (avgPf / 10),
         avgPf,
         validCount: validStrats.length,
+        totalTrades,
+        avgWr,
         type: assetType
       };
     });
 
-    // 2. Filter by type
     if (assetTypeFilter) {
       assets = assets.filter(a => a.type.label.toUpperCase().includes(assetTypeFilter.toUpperCase()));
     }
 
-    // 3. Sort
     return assets.sort((a, b) => {
       let aVal, bVal;
       if (sortConfig.key === 'symbol') {
         aVal = a.symbol; bVal = b.symbol;
       } else if (sortConfig.key === 'score') {
         aVal = a.score; bVal = b.score;
+      } else if (sortConfig.key === 'trades') {
+        aVal = a.totalTrades; bVal = b.totalTrades;
+      } else if (sortConfig.key === 'wr') {
+        aVal = a.avgWr; bVal = b.avgWr;
       } else {
         aVal = data.matrix[a.symbol]?.[sortConfig.key]?.pf || 0;
         bVal = data.matrix[b.symbol]?.[sortConfig.key]?.pf || 0;
@@ -84,11 +94,9 @@ export default function CompareMatrix() {
   if (error) return <Card title="Matrice de Confiance"><ErrorState message={error} onRetry={refetch} /></Card>;
 
   const strategies = data?.strategies || [];
-  const stickyTop = "top-[124px]"; // Just below tabs
 
   return (
     <div className="space-y-0 relative">
-      {/* Mini filter bar for matrix */}
       <div className="sticky top-[124px] z-[35] bg-[--bg-primary] pb-4">
         <div className="flex items-center gap-4 p-3 bg-white/[0.02] border border-white/5 rounded-xl backdrop-blur-md">
           <div className="flex items-center gap-2">
@@ -114,7 +122,7 @@ export default function CompareMatrix() {
 
       <Card 
         title="Matrice de Confiance Stratégique" 
-        subtitle="Visualisation de la robustesse croisée par actif"
+        subtitle="Robustesse croisée et performance agrégée par actif"
         noPadding
         noScroll
       >
@@ -128,6 +136,12 @@ export default function CompareMatrix() {
                 <th className="text-center py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: 'score', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
                   Confiance
                 </th>
+                <th className="text-right py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: 'trades', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })} title="Total des trades sur toutes les stratégies">
+                  <div className="flex items-center justify-end gap-1"><Activity size={10} /> Activité</div>
+                </th>
+                <th className="text-right py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: 'wr', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })} title="Win Rate moyen toutes stratégies confondues">
+                  <div className="flex items-center justify-end gap-1"><Target size={10} /> Précision</div>
+                </th>
                 {strategies.map((s) => (
                   <th key={s} className="text-center py-4 px-4 border-b border-[--glass-border] cursor-pointer hover:text-white" onClick={() => setSortConfig({ key: s, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
                     {s.split('_')[0]}
@@ -136,7 +150,7 @@ export default function CompareMatrix() {
               </tr>
             </thead>
             <tbody>
-              {filteredAndSortedAssets.map(({ symbol, validCount, type }) => (
+              {filteredAndSortedAssets.map(({ symbol, validCount, type, totalTrades, avgWr }) => (
                 <tr key={symbol} className="border-b border-white/5 hover:bg-white/[0.02] transition-all group">
                   <td className="py-4 px-6">
                     <div className="flex flex-col">
@@ -156,6 +170,12 @@ export default function CompareMatrix() {
                         />
                       ))}
                     </div>
+                  </td>
+                  <td className="py-4 px-4 text-right tabular-nums font-medium text-[--text-secondary]">
+                    {totalTrades}
+                  </td>
+                  <td className={`py-4 px-4 text-right tabular-nums font-bold ${avgWr >= 0.6 ? 'text-green-400' : 'text-[--text-muted]'}`}>
+                    {(avgWr * 100).toFixed(0)}%
                   </td>
                   {strategies.map((strat) => {
                     const val = data.matrix[symbol]?.[strat];
@@ -181,26 +201,32 @@ export default function CompareMatrix() {
           </table>
         </div>
         
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/[0.01] border-t border-white/5">
+        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 bg-white/[0.01] border-t border-white/5">
           <div className="space-y-2">
             <h5 className="text-[10px] font-bold uppercase tracking-widest text-white flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-500" />
-              Lecture de la Matrice
+              Heatmap PF
             </h5>
             <p className="text-[10px] text-[--text-muted] leading-relaxed">
-              Les cases <strong>lumineuses</strong> indiquent une performance robuste (VALIDATED). 
-              Les cases <strong>grisées</strong> indiquent une performance "trompeuse" (REJECTED) : 
-              le Profit Factor peut être élevé, mais il n'a pas passé les tests de stabilité ou de robustesse.
+              L'intensité du vert représente le Profit Factor. Les cases grisées indiquent un échec de robustesse (REJECTED).
+            </p>
+          </div>
+          <div className="space-y-2">
+            <h5 className="text-[10px] font-bold uppercase tracking-widest text-white flex items-center gap-2">
+              <Activity size={12} className="text-blue-400" />
+              Activité & Précision
+            </h5>
+            <p className="text-[10px] text-[--text-muted] leading-relaxed">
+              L'activité est le cumul des trades historiques. La précision est le taux de succès moyen.
             </p>
           </div>
           <div className="space-y-2">
             <h5 className="text-[10px] font-bold uppercase tracking-widest text-white flex items-center gap-2">
               <ShieldCheck size={12} className="text-green-400" />
-              Score de Confiance
+              Confiance
             </h5>
             <p className="text-[10px] text-[--text-muted] leading-relaxed">
-              Plus un actif a de boucliers, plus il est validé sur un grand nombre de stratégies différentes. 
-              C'est un excellent indicateur pour la diversification de votre portefeuille.
+              Nombre de stratégies où l'actif est pleinement <strong>VALIDATED</strong>.
             </p>
           </div>
         </div>
