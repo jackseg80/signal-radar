@@ -313,14 +313,15 @@ class SignalRadarDB:
             pnl = r.get("pnl_dollars") or 0
             by_strategy[s]["pnl"] += pnl; by_strategy[s]["trades"] += 1
             if pnl > 0: by_strategy[s]["wins"] += 1
-        n_open = self._query_one("SELECT COUNT(*) as count FROM paper_positions WHERE status = 'open'").get("count", 0)
+        row = self._query_one("SELECT COUNT(*) as count FROM paper_positions WHERE status = 'open'")
+        n_open = row["count"] if row else 0
         return {"n_trades": n_trades, "n_wins": wins, "win_rate": round(wins/n_trades*100, 1) if n_trades > 0 else 0.0, "total_pnl": round(total_pnl, 2), "n_open": n_open, "by_strategy": by_strategy}
 
     # -- Live Trades --
     def open_live_trade(self, strategy: str, symbol: str, entry_date: str, entry_price: float, shares: float, fees: float = 0, paper_position_id: int | None = None) -> bool:
         try:
             with self._connect() as conn:
-                conn.execute("INSERT INTO live_trades (strategy, symbol, entry_date, entry_price, shares, fees_entry, paper_position_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'open')", (strategy, symbol, entry_date, entry_price, shares, fees, paper_position_id))
+                conn.execute("INSERT INTO live_trades (strategy, symbol, entry_date, entry_price, shares, fees_entry, paper_position_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'open')", (strategy, symbol, date, price, shares, fees, paper_position_id))
                 return True
         except sqlite3.IntegrityError: return False
 
@@ -356,7 +357,8 @@ class SignalRadarDB:
             pnl = r.get("pnl_dollars") or 0
             by_strategy[s]["pnl"] += pnl; by_strategy[s]["trades"] += 1
             if pnl > 0: by_strategy[s]["wins"] += 1
-        n_open = self._query_one("SELECT COUNT(*) as count FROM live_trades WHERE status = 'open'").get("count", 0)
+        row = self._query_one("SELECT COUNT(*) as count FROM live_trades WHERE status = 'open'")
+        n_open = row["count"] if row else 0
         return {"n_trades": n_trades, "n_wins": wins, "win_rate": round(wins/n_trades*100, 1) if n_trades > 0 else 0.0, "total_pnl": round(total_pnl, 2), "n_open": n_open, "by_strategy": by_strategy}
 
     # -- Logs & Journal --
@@ -415,14 +417,16 @@ class SignalRadarDB:
     def get_journal_entries(self, strategy: str | None = None, symbol: str | None = None, source: str | None = None, search: str | None = None, limit: int = 50) -> dict:
         entries = []
         with self._connect() as conn:
+            # Use query method to get dicts directly
             conn.row_factory = sqlite3.Row
+            
             # Fetch paper
             if source != 'live':
                 q = "SELECT * FROM paper_positions WHERE 1=1"
                 p = []
                 if strategy: q += " AND strategy = ?"; p.append(strategy)
                 if symbol: q += " AND symbol = ?"; p.append(symbol)
-                for d in conn.execute(q, p).fetchall():
+                for d in [dict(r) for r in conn.execute(q, p).fetchall()]:
                     entries.append({"id": d["id"], "source": "paper", "strategy": d["strategy"], "symbol": d["symbol"], "status": d["status"], "entry_date": d["entry_date"], "entry_price": d["entry_price"], "exit_date": d.get("exit_date"), "exit_price": d.get("exit_price"), "shares": d["shares"], "fees": 0, "pnl_dollars": d.get("pnl_dollars"), "pnl_pct": d.get("pnl_pct"), "notes": d.get("notes") or "", "tags": d.get("tags") or "", "sentiment": d.get("sentiment") or "", "holding_days": None, "signal_details": None, "slippage": None})
             
             # Fetch live
@@ -431,19 +435,17 @@ class SignalRadarDB:
                 p = []
                 if strategy: q += " AND strategy = ?"; p.append(strategy)
                 if symbol: q += " AND symbol = ?"; p.append(symbol)
-                for d in conn.execute(q, p).fetchall():
+                for d in [dict(r) for r in conn.execute(q, p).fetchall()]:
                     entries.append({"id": d["id"], "source": "live", "strategy": d["strategy"], "symbol": d["symbol"], "status": d["status"], "entry_date": d["entry_date"], "entry_price": d["entry_price"], "exit_date": d.get("exit_date"), "exit_price": d.get("exit_price"), "shares": d["shares"], "fees": (d.get("fees_entry") or 0) + (d.get("fees_exit") or 0), "pnl_dollars": d.get("pnl_dollars"), "pnl_pct": d.get("pnl_pct"), "notes": d.get("notes") or "", "tags": d.get("tags") or "", "sentiment": d.get("sentiment") or "", "paper_position_id": d.get("paper_position_id"), "holding_days": None, "signal_details": None, "slippage": None})
             
             if search:
                 s = search.lower()
                 entries = [e for e in entries if s in e["symbol"].lower() or s in e["notes"].lower() or (e["tags"] and s in e["tags"].lower())]
             
-            # Simplified sort and slice
             entries.sort(key=lambda x: x["entry_date"], reverse=True)
             total = len(entries)
             entries = entries[:limit]
             
-            # Minimal summary stats to avoid div by zero
             closed = [e for e in entries if e["status"] == "closed"]
             wins = sum(1 for e in closed if (e["pnl_dollars"] or 0) > 0)
             total_pnl = sum(e["pnl_dollars"] or 0 for e in closed)
