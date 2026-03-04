@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { cn } from '../../lib/utils';
 
-export default function AssetIcon({ symbol, logoUrl, className, size = 'md' }) {
+export default function AssetIcon({ symbol, className, size = 'md' }) {
   const [error, setError] = useState(false);
 
   const sizeClasses = {
@@ -13,11 +13,13 @@ export default function AssetIcon({ symbol, logoUrl, className, size = 'md' }) {
 
   const fallback = symbol ? symbol.substring(0, 2).toUpperCase() : '??';
   
-  // ONLY use the URL provided by the backend.
-  // If backend returns null, we show the fallback initials immediately.
-  const finalUrl = logoUrl && !error ? logoUrl : null;
+  // ALWAYS use our internal proxy. The backend will decide if it can serve an image or 404.
+  // We avoid Forex symbols (=X) as they rarely have meaningful company logos.
+  const proxyUrl = (symbol && !symbol.includes('=X') && !error) 
+    ? `/api/market/asset/${symbol}/logo` 
+    : null;
 
-  if (finalUrl) {
+  if (proxyUrl) {
     return (
       <div className={cn(
         "rounded-lg bg-white overflow-hidden flex items-center justify-center shrink-0 border border-white/10 shadow-sm",
@@ -25,7 +27,7 @@ export default function AssetIcon({ symbol, logoUrl, className, size = 'md' }) {
         className
       )}>
         <img 
-          src={finalUrl} 
+          src={proxyUrl} 
           alt={symbol}
           className="w-full h-full object-contain p-1"
           onError={() => setError(true)}

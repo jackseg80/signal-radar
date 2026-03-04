@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 
 from api.dependencies import get_db
+from api.routes.market import get_proxy_url
 from data.db import SignalRadarDB
 
 router = APIRouter()
@@ -18,9 +19,6 @@ def get_today_signals(
     """Latest entry/exit signals for all enabled strategies."""
     ts, all_signals = db.get_latest_signals(strategy=strategy)
     
-    # Get all metadata
-    metadata_map = db.get_all_metadata()
-
     # Group by strategy
     strategies: dict[str, dict] = {}
     for s in all_signals:
@@ -31,14 +29,10 @@ def get_today_signals(
             strategies[strat] = {"label": label, "signals": []}
         
         sym = s["symbol"]
-        meta = metadata_map.get(sym)
-        if not meta:
-            meta = db.get_asset_metadata(sym) or {}
         
         strategies[strat]["signals"].append({
             "symbol": sym,
-            "name": meta.get("name") or sym,
-            "logo_url": meta.get("logo_url"),
+            "logo_url": get_proxy_url(sym),
             "signal": s["signal"],
             "close_price": s["close_price"],
             "indicator_value": s["indicator_value"],
@@ -63,18 +57,9 @@ def get_signal_history(
         strategy=strategy, signal_type=signal_type, days=days
     )
     
-    # Get all metadata
-    metadata_map = db.get_all_metadata()
-    
-    # Attach metadata to history
+    # Attach local proxy URLs
     for s in history:
-        sym = s["symbol"]
-        meta = metadata_map.get(sym)
-        if not meta:
-            meta = db.get_asset_metadata(sym) or {}
-            
-        s["name"] = meta.get("name") or sym
-        s["logo_url"] = meta.get("logo_url")
+        s["logo_url"] = get_proxy_url(s["symbol"])
 
     return {
         "total": len(history),
