@@ -8,6 +8,7 @@ A comprehensive quantitative trading platform for US stocks and ETFs, specializi
 - **Modular Framework**: Generic simulation engine with realistic fee models, gap-aware execution, and slippage.
 - **Validation Pipeline**: Automated robustness testing (48 parameter combinations), sub-period stability analysis, and statistical significance (T-tests).
 - **Web Dashboard**: Modern React interface (Vite + Tailwind v4) to visualize signals, equity curves, and proximity alerts.
+- **Interactive Strategies**: Educational "Playground" to visualize and understand the mechanics of each trading strategy (IBS, RSI2, TOM).
 - **Unified SQLite DB**: Single source of truth for OHLCV data, backtest results, and trade logs.
 - **Telegram Notifications**: Instant alerts for entry/exit signals and weekly performance summaries.
 
