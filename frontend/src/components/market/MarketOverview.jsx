@@ -88,8 +88,8 @@ export default function MarketOverview({ className, onSymbolClick }) {
         aVal = a.has_open_position ? 1 : 0;
         bVal = b.has_open_position ? 1 : 0;
       } else if (STRATEGY_ORDER.includes(sortConfig.key)) {
-        aVal = a.strategies[sortConfig.key]?.indicator_value ?? -Infinity;
-        bVal = b.strategies[sortConfig.key]?.indicator_value ?? -Infinity;
+        aVal = a.strategies?.[sortConfig.key]?.indicator_value ?? -Infinity;
+        bVal = b.strategies?.[sortConfig.key]?.indicator_value ?? -Infinity;
       }
 
       if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -101,12 +101,12 @@ export default function MarketOverview({ className, onSymbolClick }) {
   if (loading) return <Card title="Market Overview" className={className}><LoadingState rows={8} /></Card>;
   if (error) return <Card title="Market Overview" className={className}><ErrorState message={error} onRetry={refetch} /></Card>;
 
-  if (sortedAssets.length === 0) {
+  if (!data?.assets || data.assets.length === 0) {
     return <Card title="Market Overview" className={className}><EmptyState message="No market data" /></Card>;
   }
 
   const activeStrategies = STRATEGY_ORDER.filter((s) =>
-    data.assets.some((a) => a.strategies[s])
+    data.assets.some((a) => a.strategies?.[s])
   );
 
   return (
@@ -158,7 +158,7 @@ export default function MarketOverview({ className, onSymbolClick }) {
                 >
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => onSymbolClick && onSymbolClick(a.symbol)}>
-                      <AssetIcon symbol={a.symbol} logoUrl={a.logo_url} size="sm" />
+                      <AssetIcon symbol={a.symbol} size="sm" />
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-white group-hover:text-green-400 transition-colors">{a.symbol}</span>
@@ -174,48 +174,23 @@ export default function MarketOverview({ className, onSymbolClick }) {
                     {formatPrice(a.close)}
                   </td>
                   {activeStrategies.map((s) => {
-                    const strat = a.strategies[s];
+                    const strat = a.strategies?.[s];
                     if (!strat || strat.signal == null) {
                       return <td key={s} className="py-4 px-4 text-center text-[--text-muted] opacity-30">--</td>;
                     }
                     const sig = SIGNAL_COLORS[strat.signal] || SIGNAL_COLORS.NO_SIGNAL;
 
-                    let barPct = 0;
-                    let barColor = 'var(--text-muted)';
-                    let valueTooltip = "";
-
-                    if (s === 'rsi2' && strat.indicator_value != null) {
-                      barPct = Math.max(0, Math.min(100, (1 - strat.indicator_value / 30) * 100));
-                      barColor = strat.indicator_value < 10 ? 'var(--accent-green)' : strat.indicator_value < 20 ? 'var(--accent-amber)' : 'var(--text-muted)';
-                      valueTooltip = `Valeur RSI(2). < 10 est la zone d'achat idéale.`;
-                    } else if (s === 'ibs' && strat.indicator_value != null) {
-                      barPct = Math.max(0, Math.min(100, (1 - strat.indicator_value / 0.5) * 100));
-                      barColor = strat.indicator_value < 0.2 ? 'var(--accent-green)' : strat.indicator_value < 0.35 ? 'var(--accent-amber)' : 'var(--text-muted)';
-                      valueTooltip = `Valeur IBS. < 0.2 est la zone d'achat idéale.`;
-                    } else if (s === 'tom') {
-                      valueTooltip = `Jours restants avant la fin du mois.`;
-                    }
-
                     return (
                       <td key={s} className="py-4 px-4">
                         <div className="flex flex-col items-center gap-1.5">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${sig.bg} ${sig.text}`} title={strat.signal === 'SKIP' ? "SKIP : Condition de tendance non remplie." : ""}>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${sig.bg} ${sig.text}`}>
                             {strat.signal === 'NO_SIGNAL' ? '--' : strat.signal}
                           </span>
-                          
                           {strat.indicator_value != null && (
-                            <div className="flex flex-col items-center" title={valueTooltip}>
-                              <span className="text-[10px] text-[--text-secondary] tabular-nums font-medium">
-                                {Number(strat.indicator_value).toFixed(s === 'ibs' ? 2 : s === 'rsi2' ? 1 : 0)}
-                              </span>
-                              {(s === 'rsi2' || s === 'ibs') && (
-                                <div className="w-10 h-1 rounded-full bg-white/5 overflow-hidden mt-0.5">
-                                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${barPct}%`, backgroundColor: barColor }} />
-                                </div>
-                              )}
-                            </div>
+                            <span className="text-[10px] text-[--text-secondary] tabular-nums font-medium">
+                              {Number(strat.indicator_value).toFixed(s === 'ibs' ? 2 : s === 'rsi2' ? 1 : 0)}
+                            </span>
                           )}
-                          {strat.proximity?.near && <ProximityBar proximity={strat.proximity} strategy={s} />}
                         </div>
                       </td>
                     );
@@ -225,7 +200,7 @@ export default function MarketOverview({ className, onSymbolClick }) {
                       <div className="flex flex-col items-center gap-1">
                         <span className="text-green-400 text-[10px] font-bold uppercase tracking-widest bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">OPEN</span>
                         <div className="flex gap-1 justify-center">
-                          {a.position_strategies.map((s) => {
+                          {(a.position_strategies || []).map((s) => {
                             const sc = STRATEGY_COLORS[s] || STRATEGY_COLORS.rsi2;
                             return <span key={s} className={`text-[8px] uppercase font-bold ${sc.text}`}>{STRATEGY_LABELS[s] || s}</span>;
                           })}

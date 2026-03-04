@@ -14,7 +14,6 @@ router = APIRouter()
 INDICATOR_LABELS = {"rsi2": "RSI(2)", "ibs": "IBS", "tom": "Days left"}
 _PROXIMITY_SIGNALS = {"NO_SIGNAL", "WATCH"}
 
-# Master mapping for proxy - no external URLs sent to frontend anymore
 COMMON_DOMAINS = {
     "AAPL": "apple.com", "MSFT": "microsoft.com", "GOOGL": "google.com", "AMZN": "amazon.com",
     "META": "meta.com", "NVDA": "nvidia.com", "TSLA": "tesla.com", "AMD": "amd.com",
@@ -30,20 +29,8 @@ COMMON_DOMAINS = {
 }
 
 def get_proxy_url(symbol: str) -> str | None:
-    """Standardized local proxy URL."""
-    if not symbol or symbol.endswith("=X"): return None
+    if not symbol or "=X" in symbol: return None
     return f"/api/market/asset/{symbol}/logo"
-
-def _compute_proximity(strategy: str, details: dict, params: dict) -> dict | None:
-    if not details: return None
-    if strategy == "rsi2":
-        rsi = details.get("rsi2")
-        if rsi is None: return None
-        threshold = params.get("rsi_entry_threshold", 10.0)
-        near_zone = threshold * 2
-        pct = 100.0 if rsi <= threshold else (0.0 if rsi >= near_zone else (near_zone - rsi) / (near_zone - threshold) * 100)
-        return {"near": rsi < near_zone and rsi > threshold, "pct": round(pct, 1), "trend_ok": details.get("trend_ok"), "label": f"RSI={rsi:.1f}"}
-    return None
 
 @router.get("/overview")
 def get_market_overview(db: SignalRadarDB = Depends(get_db)) -> dict:
@@ -52,7 +39,6 @@ def get_market_overview(db: SignalRadarDB = Depends(get_db)) -> dict:
     signal_map = {(s["strategy"], s["symbol"]): s for s in all_signals}
     open_pos_map = {p["symbol"]: True for p in db.get_open_positions()}
     
-    # Pre-calculate assets membership
     asset_membership = {}
     for s_name, s_cfg in strategies_cfg.items():
         if not s_cfg.get("enabled", False): continue
@@ -72,10 +58,12 @@ def get_market_overview(db: SignalRadarDB = Depends(get_db)) -> dict:
         
         assets.append({
             "symbol": sym, 
+            "name": sym,
             "logo_url": get_proxy_url(sym), 
             "close": close_price, 
             "strategies": strat_data, 
-            "has_open_position": sym in open_pos_map
+            "has_open_position": sym in open_pos_map,
+            "position_strategies": [] # Added back to avoid frontend undefined.map
         })
     return {"scanner_timestamp": ts, "assets": assets}
 
@@ -89,6 +77,7 @@ def get_asset_details(symbol: str, db: SignalRadarDB = Depends(get_db)) -> dict:
     
     return {
         "symbol": symbol, 
+        "name": symbol,
         "logo_url": get_proxy_url(symbol), 
         "last_price": last_price, 
         "timestamp": ts, 
@@ -99,18 +88,16 @@ def get_asset_details(symbol: str, db: SignalRadarDB = Depends(get_db)) -> dict:
 
 @router.get("/asset/{symbol}/logo")
 async def get_asset_logo_proxy(symbol: str, db: SignalRadarDB = Depends(get_db)):
-    """Ultra-robust logo proxy: uses DB, then Common Mapping, then Google."""
     domain = COMMON_DOMAINS.get(symbol)
     if not domain:
         meta = db.get_asset_metadata(symbol)
         if meta and meta.get("logo_url") and "logo.clearbit.com/" in meta["logo_url"]:
             domain = meta["logo_url"].split("logo.clearbit.com/")[1]
     
-    if not domain:
-        domain = f"{symbol.lower()}.com"
+    if not domain: domain = f"{symbol.lower()}.com"
+    if "=X" in symbol: raise HTTPException(status_code=404)
 
     url = f"https://www.google.com/s2/favicons?domain={domain}&sz=128"
-    
     try:
         async with httpx.AsyncClient(verify=False, timeout=5.0) as client:
             resp = await client.get(url, follow_redirects=True)
