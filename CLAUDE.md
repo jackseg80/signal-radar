@@ -819,13 +819,17 @@ Page /journal dans le dashboard : timeline unifiee des trades paper et live, ave
 
 ## Dashboard Polish (COMPLETE)
 
-4 ameliorations UX groupees : Win Rate ring, auto-refresh, mobile responsive, Telegram daily summary.
+5 ameliorations UX groupees : Dashboard interactif, Win Rate ring, auto-refresh, mobile responsive, Telegram daily summary.
 
 ### Frontend
 
-- `frontend/src/components/performance/StrategyBreakdown.jsx` : Win Rate card -- `isRing: n_closed_trades > 0` (affiche "--" si 0 trades fermes, plus d'anneau rouge vide trompeur)
-- `frontend/src/hooks/useRefresh.jsx` : auto-refresh toutes les 5 minutes via `setInterval` (tous les composants se rafraichissent automatiquement apres le scan)
-- `frontend/src/components/layout/Navbar.jsx` : responsive mobile -- `flex-wrap`, `min-h-12`, gap reduit sur mobile, "Last scan" cache sur petit ecran (`hidden sm:inline`), logo `shrink-0`
+- **Dashboard Interactif** : Refonte en Bento Grid avec support Drag & Drop et Resize (react-grid-layout).
+- **Persistance** : Sauvegarde automatique du layout dans le localStorage.
+- **Navigation** : Sidebar ajustable et Command Center modernise avec Lucide React.
+- **Visualisation** : Integration de Market Overview dans la grille draggable et fiabilisation du layout.
+- **Feedback** : Win Rate card -- `isRing: n_closed_trades > 0` (affiche "--" si 0 trades fermes).
+- **Automation** : auto-refresh toutes les 5 minutes via `setInterval`.
+- **Responsive** : Navbar mobile-friendly (`flex-wrap`, `min-h-12`).
 
 Note : toutes les tables avaient deja `overflow-x-auto` et les signal cards avaient deja un grid responsive. Seule la Navbar necessitait un ajustement.
 

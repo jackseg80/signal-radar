@@ -1,143 +1,98 @@
 # signal-radar
 
-RSI(2) mean reversion signal scanner for US stocks. Generates daily buy/sell signals
-for manual execution on SaxoBank.
+A comprehensive quantitative trading platform for US stocks and ETFs, specializing in Mean Reversion and Seasonal strategies. It provides a modular backtesting framework, an automated daily scanner, and a web dashboard for performance tracking.
 
-## Strategy
+## Key Features
 
-- **RSI(2) Connors mean reversion** (published 2004, still profitable on tech large-caps)
-- **Universe**: META, MSFT, GOOGL, NVDA (all validated)
-- **Entry**: RSI(2) < 10 + Close > SMA(200) × 1.01
-- **Exit**: Close > SMA(5) or Close < SMA(200)
-- Long only, no stop-loss, ~2–5 day holding period
-- Fee model: `us_stocks_usd_account` ($1 commission + 0.05% spread, no FX)
+- **Multi-Strategy Scanner**: Automated daily scanning for RSI(2), IBS, and Turn-of-the-Month signals.
+- **Modular Framework**: Generic simulation engine with realistic fee models, gap-aware execution, and slippage.
+- **Validation Pipeline**: Automated robustness testing (48 parameter combinations), sub-period stability analysis, and statistical significance (T-tests).
+- **Web Dashboard**: Modern React interface (Vite + Tailwind v4) to visualize signals, equity curves, and proximity alerts.
+- **Unified SQLite DB**: Single source of truth for OHLCV data, backtest results, and trade logs.
+- **Telegram Notifications**: Instant alerts for entry/exit signals and weekly performance summaries.
 
-## Results (OOS 2014-2025, $10k, whole shares)
+## Strategies
 
-| Ticker | Trades | WR  | PF   | Robust | Verdict   |
-|--------|--------|-----|------|--------|-----------|
-| META   | 93     | 74% | 3.49 | 100%   | VALIDATED |
-| MSFT   | 85     | 72% | 1.66 | 100%   | VALIDATED |
-| GOOGL  | 90     | 67% | 1.72 | 100%   | VALIDATED |
-| NVDA   | 96     | 67% | 1.48 | 100%   | VALIDATED |
+1. **RSI(2) Mean Reversion**: Exploits short-term oversold conditions (Connors).
+2. **IBS (Internal Bar Strength)**: Mean reversion based on daily range positioning.
+3. **Turn of the Month (TOM)**: Exploits seasonal calendar biases in US indices and large caps.
+4. **Donchian Trend**: Trend-following framework (validated for Forex).
 
-100% of 48 parameter combinations profitable for all 4 validated stocks.
-Pooled t-test: 508 trades, t=4.27, p=0.0000.
+### Validated Universe (OOS 2014-2025)
 
-> **Requirement**: USD sub-account on Saxo mandatory. FX conversion (0.25%/trade on EUR
-> account) destroys the edge.
+| Strategy | Typical Assets | WR | PF | Status |
+|----------|----------------|----|----|--------|
+| **RSI(2)** | META, MSFT, NVDA, GOOGL | 70%+ | 1.6+ | **VALIDATED** |
+| **IBS** | AAPL, MSFT, QQQ | 68%+ | 1.5+ | **VALIDATED** |
+| **TOM** | SPY, QQQ, META, AAPL | 60%+ | 1.4+ | **VALIDATED** |
+
+> **Requirement**: USD sub-account on Saxo/Interactive Brokers is mandatory. FX conversion fees (0.25%/trade) will destroy the edge of these short-term strategies.
 
 ## Quick Start
 
 ```bash
-# Install
-pip install -e ".[dev]"
+# Install dependencies
+pip install -e ".[dev,api,analysis]"
 
-# Run tests
+# Run unit tests (440+ tests)
 pytest tests/ -v
 
-# Run daily scanner (after US close ~22:00 CET)
-python scripts/daily_scanner.py
+# Start local development API
+uvicorn api.app:app --reload
+
+# Start Frontend (in a separate terminal)
+cd frontend && npm run dev
 ```
 
-## Docker (production)
+## Production (Docker)
+
+The production stack includes the automated scanner (cron) and the dashboard API.
 
 ```bash
-cp .env.example .env          # fill TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID
-docker compose up -d          # starts scanner + cron (22:15 Sun–Fri, Europe/Zurich)
-docker compose exec scanner python scripts/daily_scanner.py  # manual test run
-docker compose logs -f scanner
+cp .env.example .env          # Fill TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, etc.
+docker compose up -d          # Dashboard available at http://localhost:9000
 ```
 
-## Manual Workflow (Saxo)
+## Workflow
 
-1. Run scanner after US close → BUY signal auto-written to `data/positions.json` as `pending`
-2. Execute buy at next open on Saxo → update `positions.json`: `"status": "open"`, add `"entry_price"`
-3. Scanner detects SELL / SAFETY_EXIT → execute manually → reset position to `null`
+1. **Daily Scan**: Automated at 22:15 CET (after US close). Signals are sent to Telegram and stored in the DB.
+2. **Execution**: Review "Approaching Triggers" in the dashboard. If a BUY triggers, execute manually at the next market open.
+3. **Logging**: Use the Dashboard to "Log Real Trade" from a paper position.
+4. **Journaling**: Add notes and track slippage (Paper vs Live) in the unified Trade Journal.
 
-## Framework
+## Engineering & Validation Rigor
 
-Signal-radar includes a modular backtesting framework:
+This project goes beyond simple backtesting by implementing professional-grade quantitative validation tools:
 
-```bash
-# Validate RSI(2) on US stocks ($10k, whole shares)
-python -m cli.validate rsi2_stocks
-
-# Validate RSI(2) on US ETFs ($100k, fractional)
-python -m cli.validate rsi2_etfs
-```
-
-Adding a new strategy:
-
-1. Create `strategies/my_strategy.py` inheriting `BaseStrategy`
-2. Implement `check_entry()`, `check_exit()`, `default_params()`, `param_grid()`
-3. Add a preset in `cli/validate.py`
-4. Run `python -m cli.validate my_preset`
-
-The pipeline automatically runs: backtest -> robustness (48 param combos) -> sub-period stability -> t-test -> verdict (VALIDATED / CONDITIONAL / REJECTED).
+- **Statistical Integrity**: Uses **Monte Carlo Block Bootstrap** and **Deflated Sharpe Ratio (DSR)** (via `optimization/overfit_detection.py`) to distinguish between true strategy edge and "backtest overfitting" (luck).
+- **Walk-Forward Optimization**: Implements rolling window optimizations (`optimization/walk_forward.py`) to ensure strategies remain robust across different market regimes.
+- **Execution Forensic**: Systematic auditing of execution biases. For instance, `scripts/compare_ibs_exit_timing.py` empirically proves that the IBS strategy remains conservative (and even more profitable) when using next-day open prices instead of same-day close.
+- **Modern Tech Stack**: Built on **NumPy 2.0+** for vectorized performance and deployed using **uv** for ultra-fast, reproducible builds.
+- **Unified State Management**: Fully migrated from legacy JSON/Parquet files to a robust **SQLite** architecture (`data/db.py`) ensuring ACID compliance for trade journals and paper trading logs.
 
 ## Project Structure
 
 ```text
-strategies/
-  base.py                    — BaseStrategy ABC
-  rsi2_mean_reversion.py     — RSI(2) Connors plugin
-  donchian_trend.py          — Donchian trend following plugin
-
-engine/
-  simulator.py               — Generic backtest engine (start_idx/end_idx)
-  types.py                   — Direction, ExitSignal, Position, BacktestResult
-  indicators.py              — SMA, EMA, RSI (Wilder), ATR, ADX, Donchian
-  indicator_cache.py         — Indicator cache by asset and period
-  fee_model.py               — FeeModel dataclass + presets
-  notifier.py                — Telegram notifications
-
-validation/
-  pipeline.py                — validate() orchestrator
-  robustness.py              — Parametric robustness (48 combos)
-  sub_periods.py             — Sub-period stability
-  statistics.py              — T-test significance
-  report.py                  — Verdict + formatted report
-  config.py                  — ValidationConfig
-
-cli/
-  validate.py                — CLI: python -m cli.validate <preset>
-
-data/
-  base_loader.py             — BaseDataLoader + to_cache_arrays()
-  yahoo_loader.py            — YahooLoader (parquet cache, adj-close O/H/L)
-  positions.json             — Live position state machine
-  signal_history.csv         — Append-only signal log
-
-scripts/
-  daily_scanner.py           — [PRODUCTION] Daily signal scanner
-  verify_migration.py        — Migration verification (old vs new engine)
-
-config/
-  production_params.yaml     — Frozen production params
-  fee_models.yaml            — Fee model presets
-
-deploy/
-  entrypoint.sh / crontab / deploy.sh — Docker + cron deployment
-
-docs/
-  ROADMAP.md                 — Roadmap Phase 1-5
-  PHASE2_RESULTS.md          — Phase 2 complete results
+api/               — FastAPI Dashboard API & Signal routes
+frontend/          — React Dashboard (Vite + Tailwind v4 + Recharts)
+strategies/        — Pluggable strategy logic (BaseStrategy)
+engine/            — Simulation engine (simulator.py), fee models, and indicators
+validation/        — Robustness & Statistical validation pipeline
+cli/               — Command-line tools for validation and screening
+data/              — SQLite DB manager (db.py) and Yahoo Finance loader
+scripts/           — Production scanner and maintenance scripts
+config/            — Asset universes (YAML) and production parameters
 ```
 
 ## Phase History
 
-| Phase     | Description                                                           | Status      |
-|-----------|-----------------------------------------------------------------------|-------------|
-| Phase 1   | Backtesting engine + RSI(2) strategy validation on ETFs ($100k)       | COMPLETE    |
-| Phase 2   | Pivot to individual stocks ($10k) + daily scanner + Docker + Telegram | COMPLETE    |
-| Phase 3   | Modular backtesting framework + validation pipeline                   | COMPLETE    |
-| Phase 4   | Live validation on Saxo (30+ real trades, go/no-go)                   | PLANNED     |
-| Phase 5   | Web dashboard (equity curve, trade journal)                           | PLANNED     |
-| Phase 6   | Scale up capital + expand universe                                    | PLANNED     |
-| Phase 7   | Full automation via Saxo API                                          | VISION      |
-
-See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed planning.
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 1-3 | Backtest Engine, Modular Framework & Validation Pipeline | **COMPLETE** |
+| Phase 4 | SQLite Migration & Multi-Strategy Scanner | **COMPLETE** |
+| Phase 5 | Web Dashboard & Trade Journal | **COMPLETE** |
+| Phase 6 | Proximity Alerts & Automated Monthly Refresh | **COMPLETE** |
+| Phase 7 | Scale up capital + Expand Universe | **IN PROGRESS** |
 
 ## Environment Variables
 
