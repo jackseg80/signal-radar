@@ -47,7 +47,7 @@ export default function GuideModal({ isOpen, onClose }) {
               <span>Le concept de Confluence</span>
             </div>
             <p className="text-sm text-[--text-secondary] leading-relaxed">
-              Une <strong>confluence</strong> se produit quand plusieurs stratégies donnent un signal sur le même actif (ex: RSI2 < 10 + période TOM). 
+              Une <strong>confluence</strong> se produit quand plusieurs stratégies donnent un signal sur le même actif (ex: RSI2 &lt; 10 + période TOM). 
               Ces signaux sont rares mais statistiquement plus puissants. Cependant, n'attendez pas de confluence pour agir : chaque stratégie est rentable seule.
             </p>
           </section>
