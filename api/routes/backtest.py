@@ -26,14 +26,18 @@ router = APIRouter()
 
 @router.get("/screens")
 def get_screens(
-    strategy: str | None = None,
-    universe: str | None = None,
+    strategy: str | None = Query(None),
+    universe: str | None = Query(None),
     min_pf: float = 1.0,
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Screening results from the database."""
+    # Clean empty strings from query params
+    s = strategy if strategy and strategy.strip() else None
+    u = universe if universe and universe.strip() else None
+    
     results = db.get_screens_filtered(
-        strategy=strategy, universe=universe, min_pf=min_pf
+        strategy=s, universe=u, min_pf=min_pf
     )
     return {
         "results": [
@@ -54,14 +58,19 @@ def get_screens(
 
 @router.get("/validations")
 def get_validations(
-    strategy: str | None = None,
-    universe: str | None = None,
-    verdict: str | None = None,
+    strategy: str | None = Query(None),
+    universe: str | None = Query(None),
+    verdict: str | None = Query(None),
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Full validation results from the database."""
+    # Clean empty strings from query params
+    s = strategy if strategy and strategy.strip() else None
+    u = universe if universe and universe.strip() else None
+    v = verdict if verdict and verdict.strip() else None
+
     results = db.get_validations_filtered(
-        strategy=strategy, universe=universe, verdict=verdict
+        strategy=s, universe=u, verdict=v
     )
     return {
         "results": [
@@ -74,8 +83,8 @@ def get_validations(
                 "profit_factor": r["profit_factor"],
                 "sharpe": r["sharpe"],
                 "robustness_pct": r["robustness_pct"],
-                "t_stat": None,  # not stored in validations table
-                "p_value": r.get("ttest_p"),
+                "t_stat": None,
+                "p_value": r["ttest_p"],
                 "verdict": r["verdict"],
             }
             for r in results
@@ -94,14 +103,12 @@ def compare_strategies(
         symbol_list = [s.strip().upper() for s in symbols.split(",")]
     else:
         config = load_production_config()
-        # Collect Tier 1 assets from all enabled strategies
         symbol_set: set[str] = set()
         for strat_cfg in config.get("strategies", {}).values():
             if strat_cfg.get("enabled", False):
                 symbol_set.update(strat_cfg.get("universe", []))
         symbol_list = sorted(symbol_set)
 
-    # Get validations for each symbol
     all_validations = db.get_validations_filtered()
     strategies_seen: set[str] = set()
     matrix: dict[str, dict[str, dict]] = {}
@@ -153,7 +160,6 @@ def get_robustness(
     cap = univ_cfg.get("capital", 10000.0)
     ws = univ_cfg.get("whole_shares", True)
     
-    # Map fee model string to actual model
     fee_model_name = univ_cfg.get("fee_model", "us_stocks_usd")
     if "etf" in fee_model_name.lower():
         fee_model = US_ETFS_USD
