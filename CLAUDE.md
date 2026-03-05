@@ -2,7 +2,7 @@
 
 ## Project Status
 Phase 1 COMPLETE -- Phase 2 COMPLETE -- Phase 3 COMPLETE -- Infra Scale-Up COMPLETE -- SQLite Unified DB COMPLETE -- Multi-Strategy Scanner COMPLETE -- FastAPI Dashboard API COMPLETE -- React Frontend Dashboard COMPLETE -- Docker Packaging COMPLETE -- CLI Container COMPLETE -- Scanner Trigger COMPLETE -- Live Trades COMPLETE -- Hardening Audit COMPLETE -- Backtest Audit COMPLETE -- Proximity Alerts COMPLETE -- Monthly Refresh COMPLETE -- Trade Journal COMPLETE -- Dashboard Polish COMPLETE -- Strategies Center COMPLETE.
-Framework backtest modulaire operationnel. 443 tests.
+Framework backtest modulaire operationnel. 449 tests.
 Validated strategies : RSI(2) MR (10 stocks), IBS MR (13 stocks), TOM (21 stocks + 6 ETFs).
 Base SQLite unique (data/signal_radar.db) : prix OHLCV + resultats + paper trading + live trades.
 Scanner multi-strategie avec paper trading ($5k capital). Trigger manuel via dashboard.
@@ -289,6 +289,7 @@ api/                                   -- FastAPI Dashboard API
     scanner.py                         -- POST /api/scanner/run, GET /api/scanner/status
     live.py                            -- POST /api/live/open, /close ; GET /api/live/open, /closed, /summary, /compare
     journal.py                         -- GET /api/journal/entries ; PATCH /api/journal/paper/{id}/notes, /live/{id}/notes
+    config.py                          -- GET /api/config/settings (initial_capital)
 
 Dockerfile                             -- Scanner image (cron + uv + python:3.12-slim) -- inclut cli/ validation/ strategies/
 Dockerfile.api                         -- API image (uvicorn + frontend/dist/ + scanner code + numpy/yfinance/loguru + HEALTHCHECK)

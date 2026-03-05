@@ -35,7 +35,7 @@ A comprehensive quantitative trading platform for US stocks and ETFs, specializi
 # Install dependencies
 pip install -e ".[dev,api,analysis]"
 
-# Run unit tests (440+ tests)
+# Run unit tests (449 tests)
 pytest tests/ -v
 
 # Start local development API
