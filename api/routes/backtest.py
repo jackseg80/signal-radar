@@ -11,7 +11,7 @@ from api.dependencies import get_db
 from api.config import load_production_config
 from data.yahoo_loader import YahooLoader
 from data.base_loader import to_cache_arrays
-from engine.indicator_cache import build_cache, IndicatorCache
+from engine.indicator_cache import build_cache
 from engine.backtest_config import BacktestConfig
 from engine.fee_model import (
     FEE_MODEL_FOREX_SAXO,
@@ -22,33 +22,8 @@ from engine.fee_model import (
 from engine.simulator import simulate
 from validation.robustness import run_robustness
 
-# Import strategies directly
-from strategies.rsi2_mean_reversion import RSI2MeanReversion
-from strategies.ibs_mean_reversion import IBSMeanReversion
-from strategies.turn_of_month import TurnOfMonth
-
-STRATEGIES_MAP = {
-    "rsi2": RSI2MeanReversion,
-    "ibs": IBSMeanReversion,
-    "tom": TurnOfMonth,
-}
-
-# Alias mapping for frontend/DB names
-STRATEGY_ALIASES = {
-    "rsi2_mean_reversion": "rsi2",
-    "ibs_mean_reversion": "ibs",
-    "turn_of_month": "tom",
-    "turn": "tom"
-}
-
-def resolve_strategy_key(name: str) -> str | None:
-    if not name: return None
-    name = name.lower()
-    if name in STRATEGIES_MAP: return name
-    if name in STRATEGY_ALIASES: return STRATEGY_ALIASES[name]
-    for k in STRATEGIES_MAP:
-        if k in name: return k
-    return None
+# Centralized strategy imports
+from strategies import resolve_strategy_key, get_strategy_instance, get_strategy_class
 
 FEE_MODELS: dict[str, FeeModel] = {
     "us_stocks_usd_account": FEE_MODEL_US_STOCKS_USD,
@@ -142,14 +117,15 @@ def get_robustness(
     if not strat_key:
         raise HTTPException(status_code=404, detail=f"Strategy {strategy} unknown")
     
-    strat_class = STRATEGIES_MAP[strat_key]
-    strat_obj = strat_class()
+    strat_obj = get_strategy_instance(strat_key)
+    if not strat_obj:
+        raise HTTPException(status_code=404, detail=f"Failed to instantiate {strategy}")
     
     df = db.get_ohlcv(symbol)
     if df.empty:
         raise HTTPException(status_code=404, detail=f"Data for {symbol} not found")
     
-    # Use build_cache instead of manual instantiation to be safe
+    # Build cache
     arrays = to_cache_arrays(df)
     cache = build_cache(arrays, strat_obj.param_grid(), dates=df.index.values)
     
@@ -232,8 +208,9 @@ def get_backtest_equity_curve(
     if df.empty:
         raise HTTPException(status_code=404, detail=f"Data for {symbol} not found")
 
-    strat_class = STRATEGIES_MAP[strat_key]
-    strat_obj = strat_class()
+    strat_obj = get_strategy_instance(strat_key)
+    if not strat_obj:
+        raise HTTPException(status_code=404, detail=f"Failed to instantiate {strategy}")
     
     # Grid for cache: only the production parameters
     cache_grid = {k: [v] for k, v in params.items() if isinstance(v, (int, float))}

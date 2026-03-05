@@ -8,6 +8,7 @@ A comprehensive quantitative trading platform for US stocks and ETFs, specializi
 - **Modular Framework**: Generic simulation engine with realistic fee models, gap-aware execution, and slippage.
 - **Validation Pipeline**: Automated robustness testing (48 parameter combinations), sub-period stability analysis, and statistical significance (T-tests).
 - **Web Dashboard**: Modern React interface (Vite + Tailwind v4) to visualize signals, equity curves, and proximity alerts.
+- **Granular Asset Analysis**: Deep-dive into individual asset performance with synchronized equity/drawdown curves and trade-by-trade OOS analysis (2014-2025).
 - **Interactive Strategies**: Educational "Playground" to visualize and understand the mechanics of each trading strategy (IBS, RSI2, TOM).
 - **Unified SQLite DB**: Single source of truth for OHLCV data, backtest results, and trade logs.
 - **Telegram Notifications**: Instant alerts for entry/exit signals and weekly performance summaries.
@@ -99,8 +100,8 @@ config/            — Asset universes (YAML) and production parameters
 | Phase 1-3 | Backtest Engine, Modular Framework & Validation Pipeline | **COMPLETE** |
 | Phase 4 | SQLite Migration & Multi-Strategy Scanner | **COMPLETE** |
 | Phase 5 | Web Dashboard & Trade Journal | **COMPLETE** |
-| Phase 6 | Proximity Alerts & Automated Monthly Refresh | **COMPLETE** |
-| Phase 7 | Scale up capital + Expand Universe | **IN PROGRESS** |
+| Phase 6 | Advanced Forensic, OOS Analysis & Automated Refresh | **EN COURS** |
+| Phase 7 | Scale up capital + Expand Universe | **PLANIFIÉ** |
 
 ## Environment Variables
 

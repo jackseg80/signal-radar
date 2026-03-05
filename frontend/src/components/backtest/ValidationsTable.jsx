@@ -9,13 +9,8 @@ import EmptyState from '../ui/EmptyState';
 import RobustnessHeatmap from './RobustnessHeatmap';
 import AssetDetailPanel from './AssetDetailPanel';
 import AssetIcon from '../ui/AssetIcon';
+import { STRATEGY_MAPPING, resolveStrategyKey } from '../../constants/strategies';
 import { X, Filter, ChevronUp, ChevronDown, Info, ShieldCheck, Activity } from 'lucide-react';
-
-const STRATEGY_MAPPING = {
-  'rsi2': 'rsi2_mean_reversion',
-  'ibs': 'ibs_mean_reversion',
-  'tom': 'turn_of_month'
-};
 
 const COLUMN_TOOLTIPS = {
   trades: "Nombre total de transactions effectuées durant la période de test (Out-of-Sample).",
@@ -188,7 +183,7 @@ export default function ValidationsTable() {
                       setSelectedValidation(r);
                       setSelectedAsset({
                         symbol: r.symbol,
-                        strategy: r.strategy.split('_')[0]
+                        strategy: resolveStrategyKey(r.strategy)
                       });
                     }}
                   >

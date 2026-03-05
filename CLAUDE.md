@@ -214,7 +214,7 @@ optimization/
 frontend/
   src/
     components/
-      backtest/                      -- Compare Matrix, Validations Table, Screens Table
+      backtest/                      -- Compare Matrix, Validations Table, Screens Table, AssetDetailPanel (OOS Analysis)
       journal/                       -- Filters, Stats, TradeCard, NoteEditor
       layout/                        -- Navbar, Sidebar, GuideModal
       live/                          -- LivePositions, PaperVsLive, LiveTradeForm
@@ -284,8 +284,8 @@ api/                                   -- FastAPI Dashboard API
     signals.py                         -- GET /api/signals/today, /history
     positions.py                       -- GET /api/positions/open, /closed
     performance.py                     -- GET /api/performance/summary, /equity-curve
-    market.py                          -- GET /api/market/overview
-    backtest.py                        -- GET /api/backtest/screens, /validations, /compare
+    market.py                          -- GET /api/market/overview, /api/market/asset/{symbol}/prices
+    backtest.py                        -- GET /api/backtest/screens, /validations, /compare, /robustness, /equity-curve
     scanner.py                         -- POST /api/scanner/run, GET /api/scanner/status
     live.py                            -- POST /api/live/open, /close ; GET /api/live/open, /closed, /summary, /compare
     journal.py                         -- GET /api/journal/entries ; PATCH /api/journal/paper/{id}/notes, /live/{id}/notes

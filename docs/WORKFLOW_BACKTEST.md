@@ -6,14 +6,15 @@
 
 ## Vue d'ensemble
 
-Le backtest dans Signal Radar suit une hiérarchie en 4 niveaux. Chaque niveau
+Le backtest dans Signal Radar suit une hiérarchie en 5 niveaux. Chaque niveau
 répond à une question différente et s'appuie sur le précédent.
 
 ```
-Niveau 1 — Backtest individuel   → L'edge existe-t-il ?        (validation)
-Niveau 2 — Backtest portfolio    → Comment gérer $5k ensemble ? (sizing)
-Niveau 3 — Paper trading         → Le backtest colle-t-il ?     (calibration)
-Niveau 4 — Live trading          → Exécution réelle             (production)
+Niveau 1   — Backtest batch       → L'edge existe-t-il sur l'univers ? (screening)
+Niveau 1.5 — Analyse granulaire   → Comment l'asset se comporte-t-il ? (forensic)
+Niveau 2   — Backtest portfolio    → Comment gérer $5k ensemble ?       (sizing)
+Niveau 3   — Paper trading         → Le backtest colle-t-il ?           (calibration)
+Niveau 4   — Live trading          → Exécution réelle                   (production)
 ```
 
 Ne jamais sauter un niveau. En particulier, le backtest portfolio (Niveau 2)
@@ -93,6 +94,22 @@ Pour un seul combo :
 ```bash
 docker exec -it scanner python scripts/monthly_refresh.py --combos rsi2:us_stocks_large
 ```
+
+---
+
+## Niveau 1.5 — Analyse granulaire (Forensic)
+
+### Objectif
+Inspecter visuellement la "texture" de l'edge sur un actif précis. Comprendre si les profits sont réguliers ou concentrés sur quelques événements extrêmes.
+
+### Outils
+Dans le Dashboard, onglet **Backtest**, cliquer sur n'importe quelle ligne de la **Matrice de Confiance** ou de l'**Explorateur**.
+
+### Éléments d'analyse (Asset Detail Panel)
+1. **Courbe d'Equity vs Drawdown** : Les deux graphiques sont synchronisés. Un survol sur l'equity affiche simultanément le risque à ce moment précis.
+2. **Marqueurs de Marché** : Identifier l'impact d'événements majeurs (COVID 2020, Rate Hikes 2022) sur la stratégie.
+3. **Dots de Trades** : Visualiser chaque entrée/sortie (vert=gain, rouge=perte). Un survol affiche le PnL et la durée.
+4. **Stats Forensic** : Vérifier que le *Max Drawdown* reste psychologiquement acceptable et que le *Pire Trade* n'invalide pas le sizing.
 
 ---
 
