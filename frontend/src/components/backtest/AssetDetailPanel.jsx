@@ -42,9 +42,26 @@ const MARKET_EVENTS = [
   { date: "2016-11-08", label: "Election 2016", color: "#8b5cf6" },
 ];
 
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-[#1a1d27] border border-white/10 p-3 rounded-lg shadow-xl backdrop-blur-md">
+        <p className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest mb-1">{formatDate(label)}</p>
+        <div className="space-y-1">
+          <p className="text-sm font-bold text-white">Equity: {formatPrice(data.equity)}</p>
+          <p className={`text-xs font-medium ${data.drawdown_pct < 0 ? 'text-red-400' : 'text-green-400'}`}>
+            Drawdown: {data.drawdown_pct.toFixed(2)}%
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, onClose }) {
   const [strategy, setStrategy] = useState(initialStrategy);
-  // On commence à false pour laisser le temps au DOM de se stabiliser
   const [isReady, setIsReady] = useState(false);
 
   const { data, loading, error } = useApi(
@@ -56,14 +73,14 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
     if (!symbol) return;
     document.body.style.overflow = 'hidden';
     
-    // Délai plus long pour être certain que le modal est rendu avant Recharts
-    const timer = setTimeout(() => setIsReady(true), 100);
+    // Safety delay for Recharts to avoid width(-1)
+    const timer = setTimeout(() => setIsReady(true), 500);
     
     return () => {
       document.body.style.overflow = 'unset';
       clearTimeout(timer);
     };
-  }, [symbol, strategy]); // On reset isReady au changement de stratégie
+  }, [symbol, strategy]);
 
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) onClose();
@@ -98,14 +115,13 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
 
   return (
     <div 
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 sm:p-6"
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 sm:p-6"
       onClick={handleBackdropClick}
     >
-      {/* Box principale */}
-      <div className="bg-[#0f111a] border border-white/10 w-full max-w-6xl max-h-[90vh] rounded-[2rem] shadow-2xl flex flex-col relative overflow-hidden">
+      <div className="bg-[#0f111a] border border-white/10 w-full max-w-6xl max-h-[95vh] rounded-[2.5rem] shadow-2xl flex flex-col relative overflow-hidden pointer-events-auto">
         
-        {/* Header fixe */}
-        <div className="p-6 sm:p-8 bg-gradient-to-b from-white/[0.03] to-transparent border-b border-white/5 shrink-0">
+        {/* Header - Identical to AssetModal */}
+        <div className="relative p-6 sm:p-8 bg-gradient-to-b from-white/[0.03] to-transparent border-b border-white/5 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
               <AssetIcon symbol={symbol} size="lg" className="shadow-2xl ring-4 ring-white/5" />
@@ -154,8 +170,8 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
           </div>
         </div>
 
-        {/* Corps scrollable */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar">
+        {/* Content Body */}
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar bg-[#0f111a]">
           {loading ? (
             <LoadingState rows={10} />
           ) : error ? (
@@ -170,7 +186,6 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
           ) : (
             <div className="space-y-10">
               
-              {/* Stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatBox label="Max Drawdown" value={`${data.stats.max_drawdown_pct}%`} sub={data.stats.max_drawdown_date} color="text-red-400" icon={<ShieldAlert size={16} />} />
                 <StatBox label="Meilleur Trade" value={`${data.stats.best_trade_pct}%`} color="text-green-400" icon={<TrendingUp size={16} />} />
@@ -178,11 +193,10 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
                 <StatBox label="Durée Moyenne" value={`${data.stats.avg_holding_days}j`} color="text-blue-400" icon={<Clock size={16} />} />
               </div>
 
-              {/* Equity Chart */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-bold text-[--text-muted] uppercase tracking-widest flex items-center gap-2">
-                    <Activity size={14} className="text-blue-400" /> Courbe d'Equity (OOS)
+                    <Activity size={14} className="text-blue-400" /> Performance Cumulative
                   </h3>
                   <div className="text-xl font-mono font-bold text-white">
                     {formatPrice(data.equity_curve[data.equity_curve.length - 1]?.equity)}
@@ -190,7 +204,7 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
                 </div>
                 <div className="h-[350px] w-full bg-white/[0.01] rounded-[2rem] border border-white/5 p-4 overflow-hidden relative">
                   {isReady && (
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="99%" height="99%">
                       <AreaChart data={data.equity_curve} syncId="asset-panel">
                         <defs>
                           <linearGradient id="colorEquity" x1="0" y1="0" x2="0" y2="1">
@@ -200,8 +214,11 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
                         <XAxis dataKey="date" hide />
-                        <YAxis tick={{fill: '#64748b', fontSize: 10}} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
-                        <Tooltip contentStyle={{backgroundColor: '#1a1d27', border: 'none', borderRadius: '12px'}} />
+                        <YAxis tick={{fill: '#64748b', fontSize: 10}} axisLine={false} tickLine={false} domain={['auto', 'auto']} orientation="right" />
+                        <Tooltip 
+                          contentStyle={{backgroundColor: '#1a1d27', border: '1px solid #ffffff10', borderRadius: '12px'}} 
+                          itemStyle={{color: '#fff'}}
+                        />
                         <Area type="monotone" dataKey="equity" stroke="#3b82f6" strokeWidth={2} fill="url(#colorEquity)" isAnimationActive={false} />
                         {filteredMarketEvents.map((event, i) => (
                           <ReferenceLine key={i} x={event.date} stroke={event.color} strokeDasharray="3 3" label={{value: event.label, fill: event.color, fontSize: 8}} />
@@ -215,14 +232,13 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
                 </div>
               </div>
 
-              {/* Drawdown Chart */}
               <div className="space-y-4">
                 <h3 className="text-xs font-bold text-[--text-muted] uppercase tracking-widest flex items-center gap-2">
                   <ShieldAlert size={14} className="text-red-400" /> Drawdown
                 </h3>
                 <div className="h-[120px] w-full bg-white/[0.01] rounded-2xl border border-white/5 p-4 overflow-hidden relative">
                   {isReady && (
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="99%" height="99%">
                       <AreaChart data={data.equity_curve} syncId="asset-panel">
                         <XAxis dataKey="date" hide />
                         <YAxis hide domain={['auto', 0]} />
@@ -238,8 +254,7 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
           )}
         </div>
         
-        {/* Footer */}
-        <div className="p-6 bg-white/[0.02] border-t border-white/5 flex justify-between items-center shrink-0">
+        <div className="p-6 bg-white/[0.02] border-t border-white/5 flex justify-between items-center shrink-0 bg-[#0f111a]">
           <div className="text-[10px] text-[--text-muted] uppercase font-bold tracking-widest">
             Simulation réalisée le {new Date().toLocaleDateString()}
           </div>
