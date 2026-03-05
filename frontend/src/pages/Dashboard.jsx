@@ -56,26 +56,26 @@ function SignalsPanel({ className, onSymbolClick }) {
 
 const DEFAULT_LAYOUTS = {
   lg: [
-    { i: 'kpi', x: 0, y: 0, w: 12, h: 6, static: false },
-    { i: 'near', x: 0, y: 6, w: 4, h: 12 },
-    { i: 'signals', x: 0, y: 18, w: 4, h: 20 },
-    { i: 'open-pos', x: 4, y: 6, w: 8, h: 12 },
-    { i: 'equity', x: 4, y: 18, w: 4, h: 10 },
-    { i: 'trades', x: 8, y: 18, w: 4, h: 10 },
-    { i: 'live-pos', x: 4, y: 28, w: 8, h: 10 },
-    { i: 'market', x: 0, y: 38, w: 12, h: 15 },
-    { i: 'comparison', x: 0, y: 53, w: 12, h: 10 },
+    { i: 'kpi', x: 0, y: 0, w: 12, h: 10, static: false },
+    { i: 'near', x: 0, y: 10, w: 4, h: 12 },
+    { i: 'signals', x: 0, y: 22, w: 4, h: 20 },
+    { i: 'open-pos', x: 4, y: 10, w: 8, h: 12 },
+    { i: 'equity', x: 4, y: 22, w: 4, h: 12 },
+    { i: 'trades', x: 8, y: 22, w: 4, h: 12 },
+    { i: 'live-pos', x: 4, y: 34, w: 8, h: 10 },
+    { i: 'market', x: 0, y: 44, w: 12, h: 15 },
+    { i: 'comparison', x: 0, y: 59, w: 12, h: 10 },
   ],
   md: [
-    { i: 'kpi', x: 0, y: 0, w: 10, h: 6 },
-    { i: 'near', x: 0, y: 6, w: 5, h: 10 },
-    { i: 'signals', x: 5, y: 6, w: 5, h: 20 },
-    { i: 'open-pos', x: 0, y: 16, w: 10, h: 10 },
-    { i: 'equity', x: 0, y: 26, w: 5, h: 10 },
-    { i: 'trades', x: 5, y: 26, w: 5, h: 10 },
-    { i: 'live-pos', x: 0, y: 36, w: 10, h: 10 },
-    { i: 'market', x: 0, y: 46, w: 10, h: 15 },
-    { i: 'comparison', x: 0, y: 61, w: 10, h: 10 },
+    { i: 'kpi', x: 0, y: 0, w: 10, h: 10 },
+    { i: 'near', x: 0, y: 10, w: 5, h: 10 },
+    { i: 'signals', x: 5, y: 10, w: 5, h: 20 },
+    { i: 'open-pos', x: 0, y: 20, w: 10, h: 10 },
+    { i: 'equity', x: 0, y: 30, w: 5, h: 12 },
+    { i: 'trades', x: 5, y: 30, w: 5, h: 12 },
+    { i: 'live-pos', x: 0, y: 42, w: 10, h: 10 },
+    { i: 'market', x: 0, y: 52, w: 10, h: 15 },
+    { i: 'comparison', x: 0, y: 67, w: 10, h: 10 },
   ]
 };
 
@@ -85,7 +85,7 @@ export default function Dashboard() {
   const { refresh } = useRefresh();
   
   const initialLayouts = useMemo(() => {
-    const saved = localStorage.getItem('dashboard-layouts');
+    const saved = localStorage.getItem('dashboard-layouts-v2');
     return saved ? JSON.parse(saved) : DEFAULT_LAYOUTS;
   }, []);
 
@@ -93,13 +93,13 @@ export default function Dashboard() {
 
   const onLayoutChange = (currentLayout, allLayouts) => {
     setLayouts(allLayouts);
-    localStorage.setItem('dashboard-layouts', JSON.stringify(allLayouts));
+    localStorage.setItem('dashboard-layouts-v2', JSON.stringify(allLayouts));
   };
 
   const resetLayout = () => {
     if (window.confirm('Reset dashboard layout to default?')) {
       setLayouts(DEFAULT_LAYOUTS);
-      localStorage.removeItem('dashboard-layouts');
+      localStorage.removeItem('dashboard-layouts-v2');
     }
   };
 

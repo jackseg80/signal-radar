@@ -418,8 +418,14 @@ class SignalRadarDB:
         if strategy: query += " AND strategy = ?"; params.append(strategy)
         return self._query(query, params)
 
-    def get_closed_live_trades(self, limit: int = 50) -> list[dict]:
-        return self._query("SELECT * FROM live_trades WHERE status = 'closed' ORDER BY exit_date DESC LIMIT ?", (limit,))
+    def get_closed_live_trades(self, strategy: str | None = None, symbol: str | None = None, limit: int = 50) -> list[dict]:
+        query = "SELECT * FROM live_trades WHERE status = 'closed'"
+        params = []
+        if strategy: query += " AND strategy = ?"; params.append(strategy)
+        if symbol: query += " AND symbol = ?"; params.append(symbol)
+        query += " ORDER BY exit_date DESC LIMIT ?"
+        params.append(limit)
+        return self._query(query, params)
 
     def get_live_summary(self) -> dict:
         rows = self._query("SELECT * FROM live_trades WHERE status = 'closed'")
