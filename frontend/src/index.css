@@ -93,6 +93,11 @@ body::before {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
 @keyframes pulse-dot {
   0%, 100% { transform: scale(1); opacity: 0.8; }
   50% { transform: scale(1.3); opacity: 0.4; }
@@ -141,6 +146,10 @@ body::before {
 
 @utility animate-slide-up {
   animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@utility animate-slide-in-right {
+  animation: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @utility animate-shimmer {

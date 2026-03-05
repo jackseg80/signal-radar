@@ -57,6 +57,8 @@ export const api = {
   screens: (params = {}) => fetchJson(`/backtest/screens${buildQueryString(params)}`),
   validations: (params = {}) => fetchJson(`/backtest/validations${buildQueryString(params)}`),
   compare: (params = {}) => fetchJson(`/backtest/compare${buildQueryString(params)}`),
+  backtestEquityCurve: (strategy, symbol) =>
+    fetchJson(`/backtest/equity-curve${buildQueryString({ strategy, symbol })}`),
   backtestRobustness: (strategy, symbol, universe) => 
     fetchJson(`/backtest/robustness${buildQueryString({ strategy, symbol, universe })}`),
   

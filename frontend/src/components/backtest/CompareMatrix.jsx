@@ -8,6 +8,7 @@ import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 import AssetIcon from '../ui/AssetIcon';
+import AssetDetailPanel from './AssetDetailPanel';
 import { ChevronUp, ChevronDown, Info, ShieldCheck, AlertTriangle, Filter, Activity, Target } from 'lucide-react';
 
 const getHeatmapColor = (pf, verdict) => {
@@ -35,6 +36,7 @@ export default function CompareMatrix() {
   const { data, loading, error, refetch } = useApi(() => api.compare(), [refreshKey]);
   const [sortConfig, setSortConfig] = useState({ key: 'score', direction: 'desc' });
   const [assetTypeFilter, setAssetTypeFilter] = useState('');
+  const [selectedAsset, setSelectedAsset] = useState(null);
 
   const filteredAndSortedAssets = useMemo(() => {
     if (!data?.assets) return [];
@@ -152,7 +154,14 @@ export default function CompareMatrix() {
             </thead>
             <tbody>
               {filteredAndSortedAssets.map(({ symbol, validCount, type, totalTrades, avgWr }) => (
-                <tr key={symbol} className="border-b border-white/5 hover:bg-white/[0.02] transition-all group">
+                <tr 
+                  key={symbol} 
+                  className="border-b border-white/5 hover:bg-white/[0.02] transition-all group cursor-pointer"
+                  onClick={() => setSelectedAsset({
+                    symbol,
+                    strategy: strategies.find(s => data.matrix[symbol]?.[s]) || strategies[0]
+                  })}
+                >
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
                       <AssetIcon symbol={symbol} size="sm" />
@@ -235,6 +244,15 @@ export default function CompareMatrix() {
           </div>
         </div>
       </Card>
+
+      {selectedAsset && (
+        <AssetDetailPanel
+          symbol={selectedAsset.symbol}
+          initialStrategy={selectedAsset.strategy}
+          matrixData={data?.matrix}
+          onClose={() => setSelectedAsset(null)}
+        />
+      )}
     </div>
   );
 }
