@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 import itertools
 import math
 import pandas as pd
+import numpy as np
 
 from data.db import SignalRadarDB
 from api.dependencies import get_db
@@ -31,6 +32,23 @@ STRATEGIES_MAP = {
     "ibs": IBSMeanReversion,
     "tom": TurnOfMonth,
 }
+
+# Alias mapping for frontend/DB names
+STRATEGY_ALIASES = {
+    "rsi2_mean_reversion": "rsi2",
+    "ibs_mean_reversion": "ibs",
+    "turn_of_month": "tom",
+    "turn": "tom"
+}
+
+def resolve_strategy_key(name: str) -> str | None:
+    if not name: return None
+    name = name.lower()
+    if name in STRATEGIES_MAP: return name
+    if name in STRATEGY_ALIASES: return STRATEGY_ALIASES[name]
+    for k in STRATEGIES_MAP:
+        if k in name: return k
+    return None
 
 FEE_MODELS: dict[str, FeeModel] = {
     "us_stocks_usd_account": FEE_MODEL_US_STOCKS_USD,
@@ -120,13 +138,7 @@ def get_robustness(
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Calculate and return robustness matrix for a specific asset/strategy."""
-    strat_key = None
-    if strategy:
-        for k in STRATEGIES_MAP:
-            if k in strategy.lower():
-                strat_key = k
-                break
-            
+    strat_key = resolve_strategy_key(strategy)
     if not strat_key:
         raise HTTPException(status_code=404, detail=f"Strategy {strategy} unknown")
     
@@ -137,15 +149,9 @@ def get_robustness(
     if df.empty:
         raise HTTPException(status_code=404, detail=f"Data for {symbol} not found")
     
-    cache = IndicatorCache(
-        n_candles=len(df),
-        opens=df["open"].values,
-        highs=df["high"].values,
-        lows=df["low"].values,
-        closes=df["close"].values,
-        volumes=df["volume"].values,
-        total_days=len(df) * 365.0 / 252.0
-    )
+    # Use build_cache instead of manual instantiation to be safe
+    arrays = to_cache_arrays(df)
+    cache = build_cache(arrays, strat_obj.param_grid(), dates=df.index.values)
     strat_obj.build_cache(cache)
     
     from engine.backtest_config import BacktestConfig
@@ -161,11 +167,11 @@ def get_robustness(
     )
     
     grid = strat_obj.param_grid()
-    if "rsi2" in strategy.lower():
+    if strat_key == "rsi2":
         y_key, x_key = "rsi_entry_threshold", "sma_exit_period"
-    elif "ibs" in strategy.lower():
+    elif strat_key == "ibs":
         y_key, x_key = "ibs_entry_threshold", "ibs_exit_threshold"
-    elif "tom" in strategy.lower():
+    elif strat_key == "tom":
         y_key, x_key = "entry_days_before_eom", "exit_day_of_new_month"
     else:
         keys = list(grid.keys())
@@ -186,7 +192,7 @@ def get_robustness(
                 params_dict = dict(zip(grid_keys, combo))
                 if params_dict[y_key] == y_val and params_dict[x_key] == x_val:
                     matching_pfs.append(result.profit_factors[i])
-            row.append(max(matching_pfs) if matching_pfs else 0.0)
+            row.append(float(max(matching_pfs)) if matching_pfs else 0.0)
         values_2d.append(row)
 
     return {
@@ -206,8 +212,13 @@ def get_backtest_equity_curve(
     symbol: str,
 ) -> dict:
     """Calculate equity curve and individual trades for an asset/strategy combo."""
+    strat_key = resolve_strategy_key(strategy)
+    if not strat_key:
+        raise HTTPException(status_code=404, detail=f"Strategy {strategy} unknown")
+
     config = load_production_config()
-    strat_cfg = config.get("strategies", {}).get(strategy)
+    # Try both original name and resolved key in config
+    strat_cfg = config.get("strategies", {}).get(strategy) or config.get("strategies", {}).get(strat_key)
     
     if not strat_cfg or symbol not in strat_cfg.get("universe", []):
         raise HTTPException(status_code=404, detail=f"{symbol} not in {strategy} universe")
@@ -222,10 +233,7 @@ def get_backtest_equity_curve(
     if df.empty:
         raise HTTPException(status_code=404, detail=f"Data for {symbol} not found")
 
-    strat_class = STRATEGIES_MAP.get(strategy)
-    if not strat_class:
-        raise HTTPException(status_code=404, detail=f"Strategy {strategy} unknown")
-    
+    strat_class = STRATEGIES_MAP[strat_key]
     strat_obj = strat_class()
     
     # Grid for cache: only the production parameters
@@ -235,8 +243,6 @@ def get_backtest_equity_curve(
         if p not in cache_grid and p in params:
              cache_grid[p] = [params[p]]
     
-    # build_cache expectations: it needs a grid to know which periods to precompute
-    # Actually, for a single run, we can just pass the params as single-item lists
     arrays = to_cache_arrays(df)
     cache = build_cache(arrays, cache_grid, dates=df.index.values)
 
@@ -258,7 +264,7 @@ def get_backtest_equity_curve(
 
     equity = initial
     peak = initial
-    equity_curve = [{"date": oos_start_date, "equity": initial, "drawdown_pct": 0.0}]
+    equity_curve = [{"date": oos_start_date, "equity": float(initial), "drawdown_pct": 0.0}]
     trades_out = []
 
     for t in result.trades:
@@ -271,8 +277,8 @@ def get_backtest_equity_curve(
         
         equity_curve.append({
             "date": exit_date,
-            "equity": round(equity, 2),
-            "drawdown_pct": round(dd, 3),
+            "equity": round(float(equity), 2),
+            "drawdown_pct": round(float(dd), 3),
         })
         
         trades_out.append({
@@ -291,7 +297,7 @@ def get_backtest_equity_curve(
 
     return {
         "symbol": symbol, 
-        "strategy": strategy,
+        "strategy": strat_key,
         "n_trades": len(trades_out),
         "equity_curve": equity_curve,
         "trades": trades_out,

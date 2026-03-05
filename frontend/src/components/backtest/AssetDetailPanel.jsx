@@ -206,12 +206,12 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
       {/* Panel */}
       <div className="fixed right-0 top-0 h-full w-[520px] bg-[#1a1d27]
                       border-l border-white/10 z-[70] overflow-y-auto
-                      animate-slide-in-right p-8 shadow-2xl">
+                      animate-slide-in-right p-8 shadow-2xl flex flex-col min-h-screen">
         {renderHeader()}
         {renderStrategySwitcher()}
 
         {loading ? (
-          <div className="space-y-8">
+          <div className="space-y-8 flex-1">
             <div className="h-[220px] bg-white/[0.02] animate-pulse rounded-2xl" />
             <div className="h-[120px] bg-white/[0.02] animate-pulse rounded-2xl" />
             <div className="grid grid-cols-2 gap-4">
@@ -219,9 +219,16 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
             </div>
           </div>
         ) : error ? (
-          <ErrorState message={error} />
-        ) : data ? (
-          <div className="space-y-8">
+          <div className="flex-1">
+            <ErrorState message={error} />
+            <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+              <p className="text-xs text-red-400">
+                L'actif <strong>{symbol}</strong> n'est peut-être pas configuré pour la stratégie <strong>{strategy}</strong>.
+              </p>
+            </div>
+          </div>
+        ) : data && data.equity_curve ? (
+          <div className="space-y-8 flex-1 pb-10">
             {/* Equity Chart */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -230,13 +237,13 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
                   Performance Cumulative
                 </h3>
                 <div className="text-sm font-bold text-white">
-                  {formatPrice(data.equity_curve[data.equity_curve.length - 1].equity)}
-                  <span className={`ml-2 text-xs ${data.stats.max_drawdown_pct > -10 ? 'text-green-400' : 'text-amber-400'}`}>
-                    {(((data.equity_curve[data.equity_curve.length - 1].equity - data.equity_curve[0].equity) / data.equity_curve[0].equity) * 100).toFixed(1)}%
+                  {formatPrice(data.equity_curve[data.equity_curve.length - 1]?.equity)}
+                  <span className={`ml-2 text-xs ${data.stats?.max_drawdown_pct > -10 ? 'text-green-400' : 'text-amber-400'}`}>
+                    {data.equity_curve.length > 0 ? (((data.equity_curve[data.equity_curve.length - 1].equity - data.equity_curve[0].equity) / data.equity_curve[0].equity) * 100).toFixed(1) : 0}%
                   </span>
                 </div>
               </div>
-              <div className="h-[240px] w-full bg-white/[0.01] rounded-2xl border border-white/5 p-4">
+              <div className="h-[240px] w-full bg-white/[0.01] rounded-2xl border border-white/5 p-4 min-h-[240px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={data.equity_curve} syncId="asset-panel" margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
