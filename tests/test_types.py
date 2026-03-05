@@ -182,6 +182,36 @@ class TestBacktestResult:
         )
         # mean = (0.02 + 0.01 - 0.01) / 3 ≈ 0.00667
         # std ≈ 0.01247
-        # sharpe = mean / std * sqrt(252) ≈ 8.49
+        # span = 25 - 0 = 25 trading days
+        # span_years = 25 / 252 ≈ 0.0992
+        # trades_per_year = 3 / 0.0992 ≈ 30.24
+        # sharpe = 0.00667 / 0.01247 * sqrt(30.24) ≈ 2.94
         assert result.sharpe > 0
         assert not math.isinf(result.sharpe)
+        assert result.sharpe == pytest.approx(2.94, abs=0.05)
+
+    def test_sharpe_annualization_exact(self) -> None:
+        """Vérifie l'annualisation du Sharpe sur exactement 1 an."""
+        import numpy as np
+        # 10 trades répartis sur 252 jours (ex: un trade tous les 25 jours)
+        # Returns: 1% and 3% alternating
+        rets = [0.01, 0.03] * 5
+        trades = []
+        for i, ret in enumerate(rets):
+            trades.append(
+                TradeResult(
+                    direction=Direction.LONG, entry_price=100.0, exit_price=100.0 * (1 + ret),
+                    entry_candle=i * 25, exit_candle=i * 25 + 2, quantity=1.0,
+                    pnl=ret * 100, return_pct=ret, holding_days=2,
+                    exit_reason="signal", entry_fee=0.0, exit_fee=0.0,
+                )
+            )
+        
+        # Duration: last_exit - first_entry = (9 * 25 + 2) - 0 = 227 days
+        # span_years = 227 / 252 ≈ 0.9008
+        # trades_per_year = 10 / 0.9008 ≈ 11.10
+        # mean = 0.02, std = 0.01
+        # sharpe_theoretical = (0.02 / 0.01) * sqrt(11.10) ≈ 6.66
+        
+        result = BacktestResult(trades=trades, final_capital=1000.0, initial_capital=900.0)
+        assert result.sharpe == pytest.approx(6.66, abs=0.05)

@@ -54,6 +54,13 @@ cp .env.example .env          # Fill TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, etc.
 docker compose up -d          # Dashboard available at http://localhost:9000
 ```
 
+## Automated Maintenance
+
+The system is designed to run autonomously via cron jobs (configured in the Docker environment):
+
+- **Daily Scanner (`scripts/daily_scanner.py`)**: Runs every weekday at 22:15 CET. It evaluates all strategies, logs paper trades, and sends signals to Telegram.
+- **Monthly Refresh (`scripts/monthly_refresh.py`)**: Runs on the 1st of each month. It re-runs all backtests (screens and validations) to ensure strategy performance remains consistent with new data.
+
 ## Workflow
 
 1. **Daily Scan**: Automated at 22:15 CET (after US close). Signals are sent to Telegram and stored in the DB.
