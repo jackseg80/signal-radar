@@ -206,24 +206,40 @@ class SignalRadarDB:
     # -- OHLCV --
     def save_ohlcv(self, symbol: str, df: pd.DataFrame) -> None:
         if df.empty: return
+        # Case-insensitive column access
+        df_cols = {c.lower(): c for c in df.columns}
+        def get_val(row, col_name):
+            real_col = df_cols.get(col_name.lower())
+            return float(row[real_col]) if real_col else 0.0
+
         records = []
         for date, row in df.iterrows():
             date_str = pd.Timestamp(date).strftime("%Y-%m-%d")
-            records.append((symbol, date_str, float(row["open"]), float(row["high"]), float(row["low"]), float(row["close"]), float(row.get("volume", 0))))
+            records.append((
+                symbol, 
+                date_str, 
+                get_val(row, "open"), 
+                get_val(row, "high"), 
+                get_val(row, "low"), 
+                get_val(row, "close"), 
+                get_val(row, "volume")
+            ))
         with self._connect() as conn:
             conn.executemany("INSERT OR REPLACE INTO ohlcv (symbol, date, open, high, low, close, volume) VALUES (?, ?, ?, ?, ?, ?, ?)", records)
 
     def get_ohlcv(self, symbol: str, start: str | None = None, end: str | None = None) -> pd.DataFrame:
-        query = "SELECT * FROM ohlcv WHERE symbol = ?"
+        query = "SELECT open as Open, high as High, low as Low, close as Close, volume as Volume FROM ohlcv WHERE symbol = ?"
         params = [symbol]
         if start: query += " AND date >= ?"; params.append(start)
         if end: query += " AND date <= ?"; params.append(end)
         query += " ORDER BY date"
         with self._connect() as conn:
-            df = pd.read_sql_query(query, conn, params=params, index_col="date")
+            df = pd.read_sql_query(query, conn, params=params, index_col=None)
+            # Fetch date separately to avoid index name issues or just re-read with index
+            df = pd.read_sql_query(query.replace("open as", "date, open as"), conn, params=params, index_col="date")
             df.index = pd.to_datetime(df.index)
-            df.columns = [c.lower() for c in df.columns]
-            return df
+            df["Adj_Close"] = df["Close"]
+            return df[["Open", "High", "Low", "Close", "Volume", "Adj_Close"]]
 
     def list_assets(self) -> list[dict]:
         return self._query("SELECT symbol, MIN(date) as start, MAX(date) as end, COUNT(*) as rows FROM ohlcv GROUP BY symbol ORDER BY symbol")
@@ -270,8 +286,57 @@ class SignalRadarDB:
         query += " GROUP BY strategy, symbol HAVING timestamp = MAX(timestamp) ORDER BY profit_factor DESC"
         return self._query(query, params)
 
+    def get_best_assets(self, strategy: str, universe: str | None = None, min_pf: float = 0.0, source: str = "screens") -> list[dict]:
+        table = "screens" if source == "screens" else "validations"
+        query = f"SELECT * FROM {table} WHERE strategy = ? AND profit_factor >= ?"
+        params = [strategy, min_pf]
+        if universe: query += " AND universe = ?"; params.append(universe)
+        query += " GROUP BY symbol HAVING timestamp = MAX(timestamp) ORDER BY profit_factor DESC"
+        return self._query(query, params)
+
+    def get_strategies(self, source: str = "screens") -> list[str]:
+        table = "screens" if source == "screens" else "validations"
+        rows = self._query(f"SELECT DISTINCT strategy FROM {table}")
+        return [r["strategy"] for r in rows]
+
+    def get_universes(self, source: str = "screens") -> list[str]:
+        table = "screens" if source == "screens" else "validations"
+        rows = self._query(f"SELECT DISTINCT universe FROM {table}")
+        return [r["universe"] for r in rows]
+
+    def compare_strategies(self, strategies: list[str], universe: str | None = None, source: str = "screens") -> list[dict]:
+        if not strategies: return []
+        table = "screens" if source == "screens" else "validations"
+        # Get all symbols for these strategies/universe
+        query = f"SELECT DISTINCT symbol FROM {table} WHERE strategy IN ({','.join('?' for _ in strategies)})"
+        params = list(strategies)
+        if universe: query += " AND universe = ?"; params.append(universe)
+        symbols = [r["symbol"] for r in self._query(query, params)]
+        
+        results = []
+        for sym in symbols:
+            r = {"symbol": sym}
+            for s in strategies:
+                row = self._query_one(f"SELECT profit_factor FROM {table} WHERE strategy = ? AND symbol = ? ORDER BY timestamp DESC LIMIT 1", (s, sym))
+                if row: r[f"{s}_pf"] = row["profit_factor"]
+            results.append(r)
+        return sorted(results, key=lambda x: sum(1 for s in strategies if x.get(f"{s}_pf", 0) > 1.2), reverse=True)
+
+    def get_cross_strategy(self, symbol: str) -> list[dict]:
+        screens = self._query("SELECT *, 'screens' as source FROM screens WHERE symbol = ? GROUP BY strategy HAVING timestamp = MAX(timestamp)", (symbol,))
+        validations = self._query("SELECT *, 'validations' as source FROM validations WHERE symbol = ? GROUP BY strategy HAVING timestamp = MAX(timestamp)", (symbol,))
+        return sorted(screens + validations, key=lambda x: x["profit_factor"], reverse=True)
+
+    def count(self, table: str = "screens") -> int:
+        if table not in ["screens", "validations", "ohlcv", "signal_log"]: return 0
+        row = self._query_one(f"SELECT COUNT(*) as count FROM {table}")
+        return row["count"] if row else 0
+
     # -- Paper Trading --
     def open_paper_position(self, strategy: str, symbol: str, date: str, price: float, shares: float) -> bool:
+        # Business logic: only one open position per strategy/symbol
+        existing = self._query_one("SELECT id FROM paper_positions WHERE strategy = ? AND symbol = ? AND status = 'open'", (strategy, symbol))
+        if existing: return False
         try:
             with self._connect() as conn:
                 conn.execute("INSERT INTO paper_positions (strategy, symbol, entry_date, entry_price, shares, status) VALUES (?, ?, ?, ?, ?, 'open')", (strategy, symbol, date, price, shares))
@@ -302,6 +367,14 @@ class SignalRadarDB:
         params.append(limit)
         return self._query(query, params)
 
+    def clear_paper_positions(self, strategy: str | None = None) -> int:
+        query = "DELETE FROM paper_positions WHERE status = 'open'"
+        params = []
+        if strategy: query += " AND strategy = ?"; params.append(strategy)
+        with self._connect() as conn:
+            cur = conn.execute(query, params)
+            return cur.rowcount
+
     def get_paper_summary(self) -> dict:
         rows = self._query("SELECT * FROM paper_positions WHERE status = 'closed'")
         n_trades = len(rows)
@@ -318,10 +391,10 @@ class SignalRadarDB:
         return {"n_trades": n_trades, "n_wins": wins, "win_rate": round(wins/n_trades*100, 1) if n_trades > 0 else 0.0, "total_pnl": round(total_pnl, 2), "n_open": n_open, "by_strategy": by_strategy}
 
     # -- Live Trades --
-    def open_live_trade(self, strategy: str, symbol: str, entry_date: str, entry_price: float, shares: float, fees: float = 0, paper_position_id: int | None = None) -> bool:
+    def open_live_trade(self, strategy: str, symbol: str, entry_date: str, entry_price: float, shares: float, fees: float = 0, notes: str = "", paper_position_id: int | None = None) -> bool:
         try:
             with self._connect() as conn:
-                conn.execute("INSERT INTO live_trades (strategy, symbol, entry_date, entry_price, shares, fees_entry, paper_position_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'open')", (strategy, symbol, entry_date, entry_price, shares, fees, paper_position_id))
+                conn.execute("INSERT INTO live_trades (strategy, symbol, entry_date, entry_price, shares, fees_entry, notes, paper_position_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')", (strategy, symbol, entry_date, entry_price, shares, fees, notes, paper_position_id))
                 return True
         except sqlite3.IntegrityError: return False
 
@@ -405,6 +478,9 @@ class SignalRadarDB:
         params.append(id); query = f"UPDATE paper_positions SET {', '.join(updates)} WHERE id = ?"
         with self._connect() as conn: return conn.execute(query, params).rowcount > 0
 
+    def update_paper_notes(self, id: int, notes: str) -> bool:
+        return self.update_paper_entry(id, notes=notes)
+
     def update_live_entry(self, id: int, notes: str | None = None, tags: str | None = None, sentiment: str | None = None) -> bool:
         updates = []; params = []
         if notes is not None: updates.append("notes = ?"); params.append(notes)
@@ -413,6 +489,9 @@ class SignalRadarDB:
         if not updates: return True
         params.append(id); query = f"UPDATE live_trades SET {', '.join(updates)} WHERE id = ?"
         with self._connect() as conn: return conn.execute(query, params).rowcount > 0
+
+    def update_live_notes(self, id: int, notes: str) -> bool:
+        return self.update_live_entry(id, notes=notes)
 
     def get_journal_entries(self, strategy: str | None = None, symbol: str | None = None, source: str | None = None, search: str | None = None, limit: int = 50) -> dict:
         entries = []
@@ -427,7 +506,10 @@ class SignalRadarDB:
                 if strategy: q += " AND strategy = ?"; p.append(strategy)
                 if symbol: q += " AND symbol = ?"; p.append(symbol)
                 for d in [dict(r) for r in conn.execute(q, p).fetchall()]:
-                    entries.append({"id": d["id"], "source": "paper", "strategy": d["strategy"], "symbol": d["symbol"], "status": d["status"], "entry_date": d["entry_date"], "entry_price": d["entry_price"], "exit_date": d.get("exit_date"), "exit_price": d.get("exit_price"), "shares": d["shares"], "fees": 0, "pnl_dollars": d.get("pnl_dollars"), "pnl_pct": d.get("pnl_pct"), "notes": d.get("notes") or "", "tags": d.get("tags") or "", "sentiment": d.get("sentiment") or "", "holding_days": None, "signal_details": None, "slippage": None})
+                    # Attach latest signal log context
+                    sig = self._query_one("SELECT details_json FROM signal_log WHERE strategy = ? AND symbol = ? ORDER BY timestamp DESC LIMIT 1", (d["strategy"], d["symbol"]))
+                    signal_details = json.loads(sig["details_json"]) if sig and sig["details_json"] else None
+                    entries.append({"id": d["id"], "source": "paper", "strategy": d["strategy"], "symbol": d["symbol"], "status": d["status"], "entry_date": d["entry_date"], "entry_price": d["entry_price"], "exit_date": d.get("exit_date"), "exit_price": d.get("exit_price"), "shares": d["shares"], "fees": 0, "pnl_dollars": d.get("pnl_dollars"), "pnl_pct": d.get("pnl_pct"), "notes": d.get("notes") or "", "tags": d.get("tags") or "", "sentiment": d.get("sentiment") or "", "holding_days": None, "signal_details": signal_details, "slippage": None})
             
             # Fetch live
             if source != 'paper':
@@ -436,7 +518,10 @@ class SignalRadarDB:
                 if strategy: q += " AND strategy = ?"; p.append(strategy)
                 if symbol: q += " AND symbol = ?"; p.append(symbol)
                 for d in [dict(r) for r in conn.execute(q, p).fetchall()]:
-                    entries.append({"id": d["id"], "source": "live", "strategy": d["strategy"], "symbol": d["symbol"], "status": d["status"], "entry_date": d["entry_date"], "entry_price": d["entry_price"], "exit_date": d.get("exit_date"), "exit_price": d.get("exit_price"), "shares": d["shares"], "fees": (d.get("fees_entry") or 0) + (d.get("fees_exit") or 0), "pnl_dollars": d.get("pnl_dollars"), "pnl_pct": d.get("pnl_pct"), "notes": d.get("notes") or "", "tags": d.get("tags") or "", "sentiment": d.get("sentiment") or "", "paper_position_id": d.get("paper_position_id"), "holding_days": None, "signal_details": None, "slippage": None})
+                    # Attach latest signal log context
+                    sig = self._query_one("SELECT details_json FROM signal_log WHERE strategy = ? AND symbol = ? ORDER BY timestamp DESC LIMIT 1", (d["strategy"], d["symbol"]))
+                    signal_details = json.loads(sig["details_json"]) if sig and sig["details_json"] else None
+                    entries.append({"id": d["id"], "source": "live", "strategy": d["strategy"], "symbol": d["symbol"], "status": d["status"], "entry_date": d["entry_date"], "entry_price": d["entry_price"], "exit_date": d.get("exit_date"), "exit_price": d.get("exit_price"), "shares": d["shares"], "fees": (d.get("fees_entry") or 0) + (d.get("fees_exit") or 0), "pnl_dollars": d.get("pnl_dollars"), "pnl_pct": d.get("pnl_pct"), "notes": d.get("notes") or "", "tags": d.get("tags") or "", "sentiment": d.get("sentiment") or "", "paper_position_id": d.get("paper_position_id"), "holding_days": None, "signal_details": signal_details, "slippage": None})
             
             if search:
                 s = search.lower()
