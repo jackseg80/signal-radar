@@ -152,7 +152,6 @@ def get_robustness(
     # Use build_cache instead of manual instantiation to be safe
     arrays = to_cache_arrays(df)
     cache = build_cache(arrays, strat_obj.param_grid(), dates=df.index.values)
-    strat_obj.build_cache(cache)
     
     from engine.backtest_config import BacktestConfig
     from engine.fee_model import FEE_MODEL_US_STOCKS_USD
