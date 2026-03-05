@@ -16,7 +16,14 @@ const OpenPositions = forwardRef(({ onLogReal, onSymbolClick, style, className, 
   if (loading) return (
     <Card 
       ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
-      title="Open Positions"
+      title={
+        <div className="flex items-center gap-2">
+          Open Positions
+          <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-700 text-slate-300">
+            PAPER
+          </span>
+        </div>
+      }
       {...props}
     >
       <LoadingState />
@@ -26,7 +33,14 @@ const OpenPositions = forwardRef(({ onLogReal, onSymbolClick, style, className, 
   if (error) return (
     <Card 
       ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
-      title="Open Positions"
+      title={
+        <div className="flex items-center gap-2">
+          Open Positions
+          <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-700 text-slate-300">
+            PAPER
+          </span>
+        </div>
+      }
       {...props}
     >
       <ErrorState message={error} onRetry={refetch} />
@@ -39,7 +53,14 @@ const OpenPositions = forwardRef(({ onLogReal, onSymbolClick, style, className, 
     return (
       <Card 
         ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
-        title="Open Positions"
+        title={
+        <div className="flex items-center gap-2">
+          Open Positions
+          <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-700 text-slate-300">
+            PAPER
+          </span>
+        </div>
+      }
         {...props}
       >
         <EmptyState message="No open positions" />
@@ -52,7 +73,14 @@ const OpenPositions = forwardRef(({ onLogReal, onSymbolClick, style, className, 
   return (
     <Card 
       ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
-      title="Open Positions"
+      title={
+        <div className="flex items-center gap-2">
+          Open Positions
+          <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-700 text-slate-300">
+            PAPER
+          </span>
+        </div>
+      }
       {...props}
     >
       <div className="overflow-x-auto">

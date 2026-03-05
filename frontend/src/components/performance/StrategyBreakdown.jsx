@@ -42,14 +42,7 @@ const StrategyBreakdown = forwardRef(({ style, className, onMouseDown, onMouseUp
 
   const kpis = [
     {
-      label: 'Portfolio Equity',
-      icon: <Wallet size={14} />,
-      value: `$${capital.toLocaleString()}`,
-      sub: `Initial: $${initialCapital.toLocaleString()}`,
-      color: 'text-white',
-    },
-    {
-      label: 'Realized PnL',
+      label: 'Realized PnL (Paper)',
       icon: <TrendingUp size={14} />,
       animated: true,
       rawValue: total_realized_pnl,
@@ -67,7 +60,7 @@ const StrategyBreakdown = forwardRef(({ style, className, onMouseDown, onMouseUp
       glow: total_unrealized_pnl > 0 ? 'glow-green' : total_unrealized_pnl < 0 ? 'glow-red' : '',
     },
     {
-      label: 'Success Rate',
+      label: 'Success Rate (Paper)',
       icon: <PieChart size={14} />,
       isRing: n_closed_trades > 0,
       ringValue: win_rate,
@@ -83,6 +76,15 @@ const StrategyBreakdown = forwardRef(({ style, className, onMouseDown, onMouseUp
     },
   ];
 
+  // Live Stats
+  const liveStats = perfData.live || {};
+  const livePnl = liveStats.total_pnl || 0;
+  const liveInitial = settingsData?.initial_capital ?? 1000; // Will be properly configured later, using setting or default 1000
+  const liveEquity = liveInitial + livePnl;
+  const liveTrades = liveStats.n_trades || 0;
+  const liveOpen = liveStats.n_open || 0;
+  const hasLive = liveTrades > 0 || liveOpen > 0;
+
   return (
     <div 
       ref={ref} 
@@ -93,8 +95,68 @@ const StrategyBreakdown = forwardRef(({ style, className, onMouseDown, onMouseUp
       onTouchEnd={onTouchEnd}
       {...props}
     >
+      {/* Portfolios Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 cursor-grab active:cursor-grabbing">
+        {/* Paper Card */}
+        <div className="bg-[--bg-card]/40 border border-[--glass-border] rounded-xl p-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4">
+            <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-700 text-slate-300">
+              PAPER
+            </span>
+            <span className="text-xs text-[--text-muted]">Test Environment</span>
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between text-sm">
+              <span className="text-[--text-muted]">Equity</span>
+              <span className="font-bold text-white">${capital.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-[--text-muted]">Initial</span>
+              <span className="text-white/70">${initialCapital.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-[--text-muted]">Realized PnL</span>
+              <span className={`font-bold ${pnlColor(total_realized_pnl)}`}>{total_realized_pnl > 0 ? '+' : ''}${total_realized_pnl.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-[--text-muted]">Positions</span>
+              <span className="text-white/90">{n_open_positions} open</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Card */}
+        <div className={`border rounded-xl p-4 flex flex-col justify-between transition-colors ${hasLive ? (livePnl >= 0 ? 'bg-emerald-900/10 border-emerald-900/30' : 'bg-red-900/10 border-red-900/30') : 'bg-[--bg-card]/20 border-[--glass-border] opacity-70'}`}>
+          <div className="flex items-center justify-between mb-4">
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-emerald-900/40 text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              LIVE
+            </span>
+            <span className="text-xs text-[--text-muted]">{hasLive ? 'Production' : 'No live trades yet'}</span>
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between text-sm">
+              <span className="text-[--text-muted]">Equity</span>
+              <span className="font-bold text-white">${liveEquity.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-[--text-muted]">Initial</span>
+              <span className="text-white/70">${liveInitial.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-[--text-muted]">Realized PnL</span>
+              <span className={`font-bold ${pnlColor(livePnl)}`}>{livePnl > 0 ? '+' : ''}${livePnl.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-[--text-muted]">Positions</span>
+              <span className="text-white/90">{liveOpen} open</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* KPI Row - Header is draggable area */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 cursor-grab active:cursor-grabbing">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 cursor-grab active:cursor-grabbing">
         {kpis.map((kpi, idx) => (
           <div
             key={kpi.label}

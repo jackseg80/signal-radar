@@ -31,7 +31,15 @@ const LivePositions = forwardRef(({ onSymbolClick, style, className, onMouseDown
   if (loading) return (
     <Card 
       ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
-      title="Live Positions"
+      title={
+        <div className="flex items-center gap-2">
+          Live Positions
+          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-emerald-900/40 text-emerald-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            LIVE
+          </span>
+        </div>
+      }
       {...props}
     >
       <LoadingState />
@@ -41,7 +49,15 @@ const LivePositions = forwardRef(({ onSymbolClick, style, className, onMouseDown
   if (error) return (
     <Card 
       ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
-      title="Live Positions"
+      title={
+        <div className="flex items-center gap-2">
+          Live Positions
+          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-emerald-900/40 text-emerald-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            LIVE
+          </span>
+        </div>
+      }
       {...props}
     >
       <ErrorState message={error} onRetry={refetch} />
@@ -54,7 +70,15 @@ const LivePositions = forwardRef(({ onSymbolClick, style, className, onMouseDown
     return (
       <Card 
         ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
-        title="Live Positions"
+        title={
+        <div className="flex items-center gap-2">
+          Live Positions
+          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-emerald-900/40 text-emerald-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            LIVE
+          </span>
+        </div>
+      }
         {...props}
       >
         <EmptyState message="No open live trades" />
@@ -66,7 +90,15 @@ const LivePositions = forwardRef(({ onSymbolClick, style, className, onMouseDown
     <>
       <Card 
         ref={ref} style={style} className={className} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onTouchEnd={onTouchEnd}
-        title="Live Positions"
+        title={
+        <div className="flex items-center gap-2">
+          Live Positions
+          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-emerald-900/40 text-emerald-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            LIVE
+          </span>
+        </div>
+      }
         {...props}
       >
         <div className="overflow-x-auto">
