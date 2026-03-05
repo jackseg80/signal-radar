@@ -64,31 +64,6 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-const TradeTooltip = ({ active, payload }) => {
-  if (active && payload && payload.length) {
-    const t = payload[0].payload;
-    return (
-      <div className="bg-[#1a1d27] border border-white/10 p-3 rounded-lg shadow-xl backdrop-blur-md">
-        <div className="flex items-center justify-between gap-4 mb-2">
-          <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${t.is_winner ? 'bg-green-500/20 text-green-400 border border-green-500/20' : 'bg-red-500/20 text-red-400 border border-red-500/20'}`}>
-            {t.is_winner ? 'Winner' : 'Loser'}
-          </span>
-          <span className="text-[10px] text-[--text-muted]">{t.entry_date} → {t.exit_date}</span>
-        </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-          <span className="text-[10px] text-[--text-muted]">Return</span>
-          <span className={`text-xs font-bold text-right ${t.is_winner ? 'text-green-400' : 'text-red-400'}`}>{formatPct(t.return_pct)}</span>
-          <span className="text-[10px] text-[--text-muted]">PnL</span>
-          <span className={`text-[10px] font-medium text-right ${t.is_winner ? 'text-green-400' : 'text-red-400'}`}>{formatPnl(t.pnl)}</span>
-          <span className="text-[10px] text-[--text-muted]">Price</span>
-          <span className="text-[10px] text-white text-right">{t.entry_price} → {t.exit_price}</span>
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
-
 export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, onClose }) {
   const [strategy, setStrategy] = useState(initialStrategy);
 
@@ -180,20 +155,16 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
       { label: 'Durée Moyenne', value: `${stats.avg_holding_days}j`, icon: Clock, color: 'text-blue-400' },
     ];
 
-    return (
-      <div className="grid grid-cols-2 gap-4">
-        {items.map((item, i) => (
-          <div key={i} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl">
-            <div className="flex items-center gap-2 mb-2">
-              <item.icon size={14} className="text-[--text-muted]" />
-              <span className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest">{item.label}</span>
-            </div>
-            <div className={`text-xl font-bold ${item.color}`}>{item.value}</div>
-            {item.sub && <div className="text-[10px] text-[--text-muted] mt-1">{item.sub}</div>}
-          </div>
-        ))}
+    return items.map((item, i) => (
+      <div key={i} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl">
+        <div className="flex items-center gap-2 mb-2">
+          <item.icon size={14} className="text-[--text-muted]" />
+          <span className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest">{item.label}</span>
+        </div>
+        <div className={`text-xl font-bold ${item.color}`}>{item.value}</div>
+        {item.sub && <div className="text-[10px] text-[--text-muted] mt-1">{item.sub}</div>}
       </div>
-    );
+    ));
   };
 
   return (
@@ -204,7 +175,7 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
         onClick={onClose}
       />
       {/* Panel */}
-      <div className="fixed right-0 top-0 h-full w-[520px] bg-[#1a1d27]
+      <div className="fixed right-0 top-0 h-full w-full max-w-[850px] bg-[#1a1d27]
                       border-l border-white/10 z-[70] overflow-y-auto
                       animate-slide-in-right p-8 shadow-2xl flex flex-col min-h-screen">
         {renderHeader()}
@@ -212,9 +183,9 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
 
         {loading ? (
           <div className="space-y-8 flex-1">
-            <div className="h-[220px] bg-white/[0.02] animate-pulse rounded-2xl" />
-            <div className="h-[120px] bg-white/[0.02] animate-pulse rounded-2xl" />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="h-[320px] bg-white/[0.02] animate-pulse rounded-2xl" />
+            <div className="h-[160px] bg-white/[0.02] animate-pulse rounded-2xl" />
+            <div className="grid grid-cols-4 gap-4">
               {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-white/[0.02] animate-pulse rounded-2xl" />)}
             </div>
           </div>
@@ -243,7 +214,7 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
                   </span>
                 </div>
               </div>
-              <div className="h-[240px] w-full bg-white/[0.01] rounded-2xl border border-white/5 p-4 min-h-[240px]">
+              <div className="h-[320px] w-full bg-white/[0.01] rounded-2xl border border-white/5 p-4 min-h-[320px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={data.equity_curve} syncId="asset-panel" margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
@@ -324,7 +295,7 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
                 <ShieldAlert size={12} className="text-red-400" />
                 Profil de Risque (Drawdown)
               </h3>
-              <div className="h-[140px] w-full bg-white/[0.01] rounded-2xl border border-white/5 p-4">
+              <div className="h-[160px] w-full bg-white/[0.01] rounded-2xl border border-white/5 p-4 min-h-[160px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={data.equity_curve} syncId="asset-panel" margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
@@ -366,7 +337,9 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
                 <Target size={12} className="text-green-400" />
                 Statistiques Clés
               </h3>
-              {renderStats()}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {renderStats()}
+              </div>
             </div>
             
             <div className="pt-4 pb-8">

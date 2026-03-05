@@ -177,4 +177,4 @@ def get_asset_prices(symbol: str, days: int = Query(60), db: SignalRadarDB = Dep
     import pandas as pd
     start_date = (pd.Timestamp.now() - pd.Timedelta(days=days)).strftime("%Y-%m-%d")
     df = db.get_ohlcv(symbol, start=start_date)
-    return [{"date": date.strftime("%Y-%m-%d") if isinstance(date, pd.Timestamp) else str(date), "close": float(row["close"])} for date, row in df.iterrows()]
+    return [{"date": date.strftime("%Y-%m-%d") if isinstance(date, pd.Timestamp) else str(date), "close": float(row["Close"])} for date, row in df.iterrows()]
