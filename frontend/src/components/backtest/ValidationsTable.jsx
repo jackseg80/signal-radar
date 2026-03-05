@@ -45,6 +45,7 @@ export default function ValidationsTable() {
   );
 
   const [selectedValidation, setSelectedValidation] = useState(null);
+  const [selectedAsset, setSelectedAsset] = useState(null);
 
   const requestSort = (key) => {
     let direction = 'asc';
@@ -182,7 +183,13 @@ export default function ValidationsTable() {
                     className={`border-b border-white/5 hover:bg-white/[0.04] transition-all cursor-pointer group ${
                       isSelected ? 'bg-green-500/[0.05] border-green-500/20' : ''
                     }`}
-                    onClick={() => setSelectedValidation(r)}
+                    onClick={() => {
+                      setSelectedValidation(r);
+                      setSelectedAsset({
+                        symbol: r.symbol,
+                        strategy: r.strategy.split('_')[0]
+                      });
+                    }}
                   >
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
@@ -234,6 +241,15 @@ export default function ValidationsTable() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {selectedAsset && (
+        <AssetDetailPanel
+          symbol={selectedAsset.symbol}
+          initialStrategy={selectedAsset.strategy}
+          matrixData={{ [selectedAsset.symbol]: { [selectedAsset.strategy]: true } }}
+          onClose={() => setSelectedAsset(null)}
+        />
       )}
 
       {selectedValidation && (
