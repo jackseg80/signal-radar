@@ -278,12 +278,20 @@ def main():
     print(f"PORTFOLIO BACKTEST (STRICT FIXED POOL)")
     print(f"Capital : ${args.capital:,.0f} | Pool: FIXED (No compounding)")
     print(f"================================================================")
+    # 5. Report
     print(f"\nRÉSULTATS RÉELS")
     print(f"  PnL Net          : ${actual['net_pnl']:+,.2f}")
     print(f"  Trades exécutés  : {actual['n_trades']}")
+
+    # Count trades by strategy
+    from collections import Counter
+    actual_strat_counts = Counter(t.strategy for t in actual["trades"])
+    for s in ["tom", "rsi2", "ibs"]:
+        print(f"    {s.upper():4s} : {actual_strat_counts[s]}")
+
     print(f"  Trades skippés   : {actual['n_skipped']} (Pool vide)")
     print(f"  Trades tronqués  : {actual['n_truncated']} (Pool partiel)")
-    
+
     print(f"\nBASELINE THÉORIQUE (Somme des trades isolés à ${args.capital:,.0f})")
     print(f"  PnL Net          : ${theo['net_pnl']:+,.2f}")
     print(f"  Trades total     : {theo['n_trades']}")
