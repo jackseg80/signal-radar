@@ -84,8 +84,8 @@ body::before {
 }
 
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slide-up {
@@ -101,11 +101,6 @@ body::before {
 @keyframes zoom-in {
   from { opacity: 0; transform: scale(0.95); }
   to   { opacity: 1; transform: scale(1); }
-}
-
-@keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
 }
 
 @keyframes pulse-dot {
@@ -151,7 +146,7 @@ body::before {
 
 /* Animations */
 @utility animate-fade-in {
-  animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fade-in 0.3s ease-out both;
 }
 
 @utility animate-slide-up {
@@ -164,10 +159,6 @@ body::before {
 
 @utility animate-zoom-in {
   animation: zoom-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-@utility animate-fade-in {
-  animation: fade-in 0.3s ease-out both;
 }
 
 @utility animate-shimmer {
