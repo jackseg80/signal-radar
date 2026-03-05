@@ -78,8 +78,8 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
     window.addEventListener('keydown', handler);
     document.body.style.overflow = 'hidden';
     
-    // Un peu de délai pour l'animation
-    const timer = setTimeout(() => setIsReady(true), 300);
+    // Délai pour l'animation et stabiliser Recharts
+    const timer = setTimeout(() => setIsReady(true), 400);
     
     return () => {
       window.removeEventListener('keydown', handler);
@@ -116,24 +116,24 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
   const renderHeader = () => (
     <div className="flex items-start justify-between mb-6 shrink-0">
       <div className="flex items-center gap-4">
-        <AssetIcon symbol={symbol} size="lg" />
+        <AssetIcon symbol={symbol} size="lg" className="shadow-2xl ring-4 ring-white/5" />
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-bold text-white leading-none">{symbol}</h2>
-            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${assetType.bg} ${assetType.text} border ${assetType.border} uppercase`}>
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-3xl font-black text-white tracking-tight">{symbol}</h2>
+            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border ${assetType.bg} ${assetType.text} ${assetType.border}`}>
               {assetType.label}
             </span>
           </div>
-          <p className="text-xs text-[--text-muted] mt-1 font-medium">
-            {data?.n_trades || 0} trades • OOS 2014-2025
+          <p className="text-sm text-[--text-muted] font-medium uppercase tracking-wider">
+            Analyse de Backtest OOS 2014-2025
           </p>
         </div>
       </div>
       <button 
         onClick={onClose}
-        className="p-2 hover:bg-white/5 rounded-full transition-colors group cursor-pointer"
+        className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-white transition-all cursor-pointer border border-white/5"
       >
-        <X size={24} className="text-[--text-muted] group-hover:text-white" />
+        <X size={24} />
       </button>
     </div>
   );
@@ -167,77 +167,96 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
       { label: 'Durée Moyenne', value: `${stats.avg_holding_days}j`, icon: Clock, color: 'text-blue-400' },
     ];
 
-    return items.map((item, i) => (
-      <div key={i} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl">
-        <div className="flex items-center gap-2 mb-2">
-          <item.icon size={14} className="text-[--text-muted]" />
-          <span className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest">{item.label}</span>
-        </div>
-        <div className={`text-xl font-bold ${item.color}`}>{item.value}</div>
-        {item.sub && <div className="text-[10px] text-[--text-muted] mt-1">{item.sub}</div>}
+    return (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+        {items.map((item, i) => (
+          <div key={i} className="p-5 bg-white/[0.03] border border-white/5 rounded-3xl hover:bg-white/[0.05] transition-all group">
+            <div className="flex items-center gap-2 mb-3">
+              <item.icon size={16} className="text-[--text-muted]" />
+              <span className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest">{item.label}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className={`text-2xl font-black tracking-tight ${item.color}`}>{item.value}</span>
+              {item.sub && <span className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest mt-1">{item.sub}</span>}
+            </div>
+          </div>
+        ))}
       </div>
-    ));
+    );
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      {/* Overlay */}
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      {/* Overlay - simple high z-index overlay */}
       <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer animate-fade-in"
+        className="fixed inset-0 bg-black/90 backdrop-blur-md cursor-pointer animate-fade-in"
         onClick={onClose}
       />
       
-      {/* Modal Container */}
-      <div className="relative w-full max-w-5xl max-h-[95vh] bg-[#1a1d27] border border-white/10 
-                      rounded-3xl shadow-2xl overflow-hidden animate-zoom-in flex flex-col m-4">
+      {/* Modal Container - relative to center flex */}
+      <div className="relative w-full max-w-6xl max-h-[90vh] bg-[#0f111a] border border-white/10 
+                      rounded-[2.5rem] shadow-2xl overflow-hidden animate-slide-up flex flex-col">
         
-        <div className="p-8 lg:p-10 flex flex-col h-full overflow-y-auto">
+        {/* Header Section (always visible) */}
+        <div className="relative p-8 lg:p-10 bg-gradient-to-b from-white/[0.03] to-transparent border-b border-white/5 shrink-0">
           {renderHeader()}
           {renderStrategySwitcher()}
+        </div>
 
+        {/* Content Body */}
+        <div className="flex-1 overflow-y-auto p-8 lg:p-10 custom-scrollbar">
           {loading ? (
-            <div className="space-y-8 flex-1">
-              <div className="h-[320px] bg-white/[0.02] animate-pulse rounded-2xl" />
-              <div className="h-[160px] bg-white/[0.02] animate-pulse rounded-2xl" />
+            <div className="space-y-10">
               <div className="grid grid-cols-4 gap-4">
-                {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-white/[0.02] animate-pulse rounded-2xl" />)}
+                {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-white/[0.02] animate-pulse rounded-3xl" />)}
               </div>
+              <div className="h-[350px] bg-white/[0.02] animate-pulse rounded-3xl" />
             </div>
           ) : error ? (
             <div className="flex-1">
               <ErrorState message={error} />
-              <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-                <p className="text-xs text-red-400">
-                  L'actif <strong>{symbol}</strong> n'est peut-être pas configuré pour la stratégie <strong>{strategy}</strong>.
+              <div className="mt-4 p-6 bg-red-500/10 border border-red-500/20 rounded-3xl">
+                <p className="text-sm text-red-400">
+                  L'actif <strong>{symbol}</strong> n'est peut-être pas configuré pour la stratégie <strong>{strategy}</strong> dans l'univers de production.
                 </p>
               </div>
             </div>
           ) : data && data.equity_curve ? (
-            <div className="space-y-8 flex-1">
+            <div className="space-y-12">
+              
+              {/* Stats Grid */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-[--text-muted] uppercase tracking-widest flex items-center gap-2">
+                  <Target size={14} className="text-green-400" /> Statistiques de Performance
+                </h3>
+                {renderStats()}
+              </div>
+
               {/* Equity Chart */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[--text-muted] flex items-center gap-2">
-                    <Activity size={12} className="text-blue-400" />
-                    Performance Cumulative (OOS)
+                  <h3 className="text-xs font-bold text-[--text-muted] uppercase tracking-widest flex items-center gap-2">
+                    <Activity size={14} className="text-blue-400" /> Courbe d'Equity Cumulative (OOS)
                   </h3>
-                  <div className="text-sm font-bold text-white">
+                  <div className="text-xl font-mono font-bold text-white tabular-nums">
                     {formatPrice(data.equity_curve[data.equity_curve.length - 1]?.equity)}
-                    <span className={`ml-2 text-xs ${data.stats?.max_drawdown_pct > -10 ? 'text-green-400' : 'text-amber-400'}`}>
+                    <span className={`ml-3 text-sm ${data.stats?.max_drawdown_pct > -10 ? 'text-green-400' : 'text-amber-400'}`}>
                       {data.equity_curve.length > 0 ? (((data.equity_curve[data.equity_curve.length - 1].equity - data.equity_curve[0].equity) / data.equity_curve[0].equity) * 100).toFixed(1) : 0}%
                     </span>
                   </div>
                 </div>
-                <div className="h-[350px] w-full bg-white/[0.01] rounded-2xl border border-white/5 p-4">
+                
+                <div className="h-[350px] w-full bg-white/[0.01] rounded-[2rem] border border-white/5 p-6 overflow-hidden">
                   {isReady && (
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={data.equity_curve} syncId="asset-panel" margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <defs>
                           <linearGradient id="colorEquity" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
                             <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
                         <XAxis 
                           dataKey="date" 
                           axisLine={false}
@@ -268,7 +287,6 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
                           isAnimationActive={false}
                         />
                         
-                        {/* Market Events */}
                         {filteredMarketEvents.map((event, i) => (
                           <ReferenceLine
                             key={i}
@@ -286,7 +304,6 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
                           />
                         ))}
 
-                        {/* Trade Dots */}
                         {data.trades.map((t, i) => (
                           <ReferenceDot
                             key={i}
@@ -294,7 +311,7 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
                             y={equityCurveMap[t.exit_date] || data.equity_curve[0].equity}
                             r={3}
                             fill={t.is_winner ? "#22c55e" : "#ef4444"}
-                            stroke="#1a1d27"
+                            stroke="#0f111a"
                             strokeWidth={1}
                             isAnimationActive={false}
                           />
@@ -307,24 +324,20 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
 
               {/* Drawdown Chart */}
               <div className="space-y-4">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[--text-muted] flex items-center gap-2">
-                  <ShieldAlert size={12} className="text-red-400" />
-                  Profil de Risque (Drawdown)
+                <h3 className="text-xs font-bold text-[--text-muted] uppercase tracking-widest flex items-center gap-2">
+                  <ShieldAlert size={14} className="text-red-400" /> Profil de Risque (Drawdown)
                 </h3>
-                <div className="h-[150px] w-full bg-white/[0.01] rounded-2xl border border-white/5 p-4">
+                <div className="h-[150px] w-full bg-white/[0.01] rounded-[2rem] border border-white/5 p-6 overflow-hidden">
                   {isReady && (
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={data.equity_curve} syncId="asset-panel" margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <defs>
                           <linearGradient id="colorDD" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2}/>
+                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15}/>
                             <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
-                        <XAxis 
-                          dataKey="date" 
-                          hide
-                        />
+                        <XAxis dataKey="date" hide />
                         <YAxis 
                           axisLine={false}
                           tickLine={false}
@@ -349,18 +362,18 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
                 </div>
               </div>
 
-              {/* Stats Grid */}
-              <div className="space-y-4 pb-10">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[--text-muted] flex items-center gap-2">
-                  <Target size={12} className="text-green-400" />
-                  Statistiques Clés
-                </h3>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  {renderStats()}
-                </div>
-              </div>
             </div>
           ) : null}
+        </div>
+        
+        {/* Footer */}
+        <div className="p-8 bg-white/[0.02] border-t border-white/5 flex justify-between items-center shrink-0">
+          <div className="flex items-center gap-2 text-[10px] text-[--text-muted] uppercase font-bold tracking-widest">
+            <Calendar size={12} /> Dernière mise à jour : {new Date().toLocaleDateString()}
+          </div>
+          <div className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">
+            Mode Analyse Quantitative Out-of-Sample
+          </div>
         </div>
       </div>
     </div>
