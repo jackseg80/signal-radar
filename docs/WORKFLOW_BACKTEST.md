@@ -109,18 +109,33 @@ docker exec -it scanner python scripts/portfolio_backtest.py
 docker exec -it scanner python scripts/portfolio_backtest.py --capital 10000
 ```
 
-### Ce que le rapport produit
-- Nombre de trades skippés faute de capital
-- Nombre de chevauchements par paire de stratégies
-- Coût réel des conflits (PnL théorique vs PnL réel)
-- Recommandation de `position_fraction` par stratégie
-- Capital minimum estimé pour zéro conflit
+### Résultats clés sur l'univers actuel ($5k, 2014-2025)
+
+Le backtest portfolio a modélisé la réalité d'un compte de $5,000 (sans réinvestissement des gains, avec priorité TOM > RSI2 > IBS). Voici les conclusions opérationnelles à retenir :
+
+| Métrique | Valeur | Interprétation |
+|----------|--------|----------------|
+| **PnL réel ($5k fixe)** | +$34,024 | Rendement absolu bridé par la taille du compte. |
+| **PnL théorique (infini)** | +$208,895 | Le potentiel maximum des stratégies sans friction. |
+| **Efficacité capitale** | 16.3% | Seuls 16% de l'alpha disponible sont capturés avec $5k. |
+| **Capital suggéré** | ~$31,000 | Le seuil estimé pour éliminer les conflits de capital. |
+
+**Répartition de l'activité (1081 trades exécutés) :**
+- TOM : 131 trades
+- RSI2 : 299 trades
+- IBS : 651 trades (58%)
+
+**Le problème IBS :**
+IBS est la stratégie la plus fréquente (~20-30 trades/an par asset). C'est elle qui monopolise le capital et bloque l'exécution de RSI2 et TOM les jours de forte corrélation de signaux (781 jours d'overlap).
+
+**Décision de Sizing :**
+Avec un compte de $5,000, la priorité d'exécution stricte **TOM > RSI2 > IBS** est cruciale. TOM est le plus rare et offre le meilleur rendement par trade. Une réduction de la fraction allouée à IBS (`position_fraction: 0.5`) est recommandée pour fluidifier le portefeuille.
 
 ### Règle de priorité des signaux (fixe, non optimisable)
 En cas de conflit le même jour : **TOM > RSI2 > IBS**
 
-Justification : TOM est le plus rare (12x/an) et le plus prévisible
-(signal calendaire). IBS est le plus fréquent et peut attendre.
+Justification : TOM est le plus rare (12x/an) et le plus prévisible (signal calendaire). IBS est le plus fréquent et peut attendre.
+
 
 ---
 
