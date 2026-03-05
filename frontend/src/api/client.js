@@ -84,6 +84,9 @@ export const api = {
   journalPaperNote: (id, notes) => patchJson(`/journal/paper/${id}/notes`, { notes }),
   journalLiveNote: (id, notes) => patchJson(`/journal/live/${id}/notes`, { notes }),
 
+  // Config
+  getSettings: () => fetchJson('/config/settings'),
+
   // Health
   health: () => fetchJson('/health')
 };

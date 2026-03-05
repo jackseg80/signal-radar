@@ -14,8 +14,9 @@ const StrategyBreakdown = forwardRef(({ style, className, onMouseDown, onMouseUp
   const { refreshKey } = useRefresh();
   const { data: perfData, loading: perfLoading, error: perfError, refetch: refetchPerf } = useApi(() => api.performanceSummary(), [refreshKey]);
   const { data: openData, loading: openLoading } = useApi(() => api.openPositions(), [refreshKey]);
+  const { data: settingsData, loading: settingsLoading } = useApi(() => api.getSettings(), []);
 
-  if (perfLoading || openLoading) return (
+  if (perfLoading || openLoading || settingsLoading) return (
     <div ref={ref} style={style} className={`grid grid-cols-2 md:grid-cols-5 gap-4 ${className}`} {...props}>
       {[...Array(5)].map((_, i) => <Card key={i}><LoadingState rows={1} /></Card>)}
     </div>
@@ -32,7 +33,7 @@ const StrategyBreakdown = forwardRef(({ style, className, onMouseDown, onMouseUp
   const n_open_positions = stats.n_open || 0;
   const by_strategy = stats.by_strategy || {};
   
-  const initialCapital = 10000;
+  const initialCapital = settingsData?.initial_capital ?? 10000;
   const capital = initialCapital + total_realized_pnl;
   const total_unrealized_pnl = openData?.total_unrealized_pnl || 0;
 

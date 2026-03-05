@@ -321,7 +321,7 @@ class SignalRadarDB:
     def open_live_trade(self, strategy: str, symbol: str, entry_date: str, entry_price: float, shares: float, fees: float = 0, paper_position_id: int | None = None) -> bool:
         try:
             with self._connect() as conn:
-                conn.execute("INSERT INTO live_trades (strategy, symbol, entry_date, entry_price, shares, fees_entry, paper_position_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'open')", (strategy, symbol, date, price, shares, fees, paper_position_id))
+                conn.execute("INSERT INTO live_trades (strategy, symbol, entry_date, entry_price, shares, fees_entry, paper_position_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'open')", (strategy, symbol, entry_date, entry_price, shares, fees, paper_position_id))
                 return True
         except sqlite3.IntegrityError: return False
 

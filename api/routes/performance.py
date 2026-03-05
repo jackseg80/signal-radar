@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 
 from data.db import SignalRadarDB
 from api.dependencies import get_db
+from api.config import load_production_config
 
 router = APIRouter()
 
@@ -36,11 +37,10 @@ def get_equity_curve(
     sorted_trades = sorted(closed, key=lambda x: x["exit_date"])
     
     curve = []
-    # Start with initial capital ($5000 from config)
-    # Note: In backtests we use 10k, but production_params.yaml says 5k.
-    # To match frontend tickFormatter ($v/1000k), maybe it expects a higher base?
-    # Let's assume a baseline of 10000 for visual consistency with previous version.
-    current_equity = 10000.0
+    # Dynamic capital from production_params.yaml
+    config = load_production_config()
+    initial_capital = config.get("capital", 5000.0)
+    current_equity = initial_capital
     
     # Add initial point
     if sorted_trades:
