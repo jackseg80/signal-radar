@@ -42,26 +42,9 @@ const MARKET_EVENTS = [
   { date: "2016-11-08", label: "Election 2016", color: "#8b5cf6" },
 ];
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <div className="bg-[#1a1d27] border border-white/10 p-3 rounded-lg shadow-xl backdrop-blur-md">
-        <p className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest mb-1">{formatDate(label)}</p>
-        <div className="space-y-1">
-          <p className="text-sm font-bold text-white">Equity: {formatPrice(data.equity)}</p>
-          <p className={`text-xs font-medium ${data.drawdown_pct < 0 ? 'text-red-400' : 'text-green-400'}`}>
-            Drawdown: {data.drawdown_pct.toFixed(2)}%
-          </p>
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
-
 export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, onClose }) {
   const [strategy, setStrategy] = useState(initialStrategy);
+  // On commence à false pour laisser le temps au DOM de se stabiliser
   const [isReady, setIsReady] = useState(false);
 
   const { data, loading, error } = useApi(
@@ -73,14 +56,14 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
     if (!symbol) return;
     document.body.style.overflow = 'hidden';
     
-    // Stabilisation pour Recharts
-    const timer = setTimeout(() => setIsReady(true), 500);
+    // Délai plus long pour être certain que le modal est rendu avant Recharts
+    const timer = setTimeout(() => setIsReady(true), 100);
     
     return () => {
       document.body.style.overflow = 'unset';
       clearTimeout(timer);
     };
-  }, [symbol]);
+  }, [symbol, strategy]); // On reset isReady au changement de stratégie
 
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) onClose();
@@ -115,13 +98,14 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
 
   return (
     <div 
-      className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 sm:p-6"
       onClick={handleBackdropClick}
     >
-      <div className="bg-[#0f111a] border border-white/10 w-full max-w-6xl max-h-[90vh] rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col animate-slide-up">
+      {/* Box principale */}
+      <div className="bg-[#0f111a] border border-white/10 w-full max-w-6xl max-h-[90vh] rounded-[2rem] shadow-2xl flex flex-col relative overflow-hidden">
         
-        {/* Header Section */}
-        <div className="relative p-8 bg-gradient-to-b from-white/[0.03] to-transparent border-b border-white/5">
+        {/* Header fixe */}
+        <div className="p-6 sm:p-8 bg-gradient-to-b from-white/[0.03] to-transparent border-b border-white/5 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
               <AssetIcon symbol={symbol} size="lg" className="shadow-2xl ring-4 ring-white/5" />
@@ -139,7 +123,6 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
                       onClick={() => {
                         setIsReady(false);
                         setStrategy(s);
-                        setTimeout(() => setIsReady(true), 500);
                       }}
                       className={`px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer border ${
                         strategy === s 
@@ -171,8 +154,8 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
           </div>
         </div>
 
-        {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        {/* Corps scrollable */}
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar">
           {loading ? (
             <LoadingState rows={10} />
           ) : error ? (
@@ -180,60 +163,35 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
               <ErrorState message={error} />
               <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-3xl">
                 <p className="text-sm text-red-400">
-                  L'actif <strong>{symbol}</strong> n'est peut-être pas configuré pour la stratégie <strong>{strategy}</strong> dans l'univers de production.
+                  L'actif <strong>{symbol}</strong> n'est peut-être pas configuré pour la stratégie <strong>{strategy}</strong>.
                 </p>
               </div>
             </div>
           ) : (
-            <div className="space-y-12">
+            <div className="space-y-10">
               
-              {/* Stats Boxes */}
+              {/* Stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatBox 
-                  label="Max Drawdown" 
-                  value={`${data.stats.max_drawdown_pct}%`} 
-                  sub={data.stats.max_drawdown_date}
-                  color="text-red-400"
-                  icon={<ShieldAlert size={16} className="text-red-400" />}
-                />
-                <StatBox 
-                  label="Meilleur Trade" 
-                  value={`${data.stats.best_trade_pct}%`} 
-                  color="text-green-400"
-                  icon={<TrendingUp size={16} className="text-green-400" />}
-                />
-                <StatBox 
-                  label="Pire Trade" 
-                  value={`${data.stats.worst_trade_pct}%`} 
-                  color="text-red-400"
-                  icon={<TrendingDown size={16} className="text-red-400" />}
-                />
-                <StatBox 
-                  label="Durée Moyenne" 
-                  value={`${data.stats.avg_holding_days}j`} 
-                  color="text-blue-400"
-                  icon={<Clock size={16} className="text-blue-400" />}
-                />
+                <StatBox label="Max Drawdown" value={`${data.stats.max_drawdown_pct}%`} sub={data.stats.max_drawdown_date} color="text-red-400" icon={<ShieldAlert size={16} />} />
+                <StatBox label="Meilleur Trade" value={`${data.stats.best_trade_pct}%`} color="text-green-400" icon={<TrendingUp size={16} />} />
+                <StatBox label="Pire Trade" value={`${data.stats.worst_trade_pct}%`} color="text-red-400" icon={<TrendingDown size={16} />} />
+                <StatBox label="Durée Moyenne" value={`${data.stats.avg_holding_days}j`} color="text-blue-400" icon={<Clock size={16} />} />
               </div>
 
               {/* Equity Chart */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-bold text-[--text-muted] uppercase tracking-widest flex items-center gap-2">
-                    <Activity size={14} className="text-blue-400" /> Courbe d'Equity Cumulative (OOS 2014-2025)
+                    <Activity size={14} className="text-blue-400" /> Courbe d'Equity (OOS)
                   </h3>
-                  <div className="text-xl font-mono font-bold text-white tabular-nums">
+                  <div className="text-xl font-mono font-bold text-white">
                     {formatPrice(data.equity_curve[data.equity_curve.length - 1]?.equity)}
-                    <span className={`ml-3 text-sm ${data.stats.max_drawdown_pct > -10 ? 'text-green-400' : 'text-amber-400'}`}>
-                      {(((data.equity_curve[data.equity_curve.length - 1].equity - data.equity_curve[0].equity) / data.equity_curve[0].equity) * 100).toFixed(1)}%
-                    </span>
                   </div>
                 </div>
-                
-                <div className="h-[350px] min-h-[350px] w-full bg-white/[0.01] rounded-[2rem] border border-white/5 p-6 overflow-hidden">
+                <div className="h-[350px] w-full bg-white/[0.01] rounded-[2rem] border border-white/5 p-4 overflow-hidden relative">
                   {isReady && (
-                    <ResponsiveContainer width="99%" height="99%">
-                      <AreaChart data={data.equity_curve} syncId="asset-panel" margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={data.equity_curve} syncId="asset-panel">
                         <defs>
                           <linearGradient id="colorEquity" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
@@ -241,63 +199,15 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                        <XAxis 
-                          dataKey="date" 
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fill: '#64748b', fontSize: 10 }}
-                          minTickGap={40}
-                          tickFormatter={(str) => {
-                            const date = new Date(str);
-                            return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-                          }}
-                        />
-                        <YAxis 
-                          domain={['auto', 'auto']}
-                          tick={{ fill: '#64748b', fontSize: 10 }}
-                          axisLine={false}
-                          tickLine={false}
-                          tickFormatter={(val) => `$${(val / 1000).toFixed(1)}k`}
-                        />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Area 
-                          type="monotone" 
-                          dataKey="equity" 
-                          stroke="#3b82f6" 
-                          strokeWidth={2}
-                          fillOpacity={1} 
-                          fill="url(#colorEquity)" 
-                          isAnimationActive={false}
-                        />
-                        
+                        <XAxis dataKey="date" hide />
+                        <YAxis tick={{fill: '#64748b', fontSize: 10}} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
+                        <Tooltip contentStyle={{backgroundColor: '#1a1d27', border: 'none', borderRadius: '12px'}} />
+                        <Area type="monotone" dataKey="equity" stroke="#3b82f6" strokeWidth={2} fill="url(#colorEquity)" isAnimationActive={false} />
                         {filteredMarketEvents.map((event, i) => (
-                          <ReferenceLine
-                            key={i}
-                            x={event.date}
-                            stroke={event.color}
-                            strokeDasharray="3 3"
-                            label={{ 
-                              value: event.label, 
-                              position: 'insideTopLeft', 
-                              fill: event.color, 
-                              fontSize: 8,
-                              fontWeight: 'bold',
-                              offset: 10
-                            }}
-                          />
+                          <ReferenceLine key={i} x={event.date} stroke={event.color} strokeDasharray="3 3" label={{value: event.label, fill: event.color, fontSize: 8}} />
                         ))}
-
                         {data.trades.map((t, i) => (
-                          <ReferenceDot
-                            key={i}
-                            x={t.exit_date}
-                            y={equityCurveMap[t.exit_date] || data.equity_curve[0].equity}
-                            r={3}
-                            fill={t.is_winner ? "#22c55e" : "#ef4444"}
-                            stroke="#0f111a"
-                            strokeWidth={1}
-                            isAnimationActive={false}
-                          />
+                          <ReferenceDot key={i} x={t.exit_date} y={equityCurveMap[t.exit_date] || data.equity_curve[0].equity} r={3} fill={t.is_winner ? "#22c55e" : "#ef4444"} stroke="none" isAnimationActive={false} />
                         ))}
                       </AreaChart>
                     </ResponsiveContainer>
@@ -308,37 +218,16 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
               {/* Drawdown Chart */}
               <div className="space-y-4">
                 <h3 className="text-xs font-bold text-[--text-muted] uppercase tracking-widest flex items-center gap-2">
-                  <ShieldAlert size={14} className="text-red-400" /> Profil de Risque (Drawdown)
+                  <ShieldAlert size={14} className="text-red-400" /> Drawdown
                 </h3>
-                <div className="h-[150px] min-h-[150px] w-full bg-white/[0.01] rounded-[2rem] border border-white/5 p-6 overflow-hidden">
+                <div className="h-[120px] w-full bg-white/[0.01] rounded-2xl border border-white/5 p-4 overflow-hidden relative">
                   {isReady && (
-                    <ResponsiveContainer width="99%" height="99%">
-                      <AreaChart data={data.equity_curve} syncId="asset-panel" margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorDD" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15}/>
-                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={data.equity_curve} syncId="asset-panel">
                         <XAxis dataKey="date" hide />
-                        <YAxis 
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fill: '#64748b', fontSize: 10 }}
-                          domain={['auto', 0]}
-                          tickFormatter={(val) => `${val.toFixed(0)}%`}
-                        />
-                        <Tooltip content={<CustomTooltip />} />
-                        <ReferenceLine y={0} stroke="#64748b" strokeDasharray="3 3" />
-                        <Area 
-                          type="monotone" 
-                          dataKey="drawdown_pct" 
-                          stroke="#ef4444" 
-                          strokeWidth={1.5}
-                          fillOpacity={1} 
-                          fill="url(#colorDD)" 
-                          isAnimationActive={false}
-                        />
+                        <YAxis hide domain={['auto', 0]} />
+                        <Tooltip contentStyle={{backgroundColor: '#1a1d27', border: 'none', borderRadius: '12px'}} />
+                        <Area type="monotone" dataKey="drawdown_pct" stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} isAnimationActive={false} />
                       </AreaChart>
                     </ResponsiveContainer>
                   )}
@@ -350,12 +239,12 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
         </div>
         
         {/* Footer */}
-        <div className="p-8 bg-white/[0.02] border-t border-white/5 flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-2 text-[10px] text-[--text-muted] uppercase font-bold tracking-widest">
-            <Calendar size={12} /> Dernière simulation : {new Date().toLocaleDateString()}
+        <div className="p-6 bg-white/[0.02] border-t border-white/5 flex justify-between items-center shrink-0">
+          <div className="text-[10px] text-[--text-muted] uppercase font-bold tracking-widest">
+            Simulation réalisée le {new Date().toLocaleDateString()}
           </div>
-          <div className="text-[10px] text-blue-400 font-bold uppercase tracking-widest flex items-center gap-2">
-            <Info size={12} /> Analyse Quantitative Out-of-Sample
+          <div className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">
+            Signal Radar Quant Engine
           </div>
         </div>
       </div>
@@ -365,14 +254,14 @@ export default function AssetDetailPanel({ symbol, initialStrategy, matrixData, 
 
 function StatBox({ label, value, sub, icon, color }) {
   return (
-    <div className="p-5 bg-white/[0.03] border border-white/5 rounded-3xl hover:bg-white/[0.05] transition-all group">
-      <div className="flex items-center gap-2 mb-3">
+    <div className="p-5 bg-white/[0.03] border border-white/5 rounded-3xl hover:bg-white/[0.05] transition-all">
+      <div className="flex items-center gap-2 mb-3 text-[--text-muted]">
         {icon}
-        <span className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest">{label}</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest">{label}</span>
       </div>
       <div className="flex flex-col">
         <span className={`text-2xl font-black tracking-tight ${color}`}>{value}</span>
-        {sub && <span className="text-[10px] font-bold text-[--text-muted] uppercase tracking-widest mt-1 opacity-60">{sub}</span>}
+        {sub && <span className="text-[10px] font-bold text-[--text-muted] uppercase mt-1 opacity-60">{sub}</span>}
       </div>
     </div>
   );
