@@ -7,6 +7,7 @@ import LoadingState from '../ui/LoadingState';
 import ErrorState from '../ui/ErrorState';
 import EmptyState from '../ui/EmptyState';
 import RobustnessHeatmap from './RobustnessHeatmap';
+import AssetDetailPanel from './AssetDetailPanel';
 import AssetIcon from '../ui/AssetIcon';
 import { X, Filter, ChevronUp, ChevronDown, Info, ShieldCheck, Activity } from 'lucide-react';
 
