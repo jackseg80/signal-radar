@@ -71,6 +71,27 @@ class IndicatorCache:
     trading_day_of_month: np.ndarray | None = None        # rang du jour dans le mois (1er, 2ème, ...)
     trading_days_left_in_month: np.ndarray | None = None  # jours de trading restants dans le mois (inclus)
 
+    def get_idx_from_date(self, target_date_str: str) -> int:
+        """Retourne l'index de la première date >= target_date_str."""
+        if self.dates is None:
+            raise ValueError("dates array is not initialized in cache")
+        import pandas as pd
+        # Find first date >= target
+        valid_indices = np.where(pd.DatetimeIndex(self.dates) >= target_date_str)[0]
+        if len(valid_indices) == 0:
+            raise ValueError(f"No dates found >= {target_date_str}")
+        return int(valid_indices[0])
+
+    def get_idx_before_date(self, target_date_str: str) -> int:
+        """Retourne l'index de la première date < target_date_str."""
+        if self.dates is None:
+            raise ValueError("dates array is not initialized in cache")
+        import pandas as pd
+        valid_indices = np.where(pd.DatetimeIndex(self.dates) < target_date_str)[0]
+        if len(valid_indices) == 0:
+            return 0
+        return int(valid_indices[-1] + 1)
+
 
 def build_cache(
     arrays: dict[str, np.ndarray],

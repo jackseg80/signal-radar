@@ -51,13 +51,15 @@ class PortfolioTrade:
     return_pct: float
     is_truncated: bool = False
 
+from engine.fee_model import FeeModel
+
 def run_portfolio_simulation(
     initial_capital: float,
     strategies_config: dict[str, Any],
     caches: dict[str, Any],
     position_fractions: dict[str, float] | None = None,
 ) -> dict[str, Any]:
-    """Strict Fixed Pool Simulation."""
+    """Strict Fixed Pool Simulation with Fees."""
     available_pool = initial_capital
     total_realized_pnl = 0.0
     open_positions: dict[tuple[str, str], Position] = {}
@@ -76,9 +78,13 @@ def run_portfolio_simulation(
     fractions = position_fractions or {s: strategies_config[s]["params"].get("position_fraction", 1.0) for s in strats}
     max_pos = {s: strategies_config[s].get("max_positions", 1) for s in strats}
     priority = [s for s in ["tom", "rsi2", "ibs"] if s in strategies_config]
+    fee_models = {s: FeeModel(strategies_config[s].get("fee_model", "us_stocks_usd_account")) for s in strats}
 
     for d_idx, date in enumerate(all_dates):
-        # 1. Exits (freed capital returns to pool, profit goes to vault)
+        date_str = str(pd.Timestamp(date).date())
+        closed_today = set()
+        
+        # 1. Exits
         for key, pos in list(open_positions.items()):
             s_name, symbol = key
             cache = caches[symbol]
@@ -87,28 +93,38 @@ def run_portfolio_simulation(
                 
             exit_sig = strats[s_name].check_exit(local_i, cache, strategies_config[s_name]["params"], pos)
             if exit_sig:
-                pnl = (exit_sig.price - pos.entry_price) * pos.quantity * pos.direction
-                available_pool += pos.capital_allocated # Only the basis returns
-                total_realized_pnl += pnl
+                exit_price = exit_sig.price
+                exit_notional = exit_price * pos.quantity
+                exit_fee = fee_models[s_name].total_exit_cost(exit_notional)
+                
+                # PnL net de frais
+                gross_pnl = (exit_price - pos.entry_price) * pos.quantity * pos.direction
+                net_pnl = gross_pnl - pos.entry_fee - exit_fee
+                
+                available_pool += pos.capital_allocated 
+                total_realized_pnl += net_pnl
                 
                 trades_log.append(PortfolioTrade(
                     strategy=s_name, symbol=symbol,
                     entry_date=str(pd.Timestamp(cache.dates[pos.entry_candle]).date()),
-                    exit_date=str(pd.Timestamp(date).date()),
-                    pnl=pnl, return_pct=pnl / pos.capital_allocated,
+                    exit_date=date_str,
+                    pnl=net_pnl, return_pct=net_pnl / pos.capital_allocated,
                     is_truncated=pos.state.get("truncated", False)
                 ))
                 del open_positions[key]
+                closed_today.add(key)
 
         # 2. Entries
         daily_signals = []
         for s_name in priority:
             for symbol in strategies_config[s_name]["universe"]:
+                if (s_name, symbol) in closed_today: continue # Prevent same-day exit/entry
+                if (s_name, symbol) in open_positions: continue
+                
                 cache = caches[symbol]
                 try: local_i = np.where(cache.dates == date)[0][0]
                 except IndexError: continue
                 if local_i < strats[s_name].warmup(strategies_config[s_name]["params"]): continue
-                if (s_name, symbol) in open_positions: continue
                 
                 direction = strats[s_name].check_entry(local_i, cache, strategies_config[s_name]["params"])
                 if direction != Direction.FLAT:
@@ -122,11 +138,8 @@ def run_portfolio_simulation(
             if entry_price <= 0: continue
             
             target_alloc = initial_capital * fractions[s_name]
-            target_shares = math.floor(target_alloc / entry_price)
-            if target_shares < 1: continue
             
             is_truncated = False
-            # Can we afford the full target?
             if target_alloc > available_pool:
                 capital_conflicts += 1
                 if available_pool < entry_price:
@@ -140,20 +153,32 @@ def run_portfolio_simulation(
                 actual_alloc = target_alloc
                 
             shares = math.floor(actual_alloc / entry_price)
-            if shares < 1: # Double check after floor
+            if shares < 1:
                 n_skipped[s_name] += 1
                 continue
                 
             cost = shares * entry_price
+            entry_fee = fee_models[s_name].total_entry_cost(cost)
+            
             available_pool -= cost
             open_positions[(s_name, symbol)] = Position(
                 entry_price=entry_price, entry_candle=local_i, quantity=shares,
-                direction=direction, capital_allocated=cost, entry_fee=0.0,
+                direction=direction, capital_allocated=cost, entry_fee=entry_fee,
                 state={"truncated": is_truncated}
             )
             
         if len({k[0] for k in open_positions}) > 1:
             signal_overlaps_days += 1
+
+    net_pnl = round(total_realized_pnl, 2)
+    returns = [t.return_pct for t in trades_log]
+    if len(returns) > 2:
+        span_days = (pd.Timestamp(all_dates[-1]) - pd.Timestamp(all_dates[0])).days
+        span_years = span_days / 365.25
+        tpy = len(trades_log) / span_years if span_years > 0 else 0
+        sharpe = round(np.mean(returns) / np.std(returns) * math.sqrt(tpy), 2) if np.std(returns) > 0 else 0.0
+    else:
+        sharpe = 0.0
 
     return {
         "n_trades": len(trades_log),
@@ -161,57 +186,72 @@ def run_portfolio_simulation(
         "n_truncated": sum(n_truncated.values()),
         "skips_by_strategy": n_skipped,
         "truncated_by_strategy": n_truncated,
-        "net_pnl": round(total_realized_pnl, 2),
+        "net_pnl": net_pnl,
+        "sharpe": sharpe,
         "capital_conflicts": capital_conflicts,
         "signal_overlaps_days": signal_overlaps_days,
         "trades": trades_log
     }
 
+from engine.simulator import simulate
+from engine.backtest_config import BacktestConfig
+
 def run_theoretical_baseline(initial_capital: float, strategies_config: dict, caches: dict) -> dict:
-    """Cloned Account Model: Each trade gets a full $5000 pool."""
+    """Cloned Account Model using official engine to ensure 100% matched logic."""
     total_pnl = 0.0
     total_trades = 0
     
-    for s_name, cfg in strategies_config.items():
-        # Simulate each strategy independently with a huge pool to avoid any internal conflict
-        # but sizing is strictly floor(initial_capital * fraction / price)
-        res = run_portfolio_simulation(initial_capital * 1000, {s_name: cfg}, caches, 
-                                       position_fractions={s_name: cfg["params"].get("position_fraction", 1.0)})
-        # Scaling adjustment: because run_portfolio_simulation uses initial_capital (which is now 1000x) for sizing,
-        # we need to pass the target basis separately. 
-        # Refactoring run_portfolio_simulation slightly to take sizing_basis.
-        pass
+    all_strats = {"rsi2": RSI2MeanReversion(), "ibs": IBSMeanReversion(), "tom": TurnOfMonth()}
+    strats = {s: all_strats[s] for s in strategies_config if s in all_strats}
+    fractions = {s: strategies_config[s]["params"].get("position_fraction", 1.0) for s in strats}
 
-    # Correct way: re-run simulation with available_pool = infinity
-    total_pnl = 0.0
-    total_trades = 0
     for s_name, cfg in strategies_config.items():
-        # Manual trades collection for each asset in universe
+        if s_name not in strats: continue
+        strat = strats[s_name]
+        params = cfg["params"]
+        frac = fractions[s_name]
+        fee_model_name = cfg.get("fee_model", "us_stocks_usd_account")
+        fmodel = FeeModel(fee_model_name)
+        
+        # We enforce the fixed sizing fraction requested in config
+        params_fixed = params.copy()
+        params_fixed["position_fraction"] = frac
+        
         for symbol in cfg["universe"]:
             cache = caches[symbol]
-            strat = {"rsi2": RSI2MeanReversion(), "ibs": IBSMeanReversion(), "tom": TurnOfMonth()}[s_name]
-            params = cfg["params"]
-            frac = params.get("position_fraction", 1.0)
             
-            # Simple isolated simulation
-            pos = None
-            for i in range(strat.warmup(params), len(cache.dates)):
-                date = cache.dates[i]
-                if str(pd.Timestamp(date).date()) < OOS_START or str(pd.Timestamp(date).date()) >= OOS_END: continue
-                
-                if pos:
-                    exit_sig = strat.check_exit(i, cache, params, pos)
-                    if exit_sig:
-                        total_pnl += (exit_sig.price - pos.entry_price) * pos.quantity * pos.direction
-                        total_trades += 1
-                        pos = None
-                else:
-                    direction = strat.check_entry(i, cache, params)
-                    if direction != Direction.FLAT:
-                        entry_price = float(cache.opens[i])
-                        shares = math.floor((initial_capital * frac) / entry_price)
-                        if shares >= 1:
-                            pos = Position(entry_price, i, shares, direction, shares*entry_price, 0.0)
+            # Find the index corresponding to OOS_START to match portfolio filter
+            try:
+                start_idx = max(strat.warmup(params_fixed), cache.get_idx_from_date(OOS_START))
+                end_idx = cache.get_idx_before_date(OOS_END)
+            except ValueError:
+                continue
+
+            bt_config = BacktestConfig(
+                symbol=symbol,
+                initial_capital=initial_capital, # This causes compounding in official engine
+                slippage_pct=0.0,
+                fee_model=FeeModel(fee_model_name),
+                whole_shares=True
+            )
+            
+            # Run official simulation
+            res = simulate(strat, cache, params_fixed, bt_config, start_idx=start_idx, end_idx=end_idx)
+            
+            # Recalculate exactly with fixed $5000 to match portfolio sizing
+            for trade in res.trades:
+                entry_price = trade.entry_price
+                target_alloc = initial_capital * frac
+                shares = math.floor(target_alloc / entry_price)
+                if shares >= 1:
+                    cost = shares * entry_price
+                    entry_fee = fmodel.total_entry_cost(cost)
+                    exit_fee = fmodel.total_exit_cost(shares * trade.exit_price)
+                    gross_pnl = (trade.exit_price - entry_price) * shares * trade.direction
+                    net_pnl = gross_pnl - entry_fee - exit_fee
+                    total_pnl += net_pnl
+                    total_trades += 1
+
     return {"n_trades": total_trades, "net_pnl": round(total_pnl, 2)}
 
 def main():
