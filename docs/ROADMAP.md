@@ -40,6 +40,8 @@
 ### Steps en cours / réalisés
 - ✅ **Portail de détail par actif** : Visualisation trade-par-trade sur 10 ans OOS.
 - ✅ **Synchronisation Equity/Drawdown** : Analyse visuelle des régimes de marché (COVID, Rate Hikes).
+- ✅ **Stabilisation Dashboard & Live** : Correction du formulaire de clôture (LiveTradeForm) et des imports UI.
+- ✅ **Robustesse des Tests** : Migration des tests DB vers des timestamps dynamiques pour éviter les régressions liées aux filtres temporels.
 - 📋 **Refactorisation Dette Technique** : Centralisation de la logique de stratégie et composant BaseModal (Prochaine étape).
 - 📋 **Extraction Configuration** : Déplacer les événements de marché hardcodés vers une config globale.
 
@@ -60,3 +62,5 @@
 | Mars 2026 | Implémenter React Portals pour les modals | Résoudre les conflits de dimensions Recharts et de z-index parents. |
 | Mars 2026 | Ajouter endpoint `/api/backtest/equity-curve` | Permettre l'analyse visuelle granulaire sans recharger toute la DB. |
 | Mars 2026 | Harmoniser UI Dashboard et Backtest | Réduire la charge cognitive et préparer la factorisation BaseModal. |
+| Mars 2026 | Fix LiveTradeForm (Close mode) | Permettre la clôture manuelle correcte des positions réelles avec prix de sortie dynamique. |
+| Mars 2026 | Dynamic timestamps dans les tests DB | Assurer que les tests de régression passent indépendamment de la date actuelle (filtre 7 jours). |

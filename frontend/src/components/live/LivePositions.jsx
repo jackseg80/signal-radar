@@ -174,6 +174,7 @@ const LivePositions = forwardRef(({ onSymbolClick, style, className, onMouseDown
           prefill={{
             strategy: closingTrade.strategy,
             symbol: closingTrade.symbol,
+            current_price: closingTrade.current_price
           }}
           onDone={() => { setClosingTrade(null); refresh(); }}
           onCancel={() => setClosingTrade(null)}

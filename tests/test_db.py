@@ -695,8 +695,9 @@ class TestDetailsJson:
     def test_details_json_in_signal_history(self, db: SignalRadarDB) -> None:
         """get_signal_history should also include details_json."""
         import json
+        now_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         db.log_signal(
-            "2026-03-05 22:00:00", "rsi2", "META", "NO_SIGNAL",
+            now_ts, "rsi2", "META", "NO_SIGNAL",
             612.0, 15.3, "",
             details_json=json.dumps({"rsi2": 15.3, "trend_ok": True}),
         )
