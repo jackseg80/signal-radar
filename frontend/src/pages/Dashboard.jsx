@@ -43,7 +43,6 @@ function SignalsPanel({ className, onSymbolClick }) {
       title="Today's Signals" 
       subtitle="Active strategy scanner results" 
       className={className}
-      noScroll
     >
       <div className="space-y-6">
         {Object.entries(strategies).map(([key, strat]) => (
@@ -58,18 +57,18 @@ const DEFAULT_LAYOUTS = {
   lg: [
     { i: 'kpi', x: 0, y: 0, w: 12, h: 10, static: false },
     { i: 'near', x: 0, y: 10, w: 4, h: 12 },
-    { i: 'signals', x: 0, y: 22, w: 4, h: 20 },
+    { i: 'signals', x: 0, y: 22, w: 4, h: 24 },
     { i: 'open-pos', x: 4, y: 10, w: 8, h: 12 },
     { i: 'equity', x: 4, y: 22, w: 4, h: 12 },
     { i: 'trades', x: 8, y: 22, w: 4, h: 12 },
     { i: 'live-pos', x: 4, y: 34, w: 8, h: 10 },
-    { i: 'market', x: 0, y: 44, w: 12, h: 15 },
-    { i: 'comparison', x: 0, y: 59, w: 12, h: 10 },
+    { i: 'market', x: 0, y: 48, w: 12, h: 15 },
+    { i: 'comparison', x: 0, y: 63, w: 12, h: 10 },
   ],
   md: [
     { i: 'kpi', x: 0, y: 0, w: 10, h: 10 },
     { i: 'near', x: 0, y: 10, w: 5, h: 10 },
-    { i: 'signals', x: 5, y: 10, w: 5, h: 20 },
+    { i: 'signals', x: 5, y: 10, w: 5, h: 24 },
     { i: 'open-pos', x: 0, y: 20, w: 10, h: 10 },
     { i: 'equity', x: 0, y: 30, w: 5, h: 12 },
     { i: 'trades', x: 5, y: 30, w: 5, h: 12 },
