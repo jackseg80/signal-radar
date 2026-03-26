@@ -40,36 +40,35 @@ export default function SignalCard({ symbol, name, logo_url, signal, close_price
         isDim && 'opacity-30 grayscale-[0.5]'
       )}
     >
-      {/* Header with Icon and Type */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <AssetIcon symbol={symbol} logoUrl={logo_url} size="sm" />
-          <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className={cn(
-                "text-sm tracking-tight",
-                isActionable ? "font-bold text-white" : "font-semibold text-[--text-secondary]"
-              )}>
-                {symbol}
-              </h3>
-              <span className={`text-[7px] font-black px-1 rounded ${assetType.bg} ${assetType.text} border ${assetType.border} uppercase`}>
-                {assetType.label}
-              </span>
-            </div>
-            {name && <div className="text-[9px] text-[--text-muted] truncate max-w-[100px]">{name}</div>}
+      {/* Signal badge: top-right corner, outside the text flow */}
+      <div className={cn(
+        "absolute top-3 right-3 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1.5 uppercase transition-colors z-10",
+        colors.bg, colors.text
+      )}>
+        {icon}
+        <span className="leading-none">{signal === 'NO_SIGNAL' ? '---' : signal.replace('_', ' ')}</span>
+      </div>
+
+      {/* Symbol + Asset type */}
+      <div className="flex items-center gap-3 min-w-0 pr-16">
+        <AssetIcon symbol={symbol} logoUrl={logo_url} size="sm" />
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className={cn(
+              "text-sm tracking-tight",
+              isActionable ? "font-bold text-white" : "font-semibold text-[--text-secondary]"
+            )}>
+              {symbol}
+            </h3>
+            <span className={`text-[7px] font-black px-1 rounded ${assetType.bg} ${assetType.text} border ${assetType.border} uppercase`}>
+              {assetType.label}
+            </span>
           </div>
-        </div>
-        
-        <div className={cn(
-          "px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1.5 uppercase transition-colors shrink-0 max-w-[100px] overflow-hidden",
-          colors.bg, colors.text
-        )}>
-          <span className="truncate">{icon}</span>
-          <span className="truncate">{signal === 'NO_SIGNAL' ? '---' : signal.replace('_', ' ')}</span>
+          {name && <div className="text-[9px] text-[--text-muted] truncate max-w-[100px]">{name}</div>}
         </div>
       </div>
 
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-baseline justify-between mt-3">
         <div className="text-sm font-medium tabular-nums text-[--text-secondary]">
           {close_price != null ? formatPrice(close_price) : '--'}
         </div>
