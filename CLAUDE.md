@@ -51,6 +51,9 @@ Frontend : React 18, Vite, Tailwind CSS v4, Recharts, React Router, Framer Motio
 - Detail symbol : `python -m cli.analyze asset META`
 - Vue d'ensemble : `python -m cli.analyze summary`
 
+## Documentation
+- Audit interne : `docs/SIGNAL_RADAR_AUDIT.md` — architecture, validation, tests, points a ameliorer
+
 ## Règles
 - JAMAIS modifier scalp-radar (D:\Python\scalp-radar\ = lecture seule)
 - JAMAIS importer depuis scalp-radar — tout est copié et indépendant
