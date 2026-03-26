@@ -33,7 +33,7 @@ export default function SignalCard({ symbol, name, logo_url, signal, close_price
     <div 
       onClick={onClick}
       className={cn(
-        "group relative rounded-xl border border-[--glass-border] p-4 transition-all duration-300 cursor-pointer",
+        "group relative rounded-xl border border-[--glass-border] p-4 transition-all duration-300 cursor-pointer overflow-hidden",
         "hover:scale-[1.03] hover:border-white/20 active:scale-[0.98]",
         (isActionable || isWatch) ? `glass-card ${glowClass}` : 'bg-white/[0.02] shadow-sm',
         isActionable && signal === 'BUY' && 'animate-border-glow',
@@ -42,9 +42,9 @@ export default function SignalCard({ symbol, name, logo_url, signal, close_price
     >
       {/* Header with Icon and Type */}
       <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <AssetIcon symbol={symbol} logoUrl={logo_url} size="sm" />
-          <div className="flex flex-col">
+          <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2">
               <h3 className={cn(
                 "text-sm tracking-tight",
@@ -61,11 +61,11 @@ export default function SignalCard({ symbol, name, logo_url, signal, close_price
         </div>
         
         <div className={cn(
-          "px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1.5 uppercase transition-colors",
+          "px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1.5 uppercase transition-colors shrink-0 max-w-[100px] overflow-hidden",
           colors.bg, colors.text
         )}>
-          {icon}
-          {signal === 'NO_SIGNAL' ? '---' : signal.replace('_', ' ')}
+          <span className="truncate">{icon}</span>
+          <span className="truncate">{signal === 'NO_SIGNAL' ? '---' : signal.replace('_', ' ')}</span>
         </div>
       </div>
 
