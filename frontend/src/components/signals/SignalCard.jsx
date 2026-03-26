@@ -40,17 +40,17 @@ export default function SignalCard({ symbol, name, logo_url, signal, close_price
         isDim && 'opacity-30 grayscale-[0.5]'
       )}
     >
-      {/* Signal badge: top-right corner, outside the text flow */}
+      {/* Signal badge: float right, above the content */}
       <div className={cn(
-        "absolute top-3 right-3 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1.5 uppercase transition-colors z-10",
+        "float-right ml-2 mb-1 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1.5 uppercase transition-colors",
         colors.bg, colors.text
       )}>
         {icon}
-        <span className="leading-none">{signal === 'NO_SIGNAL' ? '---' : signal.replace('_', ' ')}</span>
+        {signal === 'NO_SIGNAL' ? '---' : signal.replace('_', ' ')}
       </div>
 
       {/* Symbol + Asset type */}
-      <div className="flex items-center gap-3 min-w-0 pr-16">
+      <div className="flex items-center gap-3 min-w-0">
         <AssetIcon symbol={symbol} logoUrl={logo_url} size="sm" />
         <div className="flex flex-col min-w-0">
           <div className="flex items-center gap-2">
@@ -68,7 +68,7 @@ export default function SignalCard({ symbol, name, logo_url, signal, close_price
         </div>
       </div>
 
-      <div className="flex items-baseline justify-between mt-3">
+      <div className="flex items-baseline justify-between mt-3 clear-both">
         <div className="text-sm font-medium tabular-nums text-[--text-secondary]">
           {close_price != null ? formatPrice(close_price) : '--'}
         </div>
