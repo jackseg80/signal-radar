@@ -394,3 +394,41 @@ def test_paper_observes_complete_symbols_when_another_has_missing_data(
     assert paper_meta["signal"] == "SKIP"
     assert paper_meta["paper_status"] == "PENDING_BUY"
     assert paper_meta["paper_warnings"]
+
+def test_real_exit_uses_only_the_chosen_primary_strategy(tmp_path, monkeypatch) -> None:
+    """A real TOM purchase exits by TOM while IBS stays a separate signal."""
+    from scripts.daily_scanner import Signal, SignalResult
+
+    db = SignalRadarDB(tmp_path / "primary.db")
+    assert db.open_live_trade(
+        "tom", "META", "2026-09-21", 100, 2, instrument_type="stock",
+    )
+    monkeypatch.setattr(safe_scanner, "load_config", lambda: {
+        "strategies": {
+            "tom": {"enabled": True, "universe": ["META"],
+                    "watchlist": [], "params": {}},
+            "ibs": {"enabled": True, "universe": ["META"],
+                    "watchlist": [], "params": {}},
+        }
+    })
+    monkeypatch.setattr(safe_scanner, "compute_indicators", _indicator)
+    monkeypatch.setattr(safe_scanner, "_score", lambda *_: (0.002, 0.1, 50))
+    monkeypatch.setattr(
+        safe_scanner, "load_saxo_ch_costs",
+        lambda: (FEE_MODEL_SAXO_CH_USD_PROVISIONAL, False),
+    )
+    monkeypatch.setattr(
+        safe_scanner, "_technical_result",
+        lambda name, params, symbol, ind, position, *args: SignalResult(
+            signal=Signal.SELL if position else Signal.BUY,
+        ),
+    )
+    monkeypatch.setattr("engine.notifier.send_telegram", lambda *_: True)
+    result = safe_scanner.run_safe_scanner(
+        db=db, loader=FakeLoader(),
+        now=datetime(2026, 9, 23, 21, tzinfo=timezone.utc),
+    )
+    by_strategy = {row["strategy"]: row for row in result["decisions"]}
+    assert by_strategy["tom"]["technical_signal"] == "SELL"
+    assert by_strategy["ibs"]["technical_signal"] == "BUY"
+    assert len(db.get_open_live_trades()) == 1

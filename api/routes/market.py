@@ -104,13 +104,13 @@ def get_market_overview(db: SignalRadarDB = Depends(get_db)) -> dict:
                 if close_price is None: close_price = sig["close_price"]
                 
                 prox = None
-                if sig["signal"] in _PROXIMITY_SIGNALS:
+                if sig.get("technical_signal", sig["signal"]) in _PROXIMITY_SIGNALS:
                     params = strategies_cfg.get(s_name, {}).get("params", {})
                     details = details_map.get((s_name, sym))
                     prox = _compute_proximity(s_name, details, params)
                 
                 strat_data[s_name] = {
-                    "signal": sig["signal"], 
+                    "signal": sig.get("technical_signal", sig["signal"]),
                     "indicator_value": sig["indicator_value"], 
                     "indicator_label": INDICATOR_LABELS.get(s_name, s_name), 
                     "in_universe": asset_membership.get(sym, {}).get(s_name, False), 

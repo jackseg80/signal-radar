@@ -14,11 +14,11 @@ const STRATEGY_ORDER = ['rsi2', 'ibs', 'tom'];
 
 const STRATEGY_TOOLTIPS = {
   rsi2: "RSI(2) : Mesure la force relative sur 2 jours. < 10 (vert) = Survendu, opportunité d'achat. < 20 (jaune) = Proche du signal.",
-  ibs: "IBS (Internal Bar Strength) : Position du prix dans le range du jour. < 0.2 (vert) = Clôture très basse, rebond probable.",
+  ibs: "IBS (Internal Bar Strength) : Position du prix dans le range du jour. < 0.2 (vert) = Clôture très basse ; seuil technique de la stratégie.",
   tom: "TOM (Turn Of Month) : Anomalie de fin/début de mois. Indique le nombre de jours de bourse restants avant la fin du mois.",
 };
 
-function ProximityBar({ proximity, strategy }) {
+function ProximityBar({ proximity }) {
   if (!proximity || proximity.pct == null) return null;
 
   const pct = proximity.pct;
@@ -84,9 +84,6 @@ export default function MarketOverview({ className, onSymbolClick }) {
       } else if (sortConfig.key === 'price') {
         aVal = a.close;
         bVal = b.close;
-      } else if (sortConfig.key === 'positions') {
-        aVal = a.has_open_position ? 1 : 0;
-        bVal = b.has_open_position ? 1 : 0;
       } else if (STRATEGY_ORDER.includes(sortConfig.key)) {
         aVal = a.strategies?.[sortConfig.key]?.indicator_value ?? -Infinity;
         bVal = b.strategies?.[sortConfig.key]?.indicator_value ?? -Infinity;
@@ -98,11 +95,11 @@ export default function MarketOverview({ className, onSymbolClick }) {
     });
   }, [data, sortConfig]);
 
-  if (loading) return <Card title="Market Overview" className={className}><LoadingState rows={8} /></Card>;
-  if (error) return <Card title="Market Overview" className={className}><ErrorState message={error} onRetry={refetch} /></Card>;
+  if (loading) return <Card title="Vue d’ensemble des actions" className={className}><LoadingState rows={8} /></Card>;
+  if (error) return <Card title="Vue d’ensemble des actions" className={className}><ErrorState message={error} onRetry={refetch} /></Card>;
 
   if (!data?.assets || data.assets.length === 0) {
-    return <Card title="Market Overview" className={className}><EmptyState message="No market data" /></Card>;
+    return <Card title="Vue d’ensemble des actions" className={className}><EmptyState message="No market data" /></Card>;
   }
 
   const activeStrategies = STRATEGY_ORDER.filter((s) =>
@@ -111,8 +108,8 @@ export default function MarketOverview({ className, onSymbolClick }) {
 
   return (
     <Card 
-      title="Market Overview" 
-      subtitle="Full universe status & indicator proximity"
+      title="Vue d’ensemble des actions"
+      subtitle="Univers suivi · signaux techniques et proximité des seuils"
       headerAction={<Table size={14} className="text-[--text-muted]" />}
       noPadding
       className={className}
@@ -141,9 +138,6 @@ export default function MarketOverview({ className, onSymbolClick }) {
                   </th>
                 );
               })}
-              <th className="text-center py-4 px-6 cursor-pointer hover:text-white transition-colors" onClick={() => requestSort('positions')}>
-                <div className="flex items-center justify-center gap-1">Positions {getSortIcon('positions')}</div>
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -152,9 +146,7 @@ export default function MarketOverview({ className, onSymbolClick }) {
               return (
                 <tr
                   key={a.symbol}
-                  className={`border-b border-white/5 hover:bg-white/[0.04] transition-all duration-200 group ${
-                    a.has_open_position ? 'bg-green-500/[0.03]' : ''
-                  }`}
+                  className="border-b border-white/5 hover:bg-white/[0.04] transition-all duration-200 group"
                 >
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => onSymbolClick && onSymbolClick(a.symbol)}>
@@ -195,21 +187,6 @@ export default function MarketOverview({ className, onSymbolClick }) {
                       </td>
                     );
                   })}
-                  <td className="py-4 px-6 text-center">
-                    {a.has_open_position ? (
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-green-400 text-[10px] font-bold uppercase tracking-widest bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">OPEN</span>
-                        <div className="flex gap-1 justify-center">
-                          {(a.position_strategies || []).map((s) => {
-                            const sc = STRATEGY_COLORS[s] || STRATEGY_COLORS.rsi2;
-                            return <span key={s} className={`text-[8px] uppercase font-bold ${sc.text}`}>{STRATEGY_LABELS[s] || s}</span>;
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      <span className="text-[--text-muted] opacity-20">--</span>
-                    )}
-                  </td>
                 </tr>
               );
             })}

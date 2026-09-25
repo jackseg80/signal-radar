@@ -172,8 +172,10 @@ const LivePositions = forwardRef(({ onSymbolClick, style, className, onMouseDown
         <LiveTradeForm
           mode="close"
           prefill={{
+            id: closingTrade.id,
             strategy: closingTrade.strategy,
             symbol: closingTrade.symbol,
+            instrument_type: closingTrade.instrument_type,
             current_price: closingTrade.current_price
           }}
           onDone={() => { setClosingTrade(null); refresh(); }}

@@ -1,203 +1,111 @@
 import { useState } from 'react';
 import { api } from '../../api/client';
 import { useToasts } from '../../hooks/useToasts.jsx';
-import { X, Save, AlertCircle, RefreshCw } from 'lucide-react';
+import { X } from 'lucide-react';
+
+const today = () => {
+  const now = new Date();
+  const pad = (value) => String(value).padStart(2, '0');
+  return now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+};
 
 export default function LiveTradeForm({ mode = 'open', prefill = {}, onDone, onCancel }) {
   const { addToast } = useToasts();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [formData, setFormData] = useState({
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({
     strategy: prefill.strategy || 'rsi2',
     symbol: prefill.symbol || '',
-    entry_date: prefill.entry_date || prefill.date || new Date().toISOString().split('T')[0],
-    entry_price: prefill.entry_price || prefill.price || '',
+    instrument_type: prefill.instrument_type || 'stock',
+    signal_session: prefill.signal_session || '',
+    entry_date: prefill.entry_date || today(),
+    entry_price: prefill.entry_price || '',
     shares: prefill.shares || '',
-    fees_entry: prefill.fees_entry || '1.00',
-    paper_position_id: prefill.paper_position_id || null,
-    // For close mode
-    exit_date: new Date().toISOString().split('T')[0],
+    entry_fees: '',
+    notes: '',
+    exit_date: today(),
     exit_price: prefill.current_price || '',
-    fees_exit: '1.00'
+    exit_fees: '',
+    financing_cost: '',
   });
+  const close = mode === 'close';
+  const set = (name) => (event) => setForm({ ...form, [name]: event.target.value });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const save = async (event) => {
+    event.preventDefault();
     setLoading(true);
-    setError(null);
+    setError('');
     try {
-      if (mode === 'open') {
-        await api.liveOpen({
-          strategy: formData.strategy,
-          symbol: formData.symbol,
-          entry_date: formData.entry_date,
-          entry_price: formData.entry_price,
-          shares: formData.shares,
-          fees: formData.fees_entry,
-          paper_position_id: formData.paper_position_id
+      if (close) {
+        await api.liveCloseById(prefill.id, {
+          exit_date: form.exit_date,
+          exit_price: form.exit_price,
+          fees: form.exit_fees === '' ? undefined : form.exit_fees,
+          financing_cost: form.financing_cost === '' ? undefined : form.financing_cost,
         });
-        addToast(`Trade ${formData.symbol} ouvert avec succès !`);
       } else {
-        await api.liveClose({
-          strategy: formData.strategy,
-          symbol: formData.symbol,
-          exit_date: formData.exit_date,
-          exit_price: formData.exit_price,
-          fees: formData.fees_exit
+        await api.liveOpen({
+          strategy: form.strategy,
+          symbol: form.symbol.trim().toUpperCase(),
+          instrument_type: form.instrument_type,
+          signal_session: form.signal_session || undefined,
+          entry_date: form.entry_date,
+          entry_price: form.entry_price,
+          shares: form.shares,
+          fees: form.entry_fees === '' ? undefined : form.entry_fees,
+          notes: form.notes || undefined,
         });
-        addToast(`Trade ${formData.symbol} clôturé avec succès !`);
       }
+      addToast(close ? 'Opération clôturée' : 'Opération enregistrée');
       onDone();
-    } catch (err) {
-      setError(err.message);
-      addToast("Erreur lors de l'enregistrement", "error");
+    } catch (failure) {
+      setError(failure.message);
     } finally {
       setLoading(false);
     }
   };
-
-  const isClose = mode === 'close';
+  const input = 'w-full rounded-lg border border-white/10 bg-[#1a1d27] px-3 py-2 text-white';
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-md glass-card rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b border-white/5 bg-[--bg-card]/50">
-          <h2 className="text-xl font-bold text-white tracking-tight">
-            {isClose ? 'Close Real Trade' : 'Log Real Trade'}
-          </h2>
-          <button onClick={onCancel} className="p-2 rounded-full hover:bg-white/5 text-[--text-muted] transition-colors"><X size={20} /></button>
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4">
+      <div className="glass-card max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white">{close ? 'Clôturer mon opération' : 'Saisir mon opération'}</h2>
+          <button type="button" onClick={onCancel} aria-label="Fermer" className="text-[--text-muted]"><X size={20} /></button>
         </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex gap-2">
-              <AlertCircle size={14} className="shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] text-[--text-muted] uppercase font-bold px-1">Symbol</label>
-              <input 
-                required 
-                disabled={isClose}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-green-500/50 outline-none transition-all disabled:opacity-50"
-                value={formData.symbol}
-                onChange={e => setFormData({...formData, symbol: e.target.value.toUpperCase()})}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] text-[--text-muted] uppercase font-bold px-1">Strategy</label>
-              <select 
-                disabled={isClose}
-                className="w-full bg-[#1a1d27] border border-white/10 rounded-lg px-3 py-2 text-white focus:border-green-500/50 outline-none transition-all disabled:opacity-50"
-                value={formData.strategy}
-                onChange={e => setFormData({...formData, strategy: e.target.value})}
-              >
-                <option value="rsi2">RSI(2)</option>
-                <option value="ibs">IBS</option>
-                <option value="tom">TOM</option>
-              </select>
-            </div>
-          </div>
-
-          {!isClose ? (
+        <p className="mb-4 text-xs text-[--text-muted]">Journal des opérations décidées à partir de Signal Radar uniquement. Aucune transaction n’est envoyée à Saxo.</p>
+        <form onSubmit={save} className="space-y-4 text-sm">
+          {error && <p role="alert" className="text-red-400">{error}</p>}
+          {close ? (
             <>
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-[--text-muted] uppercase font-bold px-1">Entry Date</label>
-                <input 
-                  required type="date"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-green-500/50 outline-none transition-all"
-                  value={formData.entry_date}
-                  onChange={e => setFormData({...formData, entry_date: e.target.value})}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-[--text-muted] uppercase font-bold px-1">Entry Price</label>
-                  <input 
-                    required type="number" step="0.01"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-green-500/50 outline-none transition-all"
-                    value={formData.entry_price}
-                    onChange={e => setFormData({...formData, entry_price: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-[--text-muted] uppercase font-bold px-1">Shares</label>
-                  <input 
-                    required type="number"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-green-500/50 outline-none transition-all"
-                    value={formData.shares}
-                    onChange={e => setFormData({...formData, shares: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-[--text-muted] uppercase font-bold px-1">Entry Fees ($)</label>
-                <input 
-                  required type="number" step="0.01"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-green-500/50 outline-none transition-all"
-                  value={formData.fees_entry}
-                  onChange={e => setFormData({...formData, fees_entry: e.target.value})}
-                />
-              </div>
+              <p className="font-semibold text-white">{prefill.symbol} · {prefill.strategy.toUpperCase()} · {prefill.instrument_type === 'cfd' ? 'CFD sur action' : prefill.instrument_type === 'stock' ? 'Action' : 'Instrument à préciser'}</p>
+              <label className="block text-[--text-secondary]">Date de clôture<input required type="date" className={input} value={form.exit_date} onChange={set('exit_date')} /></label>
+              <label className="block text-[--text-secondary]">Prix de sortie USD<input required type="number" min="0.0001" step="any" className={input} value={form.exit_price} onChange={set('exit_price')} /></label>
+              <label className="block text-[--text-secondary]">Frais de sortie réellement facturés USD<input type="number" min="0" step="0.01" className={input} value={form.exit_fees} onChange={set('exit_fees')} placeholder="Laisser vide si inconnus" /></label>
+              {prefill.instrument_type === 'cfd' && <label className="block text-[--text-secondary]">Financement CFD réellement facturé USD<input type="number" min="0" step="0.01" className={input} value={form.financing_cost} onChange={set('financing_cost')} placeholder="Laisser vide si inconnu" /></label>}
             </>
           ) : (
             <>
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-[--text-muted] uppercase font-bold px-1">Exit Date</label>
-                <input 
-                  required type="date"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-green-500/50 outline-none transition-all"
-                  value={formData.exit_date}
-                  onChange={e => setFormData({...formData, exit_date: e.target.value})}
-                />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-[--text-secondary]">Action<input required className={input} value={form.symbol} onChange={set('symbol')} placeholder="META" /></label>
+                <label className="block text-[--text-secondary]">Stratégie principale<select className={input} value={form.strategy} onChange={set('strategy')}><option value="rsi2">RSI(2)</option><option value="ibs">IBS</option><option value="tom">TOM</option></select></label>
               </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-[--text-muted] uppercase font-bold px-1">Exit Price</label>
-                <input 
-                  required type="number" step="0.01"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-green-500/50 outline-none transition-all"
-                  value={formData.exit_price}
-                  onChange={e => setFormData({...formData, exit_price: e.target.value})}
-                />
+              <label className="block text-[--text-secondary]">Instrument réellement acheté<select className={input} value={form.instrument_type} onChange={set('instrument_type')}><option value="stock">Action</option><option value="cfd">CFD sur action, acheteur</option></select></label>
+              <label className="block text-[--text-secondary]">Date du signal (facultatif)<input type="date" className={input} value={form.signal_session} onChange={set('signal_session')} /></label>
+              <p className="text-xs text-[--text-muted]">Le lien au signal sera confirmé si cette action et cette stratégie figurent dans le scan de la date choisie. Sinon la date sera conservée comme référence manuelle.</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-[--text-secondary]">Date d’achat<input required type="date" className={input} value={form.entry_date} onChange={set('entry_date')} /></label>
+                <label className="block text-[--text-secondary]">Prix d’achat USD<input required type="number" min="0.0001" step="any" className={input} value={form.entry_price} onChange={set('entry_price')} /></label>
+                <label className="block text-[--text-secondary]">Quantité<input required type="number" min="0.000001" step="any" className={input} value={form.shares} onChange={set('shares')} /></label>
+                <label className="block text-[--text-secondary]">Frais d’entrée réels USD<input type="number" min="0" step="0.01" className={input} value={form.entry_fees} onChange={set('entry_fees')} placeholder="Laisser vide si inconnus" /></label>
               </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-[--text-muted] uppercase font-bold px-1">Exit Fees ($)</label>
-                <input 
-                  required type="number" step="0.01"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-green-500/50 outline-none transition-all"
-                  value={formData.fees_exit}
-                  onChange={e => setFormData({...formData, fees_exit: e.target.value})}
-                />
-              </div>
+              <label className="block text-[--text-secondary]">Note (facultative)<textarea className={input} value={form.notes} onChange={set('notes')} placeholder="Contexte de la décision" /></label>
             </>
           )}
-
-          <div className="pt-4 flex gap-3">
-            <button 
-              type="button" 
-              onClick={onCancel}
-              className="flex-1 px-4 py-2.5 rounded-xl border border-white/5 text-[--text-muted] font-bold text-sm hover:bg-white/5 transition-all cursor-pointer"
-            >
-              Annuler
-            </button>
-            <button 
-              disabled={loading}
-              className={`flex-1 px-4 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                isClose 
-                  ? 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]' 
-                  : 'bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500/20 shadow-[0_0_20px_rgba(34,197,94,0.1)]'
-              }`}
-            >
-              {loading ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
-              {isClose ? 'Clôturer Trade' : 'Enregistrer'}
-            </button>
+          <p className="text-xs text-amber-300">Un coût laissé vide rend le résultat net provisoire. Saisir 0 uniquement si le coût réel est nul.</p>
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onCancel} className="flex-1 rounded-lg border border-white/10 px-3 py-2 text-[--text-secondary]">Annuler</button>
+            <button disabled={loading} type="submit" className="flex-1 rounded-lg bg-green-500/20 px-3 py-2 font-semibold text-green-300 disabled:opacity-50">{loading ? 'Enregistrement…' : close ? 'Clôturer' : 'Enregistrer'}</button>
           </div>
         </form>
       </div>

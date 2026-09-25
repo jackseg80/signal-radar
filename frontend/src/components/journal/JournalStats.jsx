@@ -19,12 +19,12 @@ export default function JournalStats({ stats }) {
               : '',
     },
     {
-      label: 'Net PnL',
+      label: stats.provisional_live_count ? 'P/L agrégée · provisoire' : 'P/L agrégée',
       value: formatPnl(stats.total_pnl),
       color: pnlColor(stats.total_pnl),
     },
     {
-      label: 'Avg PnL',
+      label: 'P/L moyen',
       value: formatPnl(stats.avg_pnl),
       color: pnlColor(stats.avg_pnl),
     },

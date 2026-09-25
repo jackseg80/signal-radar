@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useApi } from '../../hooks/useApi';
 import { api } from '../../api/client';
-import { formatPrice, formatPF, STRATEGY_LABELS, STRATEGY_COLORS, VERDICT_COLORS, getAssetType } from '../../utils/format';
+import { STRATEGY_LABELS, STRATEGY_COLORS, VERDICT_COLORS } from '../../utils/format';
 import { ExternalLink, ShieldCheck, Activity, Target, TrendingUp, Calendar, AlertTriangle, Info, Clock } from 'lucide-react';
 import BaseModal from './BaseModal';
 import LoadingState from './LoadingState';
@@ -11,27 +11,11 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, A
 
 export default function AssetModal({ symbol, onClose }) {
   const { data, loading, error } = useApi(() => api.assetDetails(symbol), [symbol]);
-  const [prices, setPrices] = useState([]);
-  const [pricesLoading, setPricesLoading] = useState(true);
-
-  useEffect(() => {
-    if (!symbol) return;
-    setPricesLoading(true);
-    api.assetPrices(symbol, 60)
-      .then(res => {
-        setPrices(res || []);
-      })
-      .catch(() => {
-        setPrices([]);
-      })
-      .finally(() => {
-        setPricesLoading(false);
-      });
-  }, [symbol]);
+  const { data: prices, loading: pricesLoading } = useApi(
+    () => api.assetPrices(symbol, 60), [symbol],
+  );
 
   if (!symbol) return null;
-
-  const assetType = getAssetType(symbol);
 
   return (
     <BaseModal
@@ -57,12 +41,12 @@ export default function AssetModal({ symbol, onClose }) {
               />
               <StatBox 
                 label="Signaux Actifs" 
-                value={data?.signals?.filter(s => s.signal !== 'NO_SIGNAL').length || 0}
+                value={data?.signals?.filter(s => ['BUY', 'SELL', 'SAFETY_EXIT'].includes(s.technical_signal || s.signal)).length || 0}
                 sub="Opportunités"
                 icon={<TrendingUp size={16} className="text-blue-400" />}
               />
               <StatBox 
-                label="Open Positions" 
+                label="Positions papier"
                 value={data?.open_positions?.length || 0} 
                 sub={data?.open_positions?.length > 0 ? "En cours" : "Flat"}
                 icon={<Activity size={16} className={data?.open_positions?.length > 0 ? "text-green-400" : "text-[--text-muted]"} />}
@@ -160,8 +144,8 @@ export default function AssetModal({ symbol, onClose }) {
                         <p className="text-[10px] text-[--text-muted] mt-1 italic">{s.notes || 'Scan technique OK'}</p>
                       </div>
                       <div className="text-right">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter ${s.signal === 'BUY' ? 'bg-green-500/20 text-green-400' : s.signal === 'SELL' ? 'bg-red-500/20 text-red-400' : 'bg-white/5 text-[--text-muted]'}`}>
-                          {s.signal}
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter ${(s.technical_signal || s.signal) === 'BUY' ? 'bg-green-500/20 text-green-400' : (s.technical_signal || s.signal) === 'SELL' ? 'bg-red-500/20 text-red-400' : 'bg-white/5 text-[--text-muted]'}`}>
+                          {s.technical_signal || s.signal}
                         </span>
                       </div>
                     </div>

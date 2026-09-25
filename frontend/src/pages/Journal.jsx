@@ -63,7 +63,7 @@ export default function Journal() {
           className="text-lg font-semibold text-[--text-primary] mb-3"
           style={{ fontFamily: "'Space Grotesk', sans-serif" }}
         >
-          Trade Journal
+          Journal comparatif · papier et opérations saisies
         </h2>
         <JournalStats stats={data?.stats} />
       </div>

@@ -1,172 +1,115 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Responsive, WidthProvider } from 'react-grid-layout/legacy';
-import { useRefresh } from '../hooks/useRefresh.jsx';
-import { useAssetView } from '../hooks/useAssetView.jsx';
-import StrategyBreakdown from '../components/performance/StrategyBreakdown';
+import { RotateCcw } from 'lucide-react';
 import SignalsPanel from '../components/signals/SignalsPanel';
-import OpenPositions from '../components/positions/OpenPositions';
-import SignalFollowPositions from '../components/positions/SignalFollowPositions';
-import ClosedTrades from '../components/positions/ClosedTrades';
-import EquityCurve from '../components/performance/EquityCurve';
-import MarketOverview from '../components/market/MarketOverview';
 import NearTrigger from '../components/signals/NearTrigger';
-import LivePositions from '../components/live/LivePositions';
-import PaperVsLive from '../components/live/PaperVsLive';
-import LiveTradeForm from '../components/live/LiveTradeForm';
-import AccountConfirmation from '../components/account/AccountConfirmation';
+import MarketOverview from '../components/market/MarketOverview';
+import PaperSnapshot from '../components/positions/PaperSnapshot';
 import ObservationPanel from '../components/account/ObservationPanel';
-import { LayoutDashboard, Activity, RotateCcw } from 'lucide-react';
+import { useAssetView } from '../hooks/useAssetView.jsx';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
-
+const LAYOUT_KEY = 'radar-layout-v1';
 const DEFAULT_LAYOUTS = {
   lg: [
-    { i: 'kpi', x: 0, y: 0, w: 12, h: 10, static: false },
-    { i: 'near', x: 0, y: 10, w: 4, h: 12 },
-    { i: 'signals', x: 0, y: 22, w: 4, h: 24 },
-    { i: 'open-pos', x: 4, y: 10, w: 8, h: 12 },
-    { i: 'equity', x: 4, y: 22, w: 4, h: 12 },
-    { i: 'trades', x: 8, y: 22, w: 4, h: 12 },
-    { i: 'live-pos', x: 4, y: 34, w: 8, h: 10 },
-    { i: 'market', x: 0, y: 48, w: 12, h: 15 },
-    { i: 'comparison', x: 0, y: 63, w: 12, h: 10 },
+    { i: 'signals', x: 0, y: 0, w: 5, h: 18, minW: 3, minH: 7 },
+    { i: 'market', x: 5, y: 0, w: 7, h: 18, minW: 4, minH: 7 },
+    { i: 'near', x: 0, y: 18, w: 4, h: 10, minW: 3, minH: 5 },
+    { i: 'paper', x: 4, y: 18, w: 4, h: 7, minW: 3, minH: 5 },
   ],
   md: [
-    { i: 'kpi', x: 0, y: 0, w: 10, h: 10 },
-    { i: 'near', x: 0, y: 10, w: 5, h: 10 },
-    { i: 'signals', x: 5, y: 10, w: 5, h: 24 },
-    { i: 'open-pos', x: 0, y: 20, w: 10, h: 10 },
-    { i: 'equity', x: 0, y: 30, w: 5, h: 12 },
-    { i: 'trades', x: 5, y: 30, w: 5, h: 12 },
-    { i: 'live-pos', x: 0, y: 42, w: 10, h: 10 },
-    { i: 'market', x: 0, y: 52, w: 10, h: 15 },
-    { i: 'comparison', x: 0, y: 67, w: 10, h: 10 },
-  ]
+    { i: 'signals', x: 0, y: 0, w: 5, h: 18, minW: 3, minH: 7 },
+    { i: 'market', x: 5, y: 0, w: 5, h: 18, minW: 4, minH: 7 },
+    { i: 'near', x: 0, y: 18, w: 5, h: 10, minW: 3, minH: 5 },
+    { i: 'paper', x: 5, y: 18, w: 5, h: 7, minW: 3, minH: 5 },
+  ],
+  sm: [
+    { i: 'signals', x: 0, y: 0, w: 6, h: 16, minW: 3, minH: 7 },
+    { i: 'market', x: 0, y: 16, w: 6, h: 16, minW: 4, minH: 7 },
+    { i: 'near', x: 0, y: 32, w: 3, h: 10, minW: 3, minH: 5 },
+    { i: 'paper', x: 3, y: 32, w: 3, h: 7, minW: 3, minH: 5 },
+  ],
+  xs: [
+    { i: 'signals', x: 0, y: 0, w: 4, h: 15, minW: 3, minH: 7 },
+    { i: 'market', x: 0, y: 15, w: 4, h: 14, minW: 4, minH: 7 },
+    { i: 'near', x: 0, y: 29, w: 4, h: 9, minW: 3, minH: 5 },
+    { i: 'paper', x: 0, y: 38, w: 4, h: 9, minW: 3, minH: 5 },
+  ],
+  xxs: [
+    { i: 'signals', x: 0, y: 0, w: 2, h: 15, minW: 2, minH: 7 },
+    { i: 'market', x: 0, y: 15, w: 2, h: 14, minW: 2, minH: 7 },
+    { i: 'near', x: 0, y: 29, w: 2, h: 9, minW: 2, minH: 5 },
+    { i: 'paper', x: 0, y: 38, w: 2, h: 9, minW: 2, minH: 5 },
+  ],
 };
 
+function loadLayouts() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY));
+    return saved && Array.isArray(saved.lg) ? { ...DEFAULT_LAYOUTS, ...saved } : DEFAULT_LAYOUTS;
+  } catch {
+    return DEFAULT_LAYOUTS;
+  }
+}
+
 export default function Dashboard() {
-  const [showTradeForm, setShowTradeForm] = useState(false);
   const { openAsset } = useAssetView();
-  const { refresh } = useRefresh();
-  
-  const initialLayouts = useMemo(() => {
-    const saved = localStorage.getItem('dashboard-layouts-v2');
-    return saved ? JSON.parse(saved) : DEFAULT_LAYOUTS;
-  }, []);
+  const navigate = useNavigate();
+  const [layouts, setLayouts] = useState(loadLayouts);
 
-  const [layouts, setLayouts] = useState(initialLayouts);
-
-  const onLayoutChange = (currentLayout, allLayouts) => {
-    setLayouts(allLayouts);
-    localStorage.setItem('dashboard-layouts-v2', JSON.stringify(allLayouts));
+  const record = ({ symbol, strategy, signal_session }) => {
+    const params = new URLSearchParams({ symbol, strategy, signal_session });
+    navigate('/operations?' + params.toString());
   };
 
-  const resetLayout = () => {
-    if (window.confirm('Reset dashboard layout to default?')) {
-      setLayouts(DEFAULT_LAYOUTS);
-      localStorage.removeItem('dashboard-layouts-v2');
-    }
+  const saveLayouts = (_current, all) => {
+    setLayouts(all);
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(all));
   };
 
-  const cardClass = "h-full w-full";
+  const resetLayouts = () => {
+    setLayouts(DEFAULT_LAYOUTS);
+    localStorage.removeItem(LAYOUT_KEY);
+  };
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/5 pb-4">
+    <div className="space-y-5 pb-16">
+      <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 
-            className="text-2xl font-bold text-white tracking-tight flex items-center gap-3"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-          >
-            <LayoutDashboard className="text-green-400" size={28} />
-            Command Center
-          </h1>
-          <p className="text-sm text-[--text-muted] mt-1">Customizable real-time signal monitoring.</p>
+          <h1 className="text-2xl font-bold text-white">Radar · actions</h1>
+          <p className="text-sm text-[--text-muted]">Signaux techniques sur actions, indépendants du solde Saxo et de la simulation papier.</p>
         </div>
-        
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={resetLayout}
-            className="p-2 rounded-lg border border-white/5 text-[--text-muted] hover:text-white hover:bg-white/5 transition-all cursor-pointer"
-            title="Reset Layout"
-          >
-            <RotateCcw size={18} />
-          </button>
-          
-          <button 
-            onClick={() => setShowTradeForm({})}
-            className="px-4 py-2 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20 text-sm font-medium hover:bg-green-500/20 transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Activity size={16} />
-            Log Live Trade
+        <div className="flex items-center gap-3 text-xs text-[--text-muted]">
+          <span className="hidden sm:inline">Glisse l’en-tête pour déplacer · coin inférieur droit pour redimensionner</span>
+          <button type="button" onClick={resetLayouts} className="flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1.5 text-[--text-secondary] hover:text-white" title="Réinitialiser la disposition" aria-label="Réinitialiser la disposition du Radar">
+            <RotateCcw size={14} /> Disposition
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Main Draggable Grid */}
-      <AccountConfirmation refresh={refresh} />
-      <SignalFollowPositions onSymbolClick={openAsset} />
       <ResponsiveGridLayout
         className="layout"
         layouts={layouts}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-        rowHeight={30}
+        rowHeight={28}
+        margin={[16, 16]}
+        containerPadding={[0, 0]}
         draggableHandle=".cursor-grab"
-        onLayoutChange={onLayoutChange}
-        margin={[24, 24]}
+        draggableCancel="button, a, input, select, textarea"
+        onLayoutChange={saveLayouts}
       >
-        <div key="kpi">
-          <StrategyBreakdown />
-        </div>
-
-        <div key="near">
-          <NearTrigger className={cardClass} onSymbolClick={openAsset} />
-        </div>
-
-        <div key="signals">
-          <SignalsPanel className={cardClass} onSymbolClick={openAsset} />
-        </div>
-
-        <div key="open-pos">
-          <OpenPositions 
-            onLogReal={(prefill) => setShowTradeForm(prefill || true)} 
-            onSymbolClick={openAsset}
-            className={cardClass} 
-          />
-        </div>
-
-        <div key="equity">
-          <EquityCurve className={cardClass} />
-        </div>
-
-        <div key="trades">
-          <ClosedTrades onSymbolClick={openAsset} className={cardClass} />
-        </div>
-
-        <div key="live-pos">
-          <LivePositions onSymbolClick={openAsset} className={cardClass} />
-        </div>
-
-        <div key="market">
-          <MarketOverview onSymbolClick={openAsset} className={cardClass} />
-        </div>
-
-        <div key="comparison">
-          <PaperVsLive className={cardClass} />
-        </div>
+        <div key="signals" className="min-h-0"><SignalsPanel className="h-full" onSymbolClick={openAsset} onRecord={record} /></div>
+        <div key="market" className="min-h-0"><MarketOverview className="h-full" onSymbolClick={openAsset} /></div>
+        <div key="near" className="min-h-0"><NearTrigger className="h-full" onSymbolClick={openAsset} /></div>
+        <div key="paper" className="min-h-0"><PaperSnapshot className="h-full" onSymbolClick={openAsset} /></div>
       </ResponsiveGridLayout>
 
-      <ObservationPanel />
-
-      {showTradeForm && (
-        <LiveTradeForm
-          prefill={typeof showTradeForm === 'object' ? showTradeForm : {}}
-          onDone={() => { setShowTradeForm(false); refresh(); }}
-          onCancel={() => setShowTradeForm(false)}
-        />
-      )}
+      <details className="rounded-xl border border-blue-500/20 bg-blue-500/5">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-blue-200">Observation Saxo · 20 séances</summary>
+        <div className="p-3 pt-0"><ObservationPanel /></div>
+      </details>
     </div>
   );
 }

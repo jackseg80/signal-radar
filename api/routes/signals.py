@@ -4,11 +4,22 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
 
+from api.config import load_production_config
 from api.dependencies import get_db
 from api.routes.market import get_proxy_url
 from data.db import SignalRadarDB
 
 router = APIRouter()
+
+
+def _radar_stock_symbols() -> set[str]:
+    """Use only the configured individual-stock scanner universe."""
+    strategies = load_production_config().get("strategies", {})
+    return {
+        symbol
+        for settings in strategies.values()
+        for symbol in settings.get("universe", []) + settings.get("watchlist", [])
+    }
 
 
 @router.get("/today")
@@ -18,6 +29,8 @@ def get_today_signals(
 ) -> dict:
     """Latest entry/exit signals for all enabled strategies."""
     ts, all_signals = db.get_latest_signals(strategy=strategy)
+    stocks = _radar_stock_symbols()
+    all_signals = [row for row in all_signals if row["symbol"] in stocks]
     
     # Group by strategy
     strategies: dict[str, dict] = {}
@@ -74,30 +87,27 @@ def get_today_signals(
 
 @router.get("/candidates")
 def get_candidates(db: SignalRadarDB = Depends(get_db)) -> dict:
-    """Group simultaneous strategy triggers into one candidate per title."""
+    """Group current technical stock buys, independent of cash and paper."""
     source, signals = db.get_latest_signals()
+    stocks = _radar_stock_symbols()
     groups: dict[str, dict] = {}
     for row in signals:
-        if row.get("technical_signal") != "BUY":
+        if row["symbol"] not in stocks or row.get("technical_signal") != "BUY":
             continue
-        symbol = row["symbol"]
-        item = groups.setdefault(symbol, {
-            "symbol": symbol, "strategies": [], "signal": "SKIP",
-            "eligibility": "BLOCKED", "reasons": [], "source_session": source,
+        if row.get("source_session") is None:
+            continue  # Archived legacy signal log is not the current scanner.
+        item = groups.setdefault(row["symbol"], {
+            "symbol": row["symbol"], "strategies": [], "signal": "BUY",
+            "eligibility": "TECHNICAL", "source_session": source,
             "target_session": row.get("target_session"),
-            "max_budget_usd": None, "indicative_shares": None,
+            "scores": {},
         })
         item["strategies"].append(row["strategy"])
-        if row["signal"] == "BUY":
-            item.update({
-                "signal": "BUY", "eligibility": "ELIGIBLE",
-                "max_budget_usd": row.get("max_budget_usd"),
-                "indicative_shares": row.get("indicative_shares"),
-                "reasons": [],
-            })
-        elif item["signal"] != "BUY":
-            item["reasons"].extend(row.get("reasons", []))
-    return {"source_session": source, "candidates": list(groups.values())}
+        item["scores"][row["strategy"]] = row.get("score")
+    return {
+        "source_session": source,
+        "candidates": sorted(groups.values(), key=lambda item: item["symbol"]),
+    }
 
 
 @router.get("/history")

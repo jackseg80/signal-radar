@@ -181,6 +181,14 @@ class SignalRadarDB:
                     tags TEXT,
                     sentiment TEXT,
                     paper_position_id INTEGER,
+                    instrument_type TEXT,
+                    signal_session TEXT,
+                    signal_linked INTEGER NOT NULL DEFAULT 0,
+                    entry_fee_known INTEGER NOT NULL DEFAULT 0,
+                    exit_fee_known INTEGER NOT NULL DEFAULT 0,
+                    financing_known INTEGER NOT NULL DEFAULT 0,
+                    net_pnl_verified INTEGER NOT NULL DEFAULT 0,
+                    financing_cost REAL NOT NULL DEFAULT 0,
                     created_at TEXT NOT NULL DEFAULT (datetime('now')),
                     UNIQUE(strategy, symbol, entry_date)
                 )
@@ -219,6 +227,26 @@ class SignalRadarDB:
             
             try: conn.execute("ALTER TABLE live_trades ADD COLUMN sentiment TEXT")
             except sqlite3.OperationalError: pass
+
+            for field, definition in (
+                ("instrument_type", "TEXT"),
+                ("signal_session", "TEXT"),
+                ("signal_linked", "INTEGER NOT NULL DEFAULT 0"),
+                ("entry_fee_known", "INTEGER NOT NULL DEFAULT 0"),
+                ("exit_fee_known", "INTEGER NOT NULL DEFAULT 0"),
+                ("financing_known", "INTEGER NOT NULL DEFAULT 0"),
+                ("net_pnl_verified", "INTEGER NOT NULL DEFAULT 0"),
+                ("financing_cost", "REAL NOT NULL DEFAULT 0"),
+            ):
+                try:
+                    conn.execute(f"ALTER TABLE live_trades ADD COLUMN {field} {definition}")
+                except sqlite3.OperationalError:
+                    pass
+            conn.execute("""CREATE TABLE IF NOT EXISTS manual_cash_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                available_usd REAL NOT NULL CHECK(available_usd >= 0),
+                recorded_at TEXT NOT NULL
+            )""")
 
             # -- Indexes --
             # Version 2 is deliberately separate: historical paper trades stay readable
@@ -658,26 +686,129 @@ class SignalRadarDB:
         return {"n_trades": n_trades, "n_wins": wins, "win_rate": round(wins/n_trades*100, 1) if n_trades > 0 else 0.0, "total_pnl": round(total_pnl, 2), "n_open": n_open, "by_strategy": by_strategy}
 
     # -- Live Trades --
-    def open_live_trade(self, strategy: str, symbol: str, entry_date: str, entry_price: float, shares: float, fees: float = 0, notes: str = "", paper_position_id: int | None = None) -> bool:
+    def open_live_trade(
+        self, strategy: str, symbol: str, entry_date: str, entry_price: float,
+        shares: float, fees: float = 0, notes: str = "",
+        paper_position_id: int | None = None, instrument_type: str | None = None,
+        signal_session: str | None = None, entry_fee_known: bool = False,
+    ) -> bool:
+        """Record one long manual trade; preserve older callers as unknown instrument."""
+        if instrument_type not in (None, "stock", "cfd"):
+            raise ValueError("instrument_type must be stock or cfd")
+        if strategy not in {"rsi2", "ibs", "tom"}:
+            raise ValueError("unknown strategy")
+        signal_linked = False
+        if signal_session:
+            decision = self._query_one(
+                "SELECT technical_signal FROM signal_decisions "
+                "WHERE source_session=? AND strategy=? AND symbol=?",
+                (signal_session, strategy, symbol),
+            )
+            signal_linked = bool(decision and decision["technical_signal"] == "BUY")
         try:
             with self._connect() as conn:
-                conn.execute("INSERT INTO live_trades (strategy, symbol, entry_date, entry_price, shares, fees_entry, notes, paper_position_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')", (strategy, symbol, entry_date, entry_price, shares, fees, notes, paper_position_id))
-                return True
-        except sqlite3.IntegrityError: return False
+                conn.execute(
+                    """INSERT INTO live_trades
+                    (strategy, symbol, entry_date, entry_price, shares,
+                     fees_entry, notes, paper_position_id, instrument_type,
+                     signal_session, signal_linked, entry_fee_known, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')""",
+                    (strategy, symbol, entry_date, entry_price, shares, fees,
+                     notes, paper_position_id, instrument_type, signal_session,
+                     int(signal_linked), int(entry_fee_known)),
+                )
+            return True
+        except sqlite3.IntegrityError:
+            return False
 
-    def close_live_trade(self, strategy: str, symbol: str, exit_date: str, exit_price: float, fees: float = 0) -> dict | None:
-        trade = self._query_one("SELECT * FROM live_trades WHERE strategy = ? AND symbol = ? AND status = 'open'", (strategy, symbol))
-        if not trade: return None
-        pnl_dollars = (exit_price - trade["entry_price"]) * trade["shares"] - trade["fees_entry"] - fees
-        pnl_pct = (pnl_dollars / (trade["entry_price"] * trade["shares"])) * 100
+    def close_live_trade_by_id(
+        self, trade_id: int, exit_date: str, exit_price: float,
+        fees: float = 0, financing_cost: float = 0,
+        exit_fee_known: bool = False, financing_known: bool = False,
+    ) -> dict | None:
+        """Close exactly one trade and flag whether the net result is verified."""
+        if fees < 0 or financing_cost < 0:
+            raise ValueError("costs must be non-negative")
+        trade = self._query_one(
+            "SELECT * FROM live_trades WHERE id=? AND status='open'", (trade_id,),
+        )
+        if not trade:
+            return None
+        if exit_date < trade["entry_date"]:
+            raise ValueError("exit_date precedes entry_date")
+        pnl_dollars = (
+            (exit_price - trade["entry_price"]) * trade["shares"]
+            - (trade["fees_entry"] or 0) - fees - financing_cost
+        )
+        pnl_pct = pnl_dollars / (trade["entry_price"] * trade["shares"]) * 100
+        verified = bool(
+            trade["instrument_type"] in {"stock", "cfd"}
+            and trade["entry_fee_known"] and exit_fee_known
+            and (trade["instrument_type"] == "stock" or financing_known)
+        )
         with self._connect() as conn:
-            conn.execute("UPDATE live_trades SET exit_date = ?, exit_price = ?, fees_exit = ?, pnl_dollars = ?, pnl_pct = ?, status = 'closed' WHERE id = ?", (exit_date, exit_price, fees, pnl_dollars, pnl_pct, trade["id"]))
-        return self._query_one("SELECT * FROM live_trades WHERE id = ?", (trade["id"],))
+            conn.execute(
+                """UPDATE live_trades SET exit_date=?, exit_price=?,
+                   fees_exit=?, financing_cost=?, exit_fee_known=?,
+                   financing_known=?, pnl_dollars=?, pnl_pct=?,
+                   net_pnl_verified=?, status='closed' WHERE id=?""",
+                (exit_date, exit_price, fees, financing_cost, int(exit_fee_known),
+                 int(financing_known), pnl_dollars, pnl_pct, int(verified), trade_id),
+            )
+        return self._query_one("SELECT * FROM live_trades WHERE id=?", (trade_id,))
+
+    def close_live_trade(
+        self, strategy: str, symbol: str, exit_date: str, exit_price: float,
+        fees: float = 0,
+    ) -> dict | None:
+        """Compatibility route for older callers, selecting their oldest open trade."""
+        trade = self._query_one(
+            "SELECT id FROM live_trades WHERE strategy=? AND symbol=? "
+            "AND status='open' ORDER BY id LIMIT 1", (strategy, symbol),
+        )
+        if not trade:
+            return None
+        return self.close_live_trade_by_id(
+            trade["id"], exit_date, exit_price, fees,
+            exit_fee_known=True, financing_known=False,
+        )
+
+    def record_manual_cash(self, available_usd: float) -> dict:
+        """Store a dated cash snapshot independent of the partial trade journal."""
+        if available_usd < 0:
+            raise ValueError("available_usd must be non-negative")
+        recorded_at = datetime.now().astimezone().isoformat()
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "INSERT INTO manual_cash_snapshots (available_usd, recorded_at) VALUES (?, ?)",
+                (available_usd, recorded_at),
+            )
+        return {"id": cursor.lastrowid, "available_usd": available_usd,
+                "recorded_at": recorded_at}
+
+    def get_manual_cash(self) -> dict | None:
+        """Return the latest independently entered Saxo available cash."""
+        return self._query_one(
+            "SELECT * FROM manual_cash_snapshots ORDER BY id DESC LIMIT 1",
+        )
 
     def delete_live_trade(self, trade_id: int) -> bool:
         with self._connect() as conn:
             cur = conn.execute("DELETE FROM live_trades WHERE id = ?", (trade_id,))
             return cur.rowcount > 0
+
+    def get_other_buy_strategies(
+        self, symbol: str, signal_session: str | None, primary: str,
+    ) -> list[str]:
+        """Find same-session technical buy signals besides the chosen primary."""
+        if not signal_session:
+            return []
+        rows = self._query(
+            "SELECT strategy FROM signal_decisions WHERE symbol=? AND source_session=? "
+            "AND technical_signal='BUY' AND strategy<>? ORDER BY strategy",
+            (symbol, signal_session, primary),
+        )
+        return [row["strategy"] for row in rows]
 
     def get_open_live_trades(self, strategy: str | None = None) -> list[dict]:
         query = "SELECT * FROM live_trades WHERE status = 'open'"
@@ -871,16 +1002,20 @@ class SignalRadarDB:
                     })
 
             # Fetch live
-            if source != 'paper':
+            if source in (None, 'live'):
                 q = "SELECT * FROM live_trades WHERE 1=1"
                 p = []
                 if strategy: q += " AND strategy = ?"; p.append(strategy)
                 if symbol: q += " AND symbol = ?"; p.append(symbol)
                 for d in [dict(r) for r in conn.execute(q, p).fetchall()]:
-                    # Attach latest signal log context
-                    sig = self._query_one("SELECT details_json FROM signal_log WHERE strategy = ? AND symbol = ? ORDER BY timestamp DESC LIMIT 1", (d["strategy"], d["symbol"]))
+                    # Attach only the explicitly linked scanner decision.
+                    sig = self._query_one(
+                        "SELECT details_json FROM signal_decisions WHERE source_session=? "
+                        "AND strategy=? AND symbol=?",
+                        (d.get("signal_session"), d["strategy"], d["symbol"]),
+                    ) if d.get("signal_linked") else None
                     signal_details = json.loads(sig["details_json"]) if sig and sig["details_json"] else None
-                    entries.append({"id": d["id"], "source": "live", "strategy": d["strategy"], "symbol": d["symbol"], "status": d["status"], "entry_date": d["entry_date"], "entry_price": d["entry_price"], "exit_date": d.get("exit_date"), "exit_price": d.get("exit_price"), "shares": d["shares"], "fees": (d.get("fees_entry") or 0) + (d.get("fees_exit") or 0), "pnl_dollars": d.get("pnl_dollars"), "pnl_pct": d.get("pnl_pct"), "notes": d.get("notes") or "", "tags": d.get("tags") or "", "sentiment": d.get("sentiment") or "", "paper_position_id": d.get("paper_position_id"), "holding_days": None, "signal_details": signal_details, "slippage": None})
+                    entries.append({"id": d["id"], "source": "live", "strategy": d["strategy"], "symbol": d["symbol"], "status": d["status"], "entry_date": d["entry_date"], "entry_price": d["entry_price"], "exit_date": d.get("exit_date"), "exit_price": d.get("exit_price"), "shares": d["shares"], "fees": (d.get("fees_entry") or 0) + (d.get("fees_exit") or 0), "pnl_dollars": d.get("pnl_dollars"), "pnl_pct": d.get("pnl_pct"), "notes": d.get("notes") or "", "tags": d.get("tags") or "", "sentiment": d.get("sentiment") or "", "paper_position_id": d.get("paper_position_id"), "instrument_type": d.get("instrument_type"), "signal_session": d.get("signal_session"), "signal_linked": bool(d.get("signal_linked")), "financing_cost": d.get("financing_cost"), "financing_known": bool(d.get("financing_known")), "entry_fee_known": bool(d.get("entry_fee_known")), "exit_fee_known": bool(d.get("exit_fee_known")), "net_pnl_verified": bool(d.get("net_pnl_verified")), "holding_days": None, "signal_details": signal_details, "slippage": None})
             
             if search:
                 s = search.lower()
@@ -895,6 +1030,10 @@ class SignalRadarDB:
             wins = sum(1 for e in closed if (e["pnl_dollars"] or 0) > 0)
             total_pnl = sum(e["pnl_dollars"] or 0 for e in closed)
             
+            provisional_live_count = sum(
+                e["source"] == "live" and e["status"] == "closed"
+                and not e.get("net_pnl_verified") for e in closed
+            )
             return {
                 "entries": entries, 
                 "total": total, 
@@ -904,7 +1043,8 @@ class SignalRadarDB:
                     "closed_trades": len(closed), 
                     "wins": wins, 
                     "win_rate": round(wins/len(closed)*100, 1) if closed else 0.0, 
-                    "total_pnl": round(total_pnl, 2)
+                    "total_pnl": round(total_pnl, 2),
+                    "provisional_live_count": provisional_live_count,
                 },
                 "legacy_stats": {
                     "total_trades": sum(e["source"] == "legacy_paper" for e in entries),

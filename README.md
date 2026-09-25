@@ -5,10 +5,10 @@ Signal Radar is a research and decision-support application for daily US stock s
 ## What changed in 4.0
 
 - Signals are evaluated after the XNYS close for a possible next-session opening.
-- The dashboard distinguishes a technical trigger, a real-account candidate, the shared paper portfolio and an independent virtual follow-up for each positive-score signal.
+- The Radar shows technical stock signals independently of Saxo cash and paper capacity. Separate views cover manually logged Signal Radar trades, dated cash snapshots, the shared paper portfolio and independent virtual follow-up by strategy.
 - The USD 5,000 shared paper portfolio is independent of Saxo. Opened, ignored or forgotten Saxo positions do not alter its trades. The virtual follow-up is also separate and uses a notional USD 5,000 per qualifying signal.
 - Daily session checks use the XNYS calendar. Yahoo remains the main daily-price source; Nasdaq can fill an isolated, internally missing historical session after strict OHLC, neighboring-close and adjustment checks. Unresolved or conflicting prices fail closed.
-- The dashboard records account confirmations, source and target sessions, eligibility reasons, price repairs and observation notes.
+- The dashboard records source and target sessions, price quality and observation notes. Its Radar panels can be moved and resized; the layout is saved in the current browser. Manual Saxo operations, cash snapshots and the paper simulation have separate views.
 
 ## Current operating status
 
@@ -59,6 +59,7 @@ The dashboard is served on port 9000. See deploy/README.md before touching an ex
 - Next-open model, data controls and rollback guidance: docs/NEXT_OPEN_V2.md
 - Roadmap and current project status: docs/ROADMAP.md
 - 4.0.0 release notes: docs/RELEASE_NOTES.md
+- Dashboard guide, panel layout, operations and paper simulation: docs/DASHBOARD_GUIDE.md
 - Deployment guide and safety limits: deploy/README.md
 
 ## Project structure

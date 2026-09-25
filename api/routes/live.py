@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from api.config import load_production_config
 from api.dependencies import get_db
 from data.db import SignalRadarDB
 
@@ -14,18 +17,37 @@ router = APIRouter()
 def open_live_trade(
     strategy: str,
     symbol: str,
-    entry_date: str,
+    entry_date: date,
     entry_price: float = Query(..., gt=0),
     shares: float = Query(..., gt=0),
-    fees: float = Query(0, ge=0),
+    fees: float | None = Query(None, ge=0),
     notes: str = "",
     paper_position_id: int | None = None,
+    instrument_type: str | None = Query(None, pattern="^(stock|cfd)$"),
+    signal_session: date | None = None,
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Log a real trade entry."""
+    symbol = symbol.strip().upper()
+    if signal_session is not None and signal_session > entry_date:
+        raise HTTPException(status_code=422, detail="Signal date follows purchase")
+    if strategy not in {"rsi2", "ibs", "tom"}:
+        raise HTTPException(status_code=422, detail="Unknown strategy")
+    if instrument_type is not None:
+        configured = load_production_config().get("strategies", {})
+        allowed = {stock for settings in configured.values()
+                   for stock in settings.get("universe", []) + settings.get("watchlist", [])}
+        historical = db._query_one(
+            "SELECT 1 FROM signal_decisions WHERE symbol=? LIMIT 1", (symbol,),
+        )
+        if symbol not in allowed and not historical:
+            raise HTTPException(status_code=422, detail="Action outside Signal Radar")
     created = db.open_live_trade(
-        strategy, symbol, entry_date, entry_price, shares,
-        fees=fees, notes=notes, paper_position_id=paper_position_id,
+        strategy, symbol, entry_date.isoformat(), entry_price, shares,
+        fees=fees or 0, notes=notes, paper_position_id=paper_position_id,
+        instrument_type=instrument_type,
+        signal_session=signal_session.isoformat() if signal_session else None,
+        entry_fee_known=fees is not None,
     )
     if not created:
         raise HTTPException(
@@ -54,6 +76,33 @@ def close_live_trade(
     return {"status": "closed", "trade": trade}
 
 
+
+
+@router.post("/close/{trade_id}")
+def close_live_trade_by_id(
+    trade_id: int,
+    exit_date: date,
+    exit_price: float = Query(..., gt=0),
+    fees: float | None = Query(None, ge=0),
+    financing_cost: float | None = Query(None, ge=0),
+    db: SignalRadarDB = Depends(get_db),
+) -> dict:
+    """Close one selected real trade; missing cost fields leave net P&L provisional."""
+    trade = db._query_one("SELECT * FROM live_trades WHERE id=?", (trade_id,))
+    if trade is None or trade["status"] != "open":
+        raise HTTPException(status_code=404, detail="Open trade not found")
+    if trade["instrument_type"] == "stock" and financing_cost not in (None, 0):
+        raise HTTPException(status_code=422, detail="Stock trade has no CFD financing")
+    if exit_date.isoformat() < trade["entry_date"]:
+        raise HTTPException(status_code=422, detail="Exit precedes entry")
+    result = db.close_live_trade_by_id(
+        trade_id, exit_date.isoformat(), exit_price, fees or 0,
+        financing_cost or 0, exit_fee_known=fees is not None,
+        financing_known=financing_cost is not None,
+    )
+    return {"status": "closed", "trade": result}
+
+
 @router.delete("/{trade_id}")
 def delete_live_trade(
     trade_id: int,
@@ -77,12 +126,16 @@ def get_open_live_trades(
     prices = db.get_latest_prices(symbols) if symbols else {}
 
     for t in trades:
+        t["other_buy_strategies"] = db.get_other_buy_strategies(
+            t["symbol"], t.get("signal_session"), t["strategy"],
+        )
         current = prices.get(t["symbol"])
         t["current_price"] = current
-        if current and t["entry_price"]:
+        if current is not None and t["entry_price"]:
             t["unrealized_pnl"] = round(
                 (current - t["entry_price"]) * t["shares"] - (t["fees_entry"] or 0), 2
             )
+            t["unrealized_pnl_provisional"] = True
             t["unrealized_pct"] = round(
                 (current - t["entry_price"]) / t["entry_price"] * 100, 2
             )
@@ -102,6 +155,10 @@ def get_closed_live_trades(
 ) -> dict:
     """Closed live trades."""
     trades = db.get_closed_live_trades(strategy=strategy, symbol=symbol, limit=limit)
+    for trade in trades:
+        trade["other_buy_strategies"] = db.get_other_buy_strategies(
+            trade["symbol"], trade.get("signal_session"), trade["strategy"],
+        )
     return {"trades": trades, "total": len(trades)}
 
 

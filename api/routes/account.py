@@ -46,3 +46,23 @@ def confirm_account(
     return db.confirm_account(
         expected, payload.cash_usd, payload.holdings, payload.note,
     )
+
+
+class ManualCashSnapshot(BaseModel):
+    """User-entered Saxo available cash; it is not computed from tracked trades."""
+
+    available_usd: float = Field(ge=0)
+
+
+@router.get("/manual-cash")
+def latest_manual_cash(db: SignalRadarDB = Depends(get_db)) -> dict:
+    """Return the latest dated manual cash snapshot."""
+    return {"snapshot": db.get_manual_cash()}
+
+
+@router.post("/manual-cash")
+def save_manual_cash(
+    payload: ManualCashSnapshot, db: SignalRadarDB = Depends(get_db),
+) -> dict:
+    """Save cash without implying full Saxo portfolio reconciliation."""
+    return db.record_manual_cash(payload.available_usd)

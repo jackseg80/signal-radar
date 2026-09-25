@@ -37,6 +37,12 @@ export const api = {
   signalsToday: (strategy) => fetchJson(`/signals/today${buildQueryString({ strategy })}`),
   signalsHistory: (params = {}) => fetchJson(`/signals/history${buildQueryString(params)}`),
   signalCandidates: () => fetchJson('/signals/candidates'),
+  manualCash: () => fetchJson('/account/manual-cash'),
+  saveManualCash: (data) => fetchJson('/account/manual-cash', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }),
   accountCurrent: () => fetchJson('/account/current'),
   accountConfirm: (data) => fetchJson('/account/confirm', {
     method: 'POST',
@@ -81,6 +87,7 @@ export const api = {
   // Live Trades
   liveOpen: (data) => fetchJson(`/live/open${buildQueryString(data)}`, { method: 'POST' }),
   liveClose: (data) => fetchJson(`/live/close${buildQueryString(data)}`, { method: 'POST' }),
+  liveCloseById: (id, data) => fetchJson(`/live/close/${id}${buildQueryString(data)}`, { method: 'POST' }),
   liveDelete: (id) => fetchJson(`/live/${id}`, { method: 'DELETE' }),
   liveActive: (strategy) => fetchJson(`/live/open${buildQueryString({ strategy })}`),
   liveClosed: (params = {}) => fetchJson(`/live/closed${buildQueryString(params)}`),

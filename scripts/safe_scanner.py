@@ -449,22 +449,32 @@ def run_safe_scanner(
     if prior_session != source or stable(prior_rows) != stable(saved):
         from engine.notifier import send_telegram
 
-        eligible = [r for r in saved if r["eligibility"] == "ELIGIBLE"]
-        blocked = [r for r in saved if r["technical_signal"] == "BUY"
-                   and r["eligibility"] != "ELIGIBLE"]
+        buy_groups: dict[str, list[str]] = {}
+        for row in saved:
+            if row["technical_signal"] == "BUY":
+                buy_groups.setdefault(row["symbol"], []).append(row["strategy"].upper())
+        buy_text = "; ".join(
+            f"{symbol} ({', '.join(sorted(strategies))})"
+            for symbol, strategies in sorted(buy_groups.items())
+        ) or "aucun"
+        exits = sorted(
+            f"{row['symbol']} ({row['strategy'].upper()})"
+            for row in saved
+            if row["technical_signal"] in {"SELL", "SAFETY_EXIT"}
+        )
         paper_buys = [r["symbol"] for r in saved
                       if r["details"].get("paper_status") == "PENDING_BUY"]
         paper_sells = [r["symbol"] for r in saved
                        if r["details"].get("paper_status") == "PENDING_SELL"]
         summary = (
             f"Signal Radar {source} → ouverture {target}\n"
-            f"Achat réel possible: {', '.join(r['symbol'] for r in eligible) or 'aucun'}\n"
+            f"Signaux techniques d'achat: {buy_text}\n"
+            f"Sorties par stratégie: {', '.join(exits) or 'aucune'}\n"
             f"Simulation papier: achat {', '.join(paper_buys) or 'aucun'} ; "
             f"vente {', '.join(paper_sells) or 'aucune'}\n"
-            f"Signaux réels bloqués: {len(blocked)} ; données manquantes: {len(errors)}\n"
-            + (f"Papier: univers incomplet, titres exclus {', '.join(sorted(errors))}\n"
-               if errors else "")
-            + "Ordre au marché indicatif; vérifiez Saxo avant exécution."
+            f"Données manquantes: {len(errors)}. "
+            "Validation récente, frais réels et conditions Saxo à vérifier. "
+            "Aucune capacité d'achat réelle calculée."
         )
         send_telegram(summary)
     return {

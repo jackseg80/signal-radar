@@ -5,6 +5,8 @@ import { AssetProvider } from './hooks/useAssetView.jsx';
 import { CommandPaletteProvider } from './components/layout/CommandPalette.jsx';
 import Navbar from './components/layout/Navbar';
 import Dashboard from './pages/Dashboard';
+import Paper from './pages/Paper';
+import Operations from './pages/Operations';
 import Backtest from './pages/Backtest';
 import Journal from './pages/Journal';
 import Strategies from './pages/Strategies';
@@ -23,6 +25,8 @@ export default function App() {
                   <div className="max-w-[1600px] mx-auto p-4 md:p-6 lg:p-8 xl:p-10">
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
+                      <Route path="/operations" element={<Operations />} />
+                      <Route path="/paper" element={<Paper />} />
                       <Route path="/backtest" element={<Backtest />} />
                       <Route path="/journal" element={<Journal />} />
                       <Route path="/strategies" element={<Strategies />} />

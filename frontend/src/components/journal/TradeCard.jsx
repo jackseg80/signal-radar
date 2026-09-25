@@ -13,7 +13,7 @@ import AssetIcon from '../ui/AssetIcon';
 const SOURCE_BADGE = {
   paper: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'PAPER' },
   legacy_paper: { bg: 'bg-slate-500/20', text: 'text-slate-400', label: 'ANCIEN MODÈLE' },
-  live: { bg: 'bg-green-500/20', text: 'text-green-400', label: 'LIVE' },
+  live: { bg: 'bg-green-500/20', text: 'text-green-400', label: 'SAISIE RÉELLE' },
 };
 
 function formatSignalDetails(details, strategy) {
@@ -70,6 +70,7 @@ export default function TradeCard({ entry, onSaved }) {
               </span>
             )}
             <span className="text-sm font-bold text-white tracking-tight">{entry.symbol}</span>
+            {entry.source === 'live' && <span className="text-[10px] text-[--text-muted]">{entry.instrument_type === 'stock' ? 'Action' : entry.instrument_type === 'cfd' ? 'CFD action' : 'Instrument à préciser'}</span>}
           </div>
         </div>
 
@@ -78,7 +79,7 @@ export default function TradeCard({ entry, onSaved }) {
             className={`text-sm font-bold ${pnlColor(entry.pnl_dollars)}`}
             style={{ fontFamily: "'JetBrains Mono', monospace" }}
           >
-            {formatPnl(entry.pnl_dollars)}
+            {formatPnl(entry.pnl_dollars)}{entry.source === 'live' && !entry.net_pnl_verified ? ' · provisoire' : ''}
           </span>
         )}
       </div>
@@ -114,7 +115,9 @@ export default function TradeCard({ entry, onSaved }) {
       {/* Details */}
       <div className="text-xs text-[--text-muted] mb-2">
         <span>Shares: {entry.shares}</span>
-        {entry.fees > 0 && <span className="ml-3">Fees: {formatPrice(entry.fees)}</span>}
+        {entry.fees > 0 && <span className="ml-3">Frais saisis : {formatPrice(entry.fees)}</span>}
+        {entry.source === 'live' && entry.instrument_type === 'cfd' && <span className="ml-3">Financement saisi : {formatPrice(entry.financing_cost)}</span>}
+        {entry.source === 'live' && entry.signal_session && <span className="ml-3">Signal {entry.signal_session} · {entry.signal_linked ? 'retrouvé' : 'référence manuelle'}</span>}
         {signalText && (
           <>
             <span className="mx-1">|</span>

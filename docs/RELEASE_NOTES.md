@@ -21,3 +21,12 @@ Cette version regroupe la refonte du scanner et du tableau de bord autour des si
 ## Compatibilité et limites
 
 Le flux de décision est documenté sous NEXT_OPEN_V2 pour distinguer cette génération applicative du schéma et des règles v2. Les tables ajoutées sont migrées de manière additive. Les anciens historiques restent consultables et ne sont pas fusionnés avec le nouveau P&L. Les données de compte et de déploiement propres à l'utilisateur ne sont pas incluses dans cette publication.
+
+
+## Correctif du tableau de bord — 25 septembre 2026
+
+- Restaure une grille de panneaux déplaçables et redimensionnables dans le Radar, avec disposition mémorisée par navigateur et bouton de réinitialisation.
+- Place les signaux et la vue d’ensemble des actions côte à côte par défaut ; ajoute Approaching et un aperçu compact des positions papier ouvertes.
+- Garde les détails papier dans leur page dédiée et replie l’observation Saxo sous la grille.
+- Déployé sur robot2 après compilation et contrôle des vues ; API saine, scanner et base inchangés.
+- Voir [le guide du tableau de bord](DASHBOARD_GUIDE.md) pour les gestes et la portée de chaque vue.

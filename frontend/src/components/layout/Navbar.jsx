@@ -5,10 +5,9 @@ import { useToasts } from '../../hooks/useToasts.jsx';
 import { useApi } from '../../hooks/useApi';
 import { useCommandPalette } from './CommandPalette.jsx';
 import { api } from '../../api/client';
-import { formatTimestamp } from '../../utils/format';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { LayoutDashboard, LineChart, BookOpen, Activity, RefreshCw, HelpCircle, GraduationCap, Search, Command, Terminal } from 'lucide-react';
+import { LayoutDashboard, Wallet, LineChart, BookOpen, Activity, RefreshCw, HelpCircle, GraduationCap, Search, Command, Terminal } from 'lucide-react';
 import GuideModal from './GuideModal';
 
 export default function Navbar() {
@@ -76,10 +75,12 @@ export default function Navbar() {
   };
 
   const navItems = [
-    { to: "/", icon: <LayoutDashboard size={16} />, label: "Dashboard", end: true },
+    { to: "/", icon: <LayoutDashboard size={16} />, label: "Radar", end: true },
+    { to: "/operations", icon: <Wallet size={16} />, label: "Mes opérations" },
+    { to: "/paper", icon: <Activity size={16} />, label: "Simulation papier" },
     { to: "/strategies", icon: <GraduationCap size={16} />, label: "Stratégies" },
     { to: "/backtest", icon: <LineChart size={16} />, label: "Backtest" },
-    { to: "/journal", icon: <BookOpen size={16} />, label: "Journal" },
+    { to: "/journal", icon: <BookOpen size={16} />, label: "Journal comparatif" },
   ];
 
   const linkClass = ({ isActive }) =>
@@ -194,6 +195,13 @@ export default function Navbar() {
         </div>
       </header>
 
+      <nav className="flex gap-1 overflow-x-auto border-b border-white/10 bg-[--bg-card] px-3 py-2 lg:hidden" aria-label="Navigation">
+        {navItems.map((item) => (
+          <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>
+            {item.icon}<span className="whitespace-nowrap">{item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
       <GuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
     </>
   );
