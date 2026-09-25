@@ -1,7 +1,9 @@
 # signal-radar — RSI(2) daily scanner
 # Runs at 22:15 local time (TZ set in container, default Europe/Zurich)
-# Sun-Fri: Sunday for weekly report, Mon-Fri for daily scan
-15 22 * * 0-5 root . /app/.env.cron && cd /app && python scripts/daily_scanner.py >> /proc/1/fd/1 2>> /proc/1/fd/2
-# Monthly backtest refresh -- 1st of every month at 04:00
-0 4 1 * * root . /app/.env.cron && cd /app && python scripts/monthly_refresh.py >> /proc/1/fd/1 2>> /proc/1/fd/2
+# Weekday scans are session-aware and idempotent on US holidays.
+15 22 * * 1-5 root . /app/.env.cron && cd /app && python scripts/daily_scanner.py >> /proc/1/fd/1 2>> /proc/1/fd/2
+# Monthly fixed-parameter production validation; no universe promotion.
+0 4 1 * * root . /app/.env.cron && cd /app && python scripts/validate_v2.py --scope production >> /proc/1/fd/1 2>> /proc/1/fd/2
+# Quarterly exploratory validation of the complete US universe.
+0 5 1 1,4,7,10 * root . /app/.env.cron && cd /app && python scripts/validate_v2.py --scope universe >> /proc/1/fd/1 2>> /proc/1/fd/2
 # Empty line required by cron

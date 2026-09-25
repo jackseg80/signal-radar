@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from api.routes import signals, positions, performance, market, backtest, scanner, live, journal, config
+from api.routes import signals, positions, performance, market, backtest, scanner, live, journal, config, account, observation
 
 # Configuration des chemins
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
@@ -30,6 +30,8 @@ app.include_router(scanner.router, prefix="/api/scanner", tags=["scanner"])
 app.include_router(live.router, prefix="/api/live", tags=["live"])
 app.include_router(journal.router, prefix="/api/journal", tags=["journal"])
 app.include_router(config.router, prefix="/api/config", tags=["config"])
+app.include_router(account.router, prefix="/api/account", tags=["account"])
+app.include_router(observation.router, prefix="/api/observation", tags=["observation"])
 
 @app.get("/api/health")
 def health():

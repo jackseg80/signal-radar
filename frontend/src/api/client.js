@@ -36,6 +36,20 @@ export const api = {
   // Signals & Scanner
   signalsToday: (strategy) => fetchJson(`/signals/today${buildQueryString({ strategy })}`),
   signalsHistory: (params = {}) => fetchJson(`/signals/history${buildQueryString(params)}`),
+  signalCandidates: () => fetchJson('/signals/candidates'),
+  accountCurrent: () => fetchJson('/account/current'),
+  accountConfirm: (data) => fetchJson('/account/confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }),
+  observationStatus: () => fetchJson('/observation/status'),
+  observationStart: () => fetchJson('/observation/start', { method: 'POST' }),
+  observationCheck: (data) => fetchJson('/observation/check', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }),
   scannerRun: () => fetchJson('/scanner/run', { method: 'POST' }),
   scannerStatus: () => fetchJson('/scanner/status'),
   
@@ -47,6 +61,7 @@ export const api = {
 
   // Positions & Trades
   openPositions: (strategy) => fetchJson(`/positions/open${buildQueryString({ strategy })}`),
+  signalFollowPositions: () => fetchJson('/positions/follow'),
   closedTrades: (params = {}) => fetchJson(`/positions/closed${buildQueryString(params)}`),
   
   // Performance
@@ -56,6 +71,7 @@ export const api = {
   // Backtest
   screens: (params = {}) => fetchJson(`/backtest/screens${buildQueryString(params)}`),
   validations: (params = {}) => fetchJson(`/backtest/validations${buildQueryString(params)}`),
+  nextOpenValidations: () => fetchJson('/backtest/next-open'),
   compare: (params = {}) => fetchJson(`/backtest/compare${buildQueryString(params)}`),
   backtestEquityCurve: (strategy, symbol) =>
     fetchJson(`/backtest/equity-curve${buildQueryString({ strategy, symbol })}`),

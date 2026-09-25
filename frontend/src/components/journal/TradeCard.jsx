@@ -12,6 +12,7 @@ import AssetIcon from '../ui/AssetIcon';
 
 const SOURCE_BADGE = {
   paper: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'PAPER' },
+  legacy_paper: { bg: 'bg-slate-500/20', text: 'text-slate-400', label: 'ANCIEN MODÈLE' },
   live: { bg: 'bg-green-500/20', text: 'text-green-400', label: 'LIVE' },
 };
 
@@ -150,6 +151,7 @@ export default function TradeCard({ entry, onSaved }) {
         tags={entry.tags}
         sentiment={entry.sentiment}
         source={entry.source}
+        readOnly={entry.read_only}
         id={entry.id}
         onSaved={onSaved}
       />

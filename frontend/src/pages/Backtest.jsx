@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import CompareMatrix from '../components/backtest/CompareMatrix';
 import ValidationsTable from '../components/backtest/ValidationsTable';
+import { useApi } from '../hooks/useApi';
+import { api } from '../api/client';
 
 const TABS = [
   { key: 'compare', label: 'Matrice de Confiance' },
@@ -9,6 +11,7 @@ const TABS = [
 
 export default function Backtest() {
   const [activeTab, setActiveTab] = useState('compare');
+  const { data: nextOpen } = useApi(() => api.nextOpenValidations(), []);
 
   return (
     <div className="space-y-6 min-h-screen">
@@ -24,6 +27,14 @@ export default function Backtest() {
           <p className="text-sm text-[--text-muted] mt-1">Validation de la robustesse et performance historique des stratégies.</p>
         </div>
       </div>
+
+      <section className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-xs text-amber-200">
+        <strong>Validations à l'ouverture suivante :</strong> {nextOpen?.total ?? '…'} couple(s) analysé(s).
+        {nextOpen?.records?.some((row) => row.verdict === 'VALIDATED' && row.calibrated)
+          ? ' Seuls les couples validés avec frais confirmés peuvent devenir achetables.'
+          : ' Aucune performance nette n’est encore validée pour l’achat.'}
+        <p className="mt-1">Les matrices et tableaux ci-dessous proviennent de l’ancien modèle et ne justifient pas un achat.</p>
+      </section>
 
       {/* Sub-tabs - Sticky at top-16 (Navbar is 64px) */}
       <div className="sticky top-[64px] z-[40] bg-[--bg-primary] py-4">

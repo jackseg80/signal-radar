@@ -85,7 +85,7 @@ def get_market_overview(db: SignalRadarDB = Depends(get_db)) -> dict:
             try: details_map[(s["strategy"], s["symbol"])] = _json.loads(dj)
             except: pass
             
-    open_pos_map = {p["symbol"]: True for p in db.get_open_positions()}
+    open_pos_map = {p["symbol"]: True for p in db.get_v2_open_positions()}
     
     asset_membership = {}
     for s_name, s_cfg in strategies_cfg.items():
@@ -132,7 +132,8 @@ def get_market_overview(db: SignalRadarDB = Depends(get_db)) -> dict:
 @router.get("/asset/{symbol}")
 def get_asset_details(symbol: str, db: SignalRadarDB = Depends(get_db)) -> dict:
     ts, all_signals = db.get_latest_signals()
-    last_price = db.get_latest_price(symbol)
+    current_signal = next((s for s in all_signals if s["symbol"] == symbol), None)
+    last_price = current_signal["close_price"] if current_signal else db.get_latest_price(symbol)
     if last_price is None:
         df = db.get_ohlcv(symbol)
         if not df.empty: last_price = float(df.iloc[-1]["close"])
@@ -143,8 +144,10 @@ def get_asset_details(symbol: str, db: SignalRadarDB = Depends(get_db)) -> dict:
         "last_price": last_price, 
         "timestamp": ts, 
         "signals": [s for s in all_signals if s["symbol"] == symbol],
-        "open_positions": [p for p in db.get_open_positions() if p["symbol"] == symbol], 
-        "validations": [v for v in db.get_validations_filtered(verdict="VALIDATED") if v["symbol"] == symbol]
+        "open_positions": [p for p in db.get_v2_open_positions() if p["symbol"] == symbol],
+        "validations": [v for v in db.get_latest_v2_scores()
+                        if v["symbol"] == symbol and v["verdict"] == "VALIDATED"
+                        and v["calibrated"]]
     }
 
 @router.get("/asset/{symbol}/logo")
@@ -176,5 +179,7 @@ def get_asset_history(symbol: str, days: int = Query(60), db: SignalRadarDB = De
 def get_asset_prices(symbol: str, days: int = Query(60), db: SignalRadarDB = Depends(get_db)) -> list:
     import pandas as pd
     start_date = (pd.Timestamp.now() - pd.Timedelta(days=days)).strftime("%Y-%m-%d")
-    df = db.get_ohlcv(symbol, start=start_date)
+    df = db.get_prices_v2(symbol, start=start_date)
+    if df.empty:
+        df = db.get_ohlcv(symbol, start=start_date)
     return [{"date": date.strftime("%Y-%m-%d") if isinstance(date, pd.Timestamp) else str(date), "close": float(row["Close"])} for date, row in df.iterrows()]

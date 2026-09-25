@@ -1,16 +1,11 @@
 import { useState, useMemo } from 'react';
 import { Responsive, WidthProvider } from 'react-grid-layout/legacy';
-import { useApi } from '../hooks/useApi';
 import { useRefresh } from '../hooks/useRefresh.jsx';
 import { useAssetView } from '../hooks/useAssetView.jsx';
-import { api } from '../api/client';
-import Card from '../components/ui/Card';
-import LoadingState from '../components/ui/LoadingState';
-import ErrorState from '../components/ui/ErrorState';
-import EmptyState from '../components/ui/EmptyState';
 import StrategyBreakdown from '../components/performance/StrategyBreakdown';
-import StrategySection from '../components/signals/StrategySection';
+import SignalsPanel from '../components/signals/SignalsPanel';
 import OpenPositions from '../components/positions/OpenPositions';
+import SignalFollowPositions from '../components/positions/SignalFollowPositions';
 import ClosedTrades from '../components/positions/ClosedTrades';
 import EquityCurve from '../components/performance/EquityCurve';
 import MarketOverview from '../components/market/MarketOverview';
@@ -18,40 +13,11 @@ import NearTrigger from '../components/signals/NearTrigger';
 import LivePositions from '../components/live/LivePositions';
 import PaperVsLive from '../components/live/PaperVsLive';
 import LiveTradeForm from '../components/live/LiveTradeForm';
+import AccountConfirmation from '../components/account/AccountConfirmation';
+import ObservationPanel from '../components/account/ObservationPanel';
 import { LayoutDashboard, Activity, RotateCcw } from 'lucide-react';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
-
-function SignalsPanel({ className, onSymbolClick }) {
-  const { refreshKey } = useRefresh();
-  const { data, loading, error, refetch } = useApi(() => api.signalsToday(), [refreshKey]);
-
-  if (loading) return <Card title="Today's Signals" className={className}><LoadingState rows={4} /></Card>;
-  if (error) return <Card title="Today's Signals" className={className}><ErrorState message={error} onRetry={refetch} /></Card>;
-
-  const strategies = data?.strategies;
-  if (!strategies || Object.keys(strategies).length === 0) {
-    return (
-      <Card title="Today's Signals" className={className}>
-        <EmptyState message="No signals yet. Run the scanner first." />
-      </Card>
-    );
-  }
-
-  return (
-    <Card 
-      title="Today's Signals" 
-      subtitle="Active strategy scanner results" 
-      className={className}
-    >
-      <div className="space-y-6">
-        {Object.entries(strategies).map(([key, strat]) => (
-          <StrategySection key={key} strategyKey={key} strategyData={strat} onSymbolClick={onSymbolClick} />
-        ))}
-      </div>
-    </Card>
-  );
-}
 
 const DEFAULT_LAYOUTS = {
   lg: [
@@ -139,6 +105,8 @@ export default function Dashboard() {
       </div>
 
       {/* Main Draggable Grid */}
+      <AccountConfirmation refresh={refresh} />
+      <SignalFollowPositions onSymbolClick={openAsset} />
       <ResponsiveGridLayout
         className="layout"
         layouts={layouts}
@@ -189,6 +157,8 @@ export default function Dashboard() {
           <PaperVsLive className={cardClass} />
         </div>
       </ResponsiveGridLayout>
+
+      <ObservationPanel />
 
       {showTradeForm && (
         <LiveTradeForm

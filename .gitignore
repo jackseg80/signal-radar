@@ -18,6 +18,9 @@ logs/
 Untitled-1.txt
 validation_results/*.json
 data/signal_radar.db
+data/*.pre-v2.bak
+data/*.pre-price-basis.bak
+data/robot2-backups/
 data/signal_history.csv
 data/signal_history_etfs_backup.csv
 frontend/node_modules/

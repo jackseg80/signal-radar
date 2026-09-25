@@ -19,11 +19,12 @@ const SIGNAL_ICONS = {
   WATCH: <Eye size={14} className="text-amber-400" />,
 };
 
-export default function SignalCard({ symbol, name, logo_url, signal, close_price, indicator_value, notes, onClick }) {
+export default function SignalCard({ symbol, name, logo_url, signal, close_price, indicator_value, notes, technical_signal, eligibility, source_session, target_session, max_budget_usd, indicative_shares, paper_signal, paper_status, paper_reasons = [], paper_warnings = [], paper_budget_usd, paper_indicative_shares, onClick }) {
   const colors = SIGNAL_COLORS[signal] || SIGNAL_COLORS.NO_SIGNAL;
   const isActionable = signal === 'BUY' || signal === 'SELL' || signal === 'SAFETY_EXIT';
   const isWatch = signal === 'WATCH' || signal === 'PENDING_VALID';
-  const isDim = signal === 'NO_SIGNAL' || signal === 'PENDING_EXPIRED';
+  const paperActive = ['BUY', 'SELL', 'SAFETY_EXIT', 'HOLD'].includes(paper_signal);
+  const isDim = (signal === 'NO_SIGNAL' || signal === 'PENDING_EXPIRED') && !paperActive;
   const glowClass = SIGNAL_GLOW[signal] || '';
   const icon = SIGNAL_ICONS[signal];
   
@@ -86,6 +87,34 @@ export default function SignalCard({ symbol, name, logo_url, signal, close_price
           title={notes}
         >
           {notes}
+        </div>
+      )}
+      {technical_signal === 'BUY' && (
+        <div className="mt-2 text-[10px] text-[--text-secondary]">
+          <div>Signal détecté {source_session} · ouverture visée {target_session}</div>
+          <div className={eligibility === 'ELIGIBLE' ? 'text-green-400' : 'text-amber-400'}>
+            {eligibility === 'ELIGIBLE' ? 'Achat possible' : eligibility === 'EXPIRED' ? 'Signal expiré' : 'Achat réel bloqué'}
+          </div>
+          {eligibility === 'ELIGIBLE' && (
+            <div>Budget maximal {Number(max_budget_usd).toFixed(2)} USD · {indicative_shares} action(s) indicatives. Prix du marché non garanti.</div>
+          )}
+        </div>
+      )}
+      {eligibility === 'DATA_MISSING' && <div className="mt-2 text-[10px] text-red-400">Donnée manquante</div>}
+      {paper_status && paper_status !== 'NO_SIGNAL' && (
+        <div className="mt-2 border-t border-white/5 pt-2 text-[10px] text-blue-300">
+          <div>Simulation papier autonome : {{
+            PENDING_BUY: 'achat préparé',
+            PENDING_SELL: 'vente préparée',
+            HOLD: 'position conservée',
+            BLOCKED: 'aucun achat papier',
+            MERGED: 'motif regroupé',
+          }[paper_status] || paper_status}</div>
+          {paper_status === 'PENDING_BUY' && paper_budget_usd != null && (
+            <div>Budget papier {Number(paper_budget_usd).toFixed(2)} USD · {paper_indicative_shares} action(s) indicatives</div>
+          )}
+          {paper_reasons.length > 0 && <div className="text-[--text-muted]">{paper_reasons.join(' ; ')}</div>}
+          {paper_warnings.length > 0 && <div className="text-amber-300">{paper_warnings.join(' ; ')}</div>}
         </div>
       )}
       

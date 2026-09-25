@@ -45,8 +45,8 @@ def update_paper_entry(
     update: JournalUpdate,
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
-    """Update paper trade details (notes, tags, sentiment)."""
-    success = db.update_paper_entry(id, notes=update.notes, tags=update.tags, sentiment=update.sentiment)
+    """Update only next-open paper notes; legacy history is read-only."""
+    success = db.update_v2_paper_entry(id, notes=update.notes, tags=update.tags, sentiment=update.sentiment)
     if not success:
         raise HTTPException(status_code=404, detail="Entry not found")
     return {"status": "updated"}

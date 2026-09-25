@@ -189,7 +189,7 @@ export default function Navbar() {
           {/* Status indicator */}
           <div className="flex items-center gap-1.5 ml-1 md:ml-2 md:pl-4 border-l border-[--glass-border]">
              <span className={`w-1.5 h-1.5 rounded-full ${healthData?.status === 'ok' ? 'bg-green-500' : 'bg-red-500'}`} />
-             <span className="text-[10px] text-[--text-muted] hidden lg:inline uppercase tracking-widest">v3.0</span>
+             <span className="text-[10px] text-[--text-muted] hidden lg:inline uppercase tracking-widest">v4.0</span>
           </div>
         </div>
       </header>

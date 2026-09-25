@@ -118,10 +118,11 @@ def compare_paper_vs_live(
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Compare paper vs live performance side by side."""
-    paper = db.get_paper_summary()
+    paper = db.get_v2_paper_summary()
     live = db.get_live_summary()
 
     result = {
+        "paper_series": "next_open_v2",
         "paper": {
             "n_trades": paper["n_trades"],
             "win_rate": paper["win_rate"],

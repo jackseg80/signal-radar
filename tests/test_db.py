@@ -445,19 +445,22 @@ class TestAPIDBMethods:
         assert "UNKNOWN" not in prices
 
     def test_get_signal_history(self, db: SignalRadarDB) -> None:
-        db.log_signal("2026-03-05 22:15:00", "rsi2", "META", "BUY", 610.0, 4.5, "")
-        db.log_signal("2026-03-05 22:15:00", "ibs", "META", "NO_SIGNAL", 610.0, 0.6, "")
+        scan_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        db.log_signal(scan_ts, "rsi2", "META", "BUY", 610.0, 4.5, "")
+        db.log_signal(scan_ts, "ibs", "META", "NO_SIGNAL", 610.0, 0.6, "")
 
         all_sigs = db.get_signal_history(days=30)
         assert len(all_sigs) == 2
 
         buys = db.get_signal_history(signal_type="BUY", days=30)
         assert len(buys) == 1
-        assert buys[0]["signal"] == "BUY"
+        assert buys[0]["signal"] == "SKIP"
+        assert buys[0]["technical_signal"] == "BUY"
 
     def test_get_signal_history_filter_symbol(self, db: SignalRadarDB) -> None:
-        db.log_signal("2026-03-05 22:15:00", "rsi2", "META", "BUY", 610.0, 4.5, "")
-        db.log_signal("2026-03-05 22:15:00", "rsi2", "NVDA", "BUY", 130.0, 4.0, "")
+        scan_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        db.log_signal(scan_ts, "rsi2", "META", "BUY", 610.0, 4.5, "")
+        db.log_signal(scan_ts, "rsi2", "NVDA", "BUY", 130.0, 4.0, "")
         
         meta_sigs = db.get_signal_history(symbol="META", days=30)
         assert len(meta_sigs) == 1
@@ -769,19 +772,20 @@ class TestJournal:
         assert len(entries) == 3
 
         # Stats
-        assert stats["total_trades"] == 3
-        assert stats["open_trades"] == 1
-        assert stats["closed_trades"] == 2
+        assert stats["total_trades"] == 1
+        assert stats["open_trades"] == 0
+        assert stats["closed_trades"] == 1
+        assert result["legacy_stats"]["total_trades"] == 2
 
         # Open paper should be first (open first, then sorted by date desc)
         open_entries = [e for e in entries if e["status"] == "open"]
         assert len(open_entries) == 1
-        assert open_entries[0]["source"] == "paper"
+        assert open_entries[0]["source"] == "legacy_paper"
         assert open_entries[0]["symbol"] == "META"
 
         # Check sources present
         sources = {e["source"] for e in entries}
-        assert sources == {"paper", "live"}
+        assert sources == {"legacy_paper", "live"}
 
         # Signal context for META should be attached
         meta_entry = next(e for e in entries if e["symbol"] == "META")

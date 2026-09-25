@@ -7,6 +7,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
+      - ./validation_results:/app/validation_results
       - ./config:/app/config:ro
     restart: unless-stopped
 
@@ -22,6 +23,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
+      - ./validation_results:/app/validation_results
       - ./config:/app/config:ro
     restart: unless-stopped
     depends_on:

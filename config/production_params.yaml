@@ -12,11 +12,11 @@ strategies:
       sma_exit_period: 5
       sma_trend_buffer: 1.01
       position_fraction: 1.0
-    universe:  # sorted by PF desc (VALIDATION_RESULTS.md)
-      - META     # PF 3.49
-      - GOOGL    # PF 1.72
-      - MSFT     # PF 1.66
-      - NVDA     # PF 1.48
+    universe:  # production allowlist; validated afresh before an actionable signal
+      - META
+      - GOOGL
+      - MSFT
+      - NVDA
       - V
       - MA
       - AVGO
@@ -36,13 +36,13 @@ strategies:
       ibs_exit_threshold: 0.8
       sma_trend_period: 200
       position_fraction: 1.0
-    universe:  # sorted by PF desc (VALIDATION_RESULTS.md)
-      - NVDA     # PF 2.07
-      - META     # PF 1.68
-      - MSFT     # PF 1.52
-      - AAPL     # PF 1.51
-      - AMZN     # PF 1.46
-      - GOOGL    # PF 1.29
+    universe:  # production allowlist; ranking is recomputed from past trades
+      - NVDA
+      - META
+      - MSFT
+      - AAPL
+      - AMZN
+      - GOOGL
       - V
       - AVGO
       - MA
@@ -61,31 +61,29 @@ strategies:
       exit_day_of_new_month: 3
       position_fraction: 1.0
     universe:
-      - META      # PF 1.89
-      - NFLX      # PF 1.79
-      - COST      # PF 1.66
-      - TSLA      # PF 1.53
-      - ORCL      # PF 1.52
-      - LLY       # PF 1.51
-      - AVGO      # PF 1.45
-      - V         # PF 1.44
-      - AAPL      # PF 1.40
-      - WMT       # PF 1.40
-      - MA        # PF 1.37
-      - HD        # PF 1.36
-      - ADBE      # PF 1.31
-      - NVDA      # PF 1.29
-      - AMZN      # PF 1.29
-      - UNH       # PF 1.28
-      - MSFT      # PF 1.23
+      - META
+      - NFLX
+      - COST
+      - TSLA
+      - ORCL
+      - LLY
+      - AVGO
+      - V
+      - AAPL
+      - WMT
+      - MA
+      - HD
+      - ADBE
+      - NVDA
+      - AMZN
+      - UNH
+      - MSFT
     watchlist: []
     fee_model: us_stocks_usd_account
 
 notes:
-  - "Paper trading mode -- position_fraction=1.0 pour chaque trade"
-  - "Capital $5k -- chaque trade utilise 100% du capital (pas de compounding)"
-  - "Univers = VALIDATED assets uniquement (VALIDATION_RESULTS.md)"
-  - "Watchlist = CONDITIONAL assets"
-  - "max_positions=1 par strategie (evite sur-allocation TOM)"
-  - "Univers tries par PF desc -- priorite au meilleur asset"
-  - "Necessite compte USD sur Saxo (FX 0.25%/trade tue l'edge)"
+  - "Les trois listes sont des listes autorisees, pas des validations actuelles."
+  - "Une position Signal Radar et un portefeuille papier de 5000 USD au total."
+  - "Le classement vient du rendement mensuel prudent net de couts, pas de l'ordre YAML."
+  - "Le scanner bloque les achats sans confirmation du compte, couts verifies et validation actuelle."
+  - "Le montant et le nombre d'actions affiches sont indicatifs avant l'ouverture."

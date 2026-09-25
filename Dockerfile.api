@@ -28,7 +28,7 @@ COPY strategies/ strategies/
 COPY config/ config/
 COPY validation/ validation/
 COPY cli/ cli/
-COPY scripts/daily_scanner.py scripts/monthly_refresh.py scripts/
+COPY scripts/daily_scanner.py scripts/safe_scanner.py scripts/validate_v2.py scripts/monthly_refresh.py scripts/
 
 # Directories for scanner runtime
 RUN mkdir -p data logs

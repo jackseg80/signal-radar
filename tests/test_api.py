@@ -16,6 +16,7 @@ from data.db import SignalRadarDB
 def db(tmp_path):
     """Fresh test DB with sample data."""
     test_db = SignalRadarDB(str(tmp_path / "test.db"))
+    scan_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # Sample paper positions (open)
     test_db.open_paper_position("rsi2", "NVDA", "2026-03-01", 128.50, 38.0)
@@ -27,14 +28,14 @@ def db(tmp_path):
 
     # Sample signal log (single scanner run) -- with details_json for proximity
     test_db.log_signal(
-        "2026-03-05 22:15:03", "rsi2", "META", "NO_SIGNAL", 612.30, 42.1, "",
+        scan_ts, "rsi2", "META", "NO_SIGNAL", 612.30, 42.1, "",
         details_json=json.dumps({
             "rsi2": 42.1, "close": 612.3, "sma200": 580.0,
             "sma5": 610.0, "sma200_buffered": 585.8, "trend_ok": True,
         }),
     )
     test_db.log_signal(
-        "2026-03-05 22:15:03", "rsi2", "V", "BUY", 280.20, 7.8,
+        scan_ts, "rsi2", "V", "BUY", 280.20, 7.8,
         "RSI(2)=7.8 < 10",
         details_json=json.dumps({
             "rsi2": 7.8, "close": 280.2, "sma200": 270.0,
@@ -42,21 +43,21 @@ def db(tmp_path):
         }),
     )
     test_db.log_signal(
-        "2026-03-05 22:15:03", "rsi2", "NVDA", "HOLD", 131.40, 25.1, "",
+        scan_ts, "rsi2", "NVDA", "HOLD", 131.40, 25.1, "",
         details_json=json.dumps({
             "rsi2": 25.1, "close": 131.4, "sma200": 125.0,
             "sma5": 130.0, "sma200_buffered": 126.25, "trend_ok": True,
         }),
     )
     test_db.log_signal(
-        "2026-03-05 22:15:03", "ibs", "META", "HOLD", 612.30, 0.65, "",
+        scan_ts, "ibs", "META", "HOLD", 612.30, 0.65, "",
         details_json=json.dumps({
             "ibs": 0.65, "close": 612.3, "high": 615.0,
             "high_yesterday": 613.0, "sma200": 580.0, "trend_ok": True,
         }),
     )
     test_db.log_signal(
-        "2026-03-05 22:15:03", "ibs", "NVDA", "BUY", 131.40, 0.12,
+        scan_ts, "ibs", "NVDA", "BUY", 131.40, 0.12,
         "IBS=0.12 < 0.2",
         details_json=json.dumps({
             "ibs": 0.12, "close": 131.4, "high": 133.0,
@@ -64,7 +65,7 @@ def db(tmp_path):
         }),
     )
     test_db.log_signal(
-        "2026-03-05 22:15:03", "tom", "META", "BUY", 612.30, 5.0, "5 days left",
+        scan_ts, "tom", "META", "BUY", 612.30, 5.0, "5 days left",
         details_json=json.dumps({
             "close": 612.3, "trading_days_left": 5,
             "trading_day_of_month": 17, "entry_days_before_eom": 5,
@@ -107,10 +108,11 @@ class TestSignals:
         assert "scanner_timestamp" in data
         assert "strategies" in data
         assert "rsi2" in data["strategies"]
-        # V should have BUY signal
+        # Legacy signals have no account/session controls and must fail closed.
         rsi2_signals = data["strategies"]["rsi2"]["signals"]
         v_signal = next(s for s in rsi2_signals if s["symbol"] == "V")
-        assert v_signal["signal"] == "BUY"
+        assert v_signal["signal"] == "SKIP"
+        assert v_signal["technical_signal"] == "BUY"
 
     def test_today_signals_filter_strategy(self, client):
         """Filter by strategy."""
@@ -132,7 +134,8 @@ class TestSignals:
         r = client.get("/api/signals/history?signal_type=BUY")
         assert r.status_code == 200
         for sig in r.json()["signals"]:
-            assert sig["signal"] == "BUY"
+            assert sig["signal"] == "SKIP"
+            assert sig["technical_signal"] == "BUY"
 
 
 class TestPositions:
@@ -141,26 +144,25 @@ class TestPositions:
         r = client.get("/api/positions/open")
         assert r.status_code == 200
         data = r.json()
-        assert len(data["positions"]) == 2
-        # NVDA position should have current_price from signal_log
-        nvda = next(p for p in data["positions"] if p["symbol"] == "NVDA")
-        assert nvda["entry_price"] == 128.50
-        assert "unrealized_pnl" in nvda
+        assert data["series"] == "next_open_v2"
+        assert data["positions"] == []
+        archive = client.get("/api/positions/legacy").json()
+        assert len(archive["open"]) == 2
+        assert archive["read_only"] is True
 
     def test_open_positions_filter(self, client):
         """Filter by strategy."""
         r = client.get("/api/positions/open?strategy=rsi2")
         assert r.status_code == 200
-        assert len(r.json()["positions"]) == 1
+        assert r.json()["positions"] == []
 
     def test_closed_trades(self, client):
         """GET /api/positions/closed returns trades with P&L."""
         r = client.get("/api/positions/closed")
         assert r.status_code == 200
         data = r.json()
-        assert len(data["trades"]) == 1
-        assert data["trades"][0]["symbol"] == "MSFT"
-        assert data["trades"][0]["pnl_dollars"] == pytest.approx(92.40, abs=0.1)
+        assert data["trades"] == []
+        assert len(client.get("/api/positions/legacy").json()["closed"]) == 1
 
 
 class TestPerformance:
@@ -172,8 +174,9 @@ class TestPerformance:
         assert "paper" in data
         assert "live" in data
         # Check some field inside paper
-        assert data["paper"]["n_trades"] == 1
-        assert data["paper"]["n_open"] == 2
+        assert data["paper"]["n_trades"] == 0
+        assert data["paper"]["n_open"] == 0
+        assert data["legacy_paper"]["n_trades"] == 1
 
     def test_equity_curve(self, client):
         """GET /api/performance/equity-curve returns cumulative P&L."""
@@ -181,7 +184,7 @@ class TestPerformance:
         assert r.status_code == 200
         data = r.json()
         assert "data_points" in data
-        assert len(data["data_points"]) >= 1
+        assert data["data_points"] == []
 
     def test_validations_all(self, client):
         """GET /api/performance/validations/all returns validations."""
@@ -439,7 +442,8 @@ class TestJournal:
         assert data["total"] >= 3
         assert "entries" in data
         assert "stats" in data
-        assert data["stats"]["total_trades"] >= 3
+        assert data["stats"]["total_trades"] == 0
+        assert data["legacy_stats"]["total_trades"] == 3
 
     def test_journal_entries_with_trades(self, client):
         """Journal merges paper + live trades."""
@@ -450,21 +454,19 @@ class TestJournal:
         # Should have paper entries (from db fixture: 2 open + 1 closed)
         assert data["total"] >= 3
         sources = {e["source"] for e in data["entries"]}
-        assert "paper" in sources
+        assert "legacy_paper" in sources
 
     def test_patch_paper_notes(self, client):
-        """PATCH /api/journal/paper/{id}/notes updates notes."""
+        """Legacy paper rows cannot be changed through the new paper API."""
         r = client.patch("/api/journal/paper/1/notes", params={"notes": "Test note"})
-        assert r.status_code == 200
-        assert r.json()["status"] == "updated"
-        # Verify note was saved
+        assert r.status_code == 404
         r2 = client.get("/api/journal/entries")
         paper_1 = next(
-            (e for e in r2.json()["entries"] if e["source"] == "paper" and e["id"] == 1),
+            (e for e in r2.json()["entries"] if e["source"] == "legacy_paper" and e["id"] == 1),
             None,
         )
         assert paper_1 is not None
-        assert paper_1["notes"] == "Test note"
+        assert paper_1["notes"] == ""
 
     def test_patch_paper_notes_nonexistent(self, client):
         """PATCH on nonexistent paper position returns 404."""

@@ -35,6 +35,13 @@ FEE_MODELS: dict[str, FeeModel] = {
 router = APIRouter()
 
 
+@router.get("/next-open")
+def get_next_open_validations(db: SignalRadarDB = Depends(get_db)) -> dict:
+    """Latest observation-model validations, separated from legacy studies."""
+    records = db.get_latest_v2_scores()
+    return {"model": "next_open_v2", "records": records, "total": len(records)}
+
+
 @router.get("/screens")
 def get_screens(
     strategy: str | None = None,
@@ -49,6 +56,8 @@ def get_screens(
     return {
         "results": results,
         "total": len(results),
+        "model": "ancien modèle",
+        "usable_for_buy": False,
     }
 
 
@@ -66,6 +75,8 @@ def get_validations(
     return {
         "results": results,
         "total": len(results),
+        "model": "ancien modèle",
+        "usable_for_buy": False,
     }
 
 

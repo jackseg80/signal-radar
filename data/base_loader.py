@@ -47,9 +47,9 @@ def to_cache_arrays(df: pd.DataFrame) -> dict[str, "np.ndarray"]:
     import numpy as np
 
     return {
-        "opens": np.asarray(df["Open"].values, dtype=np.float64),
-        "highs": np.asarray(df["High"].values, dtype=np.float64),
-        "lows": np.asarray(df["Low"].values, dtype=np.float64),
+        "opens": np.asarray(df["Adj_Open" if "Adj_Open" in df else "Open"].values, dtype=np.float64),
+        "highs": np.asarray(df["Adj_High" if "Adj_High" in df else "High"].values, dtype=np.float64),
+        "lows": np.asarray(df["Adj_Low" if "Adj_Low" in df else "Low"].values, dtype=np.float64),
         "closes": np.asarray(df["Adj_Close"].values, dtype=np.float64),
         "volumes": np.asarray(df["Volume"].values, dtype=np.float64),
     }

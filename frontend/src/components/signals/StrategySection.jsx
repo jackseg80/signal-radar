@@ -10,14 +10,14 @@ export default function StrategySection({ strategyKey, strategyData, onSymbolCli
   // Sort signals
   const allSignals = sortSignals(strategyData.signals);
   
-  // Calculate how many signals are neutral/non-actionable
-  const neutralSignals = allSignals.filter(sig => sig.signal === 'NO_SIGNAL' || sig.signal === 'PENDING_EXPIRED');
+  // A paper position can be active even when the real-account signal is neutral.
+  const isNeutral = (sig) =>
+    (sig.signal === 'NO_SIGNAL' || sig.signal === 'PENDING_EXPIRED') &&
+    !['BUY', 'SELL', 'SAFETY_EXIT', 'HOLD'].includes(sig.paper_signal);
+  const neutralSignals = allSignals.filter(isNeutral);
   const neutralCount = neutralSignals.length;
 
-  // Filter signals for display
-  const filteredSignals = showAll 
-    ? allSignals 
-    : allSignals.filter(sig => sig.signal !== 'NO_SIGNAL' && sig.signal !== 'PENDING_EXPIRED');
+  const filteredSignals = showAll ? allSignals : allSignals.filter(sig => !isNeutral(sig));
 
   return (
     <div className="mb-8">
@@ -65,6 +65,18 @@ export default function StrategySection({ strategyKey, strategyData, onSymbolCli
               close_price={sig.close_price}
               indicator_value={sig.indicator_value}
               notes={sig.notes}
+              technical_signal={sig.technical_signal}
+              eligibility={sig.eligibility}
+              source_session={sig.source_session}
+              target_session={sig.target_session}
+              max_budget_usd={sig.max_budget_usd}
+              indicative_shares={sig.indicative_shares}
+              paper_signal={sig.paper_signal}
+              paper_status={sig.paper_status}
+              paper_reasons={sig.paper_reasons}
+              paper_warnings={sig.paper_warnings}
+              paper_budget_usd={sig.paper_budget_usd}
+              paper_indicative_shares={sig.paper_indicative_shares}
               onClick={() => onSymbolClick && onSymbolClick(sig.symbol)}
             />
           ))}

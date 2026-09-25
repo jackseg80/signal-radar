@@ -1,0 +1,17 @@
+# Public Saxo Switzerland indications, not reconciled to executed trades.
+# https://www.home.saxo/en-ch/products/stocks
+# https://www.estv.admin.ch/de/umsatzabgabe-kurz-erklaert
+verified_from_statements: false
+verified_at: null
+# Count itemised executed trade sides only; do not count estimated closing costs.
+statement_count: 0
+commission_min_usd: 1.0
+commission_rate: 0.0008
+# Provisional customer-side half of the public 0.30% foreign-security duty; confirm from executed USD statements.
+# Commission and regulatory fee breakdown still requires an itemised trade report.
+foreign_stamp_duty_each_side: 0.0015
+spread_rate: 0.0005
+execution_slippage_rate: 0.0
+fx_conversion_rate: 0.0
+# Provisional regulatory sell-side estimate; not verified against executed USD-account statements.
+regulatory_exit_rate: 0.0000206

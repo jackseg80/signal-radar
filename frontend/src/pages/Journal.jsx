@@ -69,9 +69,9 @@ export default function Journal() {
       </div>
 
       {/* Analytics Charts */}
-      {filteredEntries.length > 0 && (
+      {filteredEntries.some((entry) => entry.source !== 'legacy_paper') && (
         <div className="animate-slide-up" style={{ animationDelay: '20ms' }}>
-          <JournalCharts entries={filteredEntries} />
+          <JournalCharts entries={filteredEntries.filter((entry) => entry.source !== 'legacy_paper')} />
         </div>
       )}
 

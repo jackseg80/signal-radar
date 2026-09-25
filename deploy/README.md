@@ -1,117 +1,44 @@
-# Deploiement signal-radar
+# Déploiement et exploitation de Signal Radar 4.0
 
-Scanner multi-strategie (RSI2 + IBS + TOM) avec notifications Telegram + dashboard web, conteneurise avec Docker.
+## Production existante
 
-## Pre-requis
+La version 4.0 est active en observation. Avant toute mise à jour d'un serveur existant, sauvegarder la base SQLite, vérifier l'espace disque et la possibilité de retour arrière, puis tester la version candidate sur une copie isolée. Ne pas appliquer directement les instructions de première installation à une instance en service.
 
-- Docker + Docker Compose sur le serveur (Ubuntu 22.04+)
-- Bot Telegram cree via @BotFather (optionnel)
+Le script deploy/deploy.sh n'est pas adapté à une mise à jour prudente : il exécute git reset --hard origin/master, arrête le projet compose, supprime les conteneurs orphelins et lance docker image prune -f. Ne le lancez pas sur un serveur existant sans l'avoir modifié et revu pour cet environnement.
 
-## Creer le bot Telegram
+## Première installation ou environnement de test isolé
 
-1. Ouvre Telegram, cherche **@BotFather**
-2. `/newbot` -> nom: "Signal Radar" -> username: `signal_radar_xxx_bot`
-3. Copie le token (format: `123456:ABC-DEF...`)
-4. Envoie un message au bot (n'importe quoi)
-5. Visite `https://api.telegram.org/bot<TOKEN>/getUpdates`
-6. Copie le `chat_id` depuis la reponse JSON (`result[0].message.chat.id`)
+Prérequis : Docker Compose, un clone propre du dépôt et un fichier .env local. Les variables Telegram sont optionnelles.
 
-## Deploiement
-
-```bash
-# 1. Clone le repo sur le serveur
-git clone <repo-url> ~/signal-radar
-cd ~/signal-radar
-
-# 2. Configurer l'environnement
+~~~bash
 cp .env.example .env
-nano .env  # remplir TELEGRAM_BOT_TOKEN et TELEGRAM_CHAT_ID
-
-# 3. Deployer (build images Docker + start)
-bash deploy/deploy.sh
-```
-
-## Dashboard
-
-Apres deploiement, le dashboard est accessible sur le LAN :
-
-```bash
-# Depuis le reseau local
-http://<server-ip>:9000
-
-# API docs (Swagger auto-genere)
-http://<server-ip>:9000/docs
-
-# Health check
-curl http://<server-ip>:9000/api/health
-```
-
-Le dashboard est read-only et affiche :
-
-- Signaux du jour (RSI2, IBS, TOM)
-- Positions paper trading ouvertes/fermees
-- Performance et equity curve
-- Market overview multi-strategie
-- Resultats backtest et validations
-
-Les donnees sont mises a jour par le scanner a 22h15.
-
-## Test
-
-```bash
-# Executer le scanner manuellement (sans attendre 22h15)
-docker compose exec scanner python scripts/daily_scanner.py
-
-# Tester l'API
+docker compose up -d --build
 curl http://localhost:9000/api/health
+~~~
 
-# Tester l'envoi Telegram
-docker compose exec scanner python -c "
-from engine.notifier import send_telegram
-send_telegram('Test Signal Radar')
-"
-```
+Le tableau de bord écoute sur le port 9000. Conserver .env, les bases, les relevés Saxo et les sauvegardes hors du dépôt.
 
-## Monitoring
+## Contrôles opérationnels
 
-```bash
-# Logs en temps reel
-docker compose logs -f
-
-# Logs d'un service
-docker compose logs -f scanner
-docker compose logs -f api
-
-# Etat des services
+~~~bash
 docker compose ps
-
-# Signaux du jour via API
+docker compose logs --tail 100 scanner
+docker compose logs --tail 100 api
 curl http://localhost:9000/api/signals/today
-```
+~~~
 
-## Mise a jour
+Le calendrier XNYS détermine la séance source et l'ouverture cible. Yahoo est la source quotidienne principale. Nasdaq ne répare qu'une séance historique isolée si les clôtures adjacentes, l'ajustement et l'OHLC concordent. Les bougies finales manquantes et les conflits restent bloquants.
 
-```bash
-cd ~/signal-radar
-bash deploy/deploy.sh
-# Le script fait: git pull -> docker compose build (npm build inclus) -> restart -> verification
-```
+Pour recalculer la validation des titres actuellement configurés :
 
-## Depannage
+~~~bash
+docker compose exec scanner python scripts/validate_v2.py --scope production
+~~~
 
-**Le scanner ne tourne pas a 22h15 :**
+L'option --scope universe est un screening exploratoire et ne modifie pas la liste de production. Vérifier le rapport, les coûts et le statut d'observation avant toute décision. La confirmation Saxo est manuelle ; aucune route ne transmet d'ordre à un courtier.
 
-- Verifier le timezone : `docker compose exec scanner date`
-- Verifier le cron : `docker compose exec scanner crontab -l`
+## Sauvegarde et retour arrière
 
-**Telegram n'envoie pas :**
+Faire une sauvegarde cohérente SQLite et la copier hors du serveur avant une migration. Vérifier PRAGMA integrity_check sur la sauvegarde. Conserver les images Docker précédentes et documenter le retour arrière avant de recréer des conteneurs. Les nouveaux événements peuvent ne pas exister dans une ancienne sauvegarde : exporter les données produites après celle-ci avant toute restauration.
 
-- Verifier les variables : `docker compose exec scanner env | grep TELEGRAM`
-- Le scanner fonctionne sans Telegram (mode silencieux)
-
-**Le dashboard ne repond pas :**
-
-- Verifier le service : `docker compose ps api`
-- Logs API : `docker compose logs api --tail 20`
-- Au premier deploiement, lancer le scanner une fois pour creer la DB :
-  `docker compose exec scanner python scripts/daily_scanner.py`
+Ne jamais supprimer globalement les images, données ou dossiers avant d'avoir confirmé leur usage et le chemin exact.

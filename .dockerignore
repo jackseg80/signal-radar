@@ -6,6 +6,9 @@ __pycache__/
 *.pyc
 *.egg-info/
 data/cache/
+data/*.db
+data/*.db-*
+data/*.bak
 *.parquet
 logs/
 .env

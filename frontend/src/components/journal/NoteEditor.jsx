@@ -9,7 +9,7 @@ const SENTIMENTS = [
 
 const PRESET_TAGS = ['#FOMO', '#Discipline', '#Fatigue', '#PlanRespecté', '#News', '#Slippage'];
 
-export default function NoteEditor({ notes, tags, sentiment, source, id, onSaved }) {
+export default function NoteEditor({ notes, tags, sentiment, source, id, onSaved, readOnly = false }) {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
     notes: notes || '',
@@ -83,12 +83,12 @@ export default function NoteEditor({ notes, tags, sentiment, source, id, onSaved
             )}
           </div>
           
-          <button
+          {!readOnly && <button
             onClick={() => setEditing(true)}
             className="text-[10px] font-bold uppercase tracking-widest text-[--text-muted] hover:text-green-400 transition-colors cursor-pointer shrink-0 py-1"
           >
             {notes ? 'Modifier' : 'Ajouter Note'}
-          </button>
+          </button>}
         </div>
       </div>
     );

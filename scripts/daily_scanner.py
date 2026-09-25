@@ -940,8 +940,8 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
-    """Run the multi-strategy daily signal scanner with paper trading."""
+def _legacy_main() -> None:
+    """Historical scanner retained for audit; never used by the CLI."""
     args = _parse_args()
     _configure_logging()
 
@@ -1227,6 +1227,23 @@ def main() -> None:
         len(all_results),
         sum(len(v) for v in all_results.values()),
     )
+
+
+def main() -> None:
+    """Run the session-safe scanner without modifying legacy paper trades."""
+    args = _parse_args()
+    if args.reset_paper is not None:
+        raise SystemExit("Legacy paper positions are read-only in scanner v2")
+    _configure_logging()
+    from scripts.safe_scanner import run_safe_scanner
+
+    result = run_safe_scanner()
+    eligible = [row for row in result["decisions"] if row["eligibility"] == "ELIGIBLE"]
+    print(f"Source: {result['source_session']} | next open: {result['target_session']}")
+    print("Buy possible: " + (", ".join(row["symbol"] for row in eligible) or "none"))
+    if result["errors"]:
+        for symbol, error in sorted(result["errors"].items()):
+            print(f"MISSING DATA {symbol}: {error}")
 
 
 if __name__ == "__main__":

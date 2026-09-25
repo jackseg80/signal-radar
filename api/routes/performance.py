@@ -14,11 +14,12 @@ def get_performance_summary(
     db: SignalRadarDB = Depends(get_db),
 ) -> dict:
     """Consolidated performance KPIs (Paper vs Live)."""
-    paper = db.get_paper_summary()
+    paper = db.get_v2_paper_summary()
     live = db.get_live_summary()
     
     return {
         "paper": paper,
+        "legacy_paper": {**db.get_paper_summary(), "series": "ancien modèle"},
         "live": live,
     }
 
@@ -29,12 +30,17 @@ def get_equity_curve(
 ) -> dict:
     """Cumulative PnL timeline for the global portfolio (Paper only for now)."""
     # Fix: Use get_closed_trades instead of non-existent get_closed_paper_positions
-    closed = db.get_closed_trades(limit=1000)
-    if not closed:
+    closed = db.get_v2_closed_trades(limit=1000)
+    dividends = db.get_confirmed_dividend_payments()
+    if not closed and not dividends:
         return {"data_points": []}
         
     # Sort by exit_date
-    sorted_trades = sorted(closed, key=lambda x: x["exit_date"])
+    events = ([{"date": trade["exit_session"], "pnl": trade["pnl_dollars"] or 0.0,
+                "symbol": trade["symbol"]} for trade in closed]
+              + [{"date": payment["pay_session"], "pnl": payment["net_amount_usd"],
+                  "symbol": payment["symbol"] + " dividend"} for payment in dividends])
+    events.sort(key=lambda item: item["date"])
     
     curve = []
     # Dynamic capital from production_params.yaml
@@ -43,19 +49,19 @@ def get_equity_curve(
     current_equity = initial_capital
     
     # Add initial point
-    if sorted_trades:
+    if events:
         curve.append({
-            "date": sorted_trades[0]["entry_date"],
+            "date": events[0]["date"],
             "equity": current_equity,
             "pnl": 0.0,
             "symbol": "START"
         })
 
-    for t in sorted_trades:
-        pnl = (t["pnl_dollars"] or 0.0)
+    for t in events:
+        pnl = t["pnl"]
         current_equity += pnl
         curve.append({
-            "date": t["exit_date"],
+            "date": t["date"],
             "equity": round(current_equity, 2),
             "pnl": round(pnl, 2),
             "symbol": t["symbol"],
@@ -68,4 +74,5 @@ def get_all_validations(
     db: SignalRadarDB = Depends(get_db),
 ) -> list[dict]:
     """All strategy validations (best version per asset/strategy)."""
-    return db.get_validations_filtered(verdict="VALIDATED")
+    return [row for row in db.get_latest_v2_scores()
+            if row["verdict"] == "VALIDATED" and row["calibrated"]]

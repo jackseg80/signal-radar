@@ -1,112 +1,80 @@
-# signal-radar
+# Signal Radar 4.0.0
 
-A comprehensive quantitative trading platform for US stocks and ETFs, specializing in Mean Reversion and Seasonal strategies. It provides a modular backtesting framework, an automated daily scanner, and a web dashboard for performance tracking.
+Signal Radar is a research and decision-support application for daily US stock signals. It scans RSI(2), IBS and Turn of the Month setups, evaluates their data and portfolio constraints, and prepares candidates for manual review. It does not connect to Saxo and never transmits brokerage orders.
 
-## Key Features
+## What changed in 4.0
 
-- **Multi-Strategy Scanner**: Automated daily scanning for RSI(2), IBS, and Turn-of-the-Month signals.
-- **Modular Framework**: Generic simulation engine with realistic fee models, gap-aware execution, and slippage.
-- **Validation Pipeline**: Automated robustness testing (48 parameter combinations), sub-period stability analysis, and statistical significance (T-tests).
-- **Web Dashboard**: Modern React interface (Vite + Tailwind v4) to visualize signals, equity curves, and proximity alerts.
-- **Granular Asset Analysis**: Deep-dive into individual asset performance with synchronized equity/drawdown curves and trade-by-trade OOS analysis (2014-2025).
-- **Interactive Strategies**: Educational "Playground" to visualize and understand the mechanics of each trading strategy (IBS, RSI2, TOM).
-- **Unified SQLite DB**: Single source of truth for OHLCV data, backtest results, and trade logs.
-- **Telegram Notifications**: Instant alerts for entry/exit signals and weekly performance summaries.
+- Signals are evaluated after the XNYS close for a possible next-session opening.
+- The dashboard distinguishes a technical trigger, a real-account candidate, the shared paper portfolio and an independent virtual follow-up for each positive-score signal.
+- The USD 5,000 shared paper portfolio is independent of Saxo. Opened, ignored or forgotten Saxo positions do not alter its trades. The virtual follow-up is also separate and uses a notional USD 5,000 per qualifying signal.
+- Daily session checks use the XNYS calendar. Yahoo remains the main daily-price source; Nasdaq can fill an isolated, internally missing historical session after strict OHLC, neighboring-close and adjustment checks. Unresolved or conflicting prices fail closed.
+- The dashboard records account confirmations, source and target sessions, eligibility reasons, price repairs and observation notes.
 
-## Strategies
+## Current operating status
 
-1. **RSI(2) Mean Reversion**: Exploits short-term oversold conditions (Connors).
-2. **IBS (Internal Bar Strength)**: Mean reversion based on daily range positioning.
-3. **Turn of the Month (TOM)**: Exploits seasonal calendar biases in US indices and large caps.
-4. **Donchian Trend**: Trend-following framework (validated for Forex).
+As of 25 September 2026, the application is deployed for observation. The seven missing 22 September bars for COST, GE, HD, LLY, MA, UNH and V were verified from Nasdaq and recorded with their provenance. The latest production scan found no missing data among the configured titles.
 
-### Validated Universe (OOS 2014-2025)
+The production validation currently covers 37 symbol/strategy pairs with no price-data errors. It has not established a pair as eligible for real-buy recommendations: Saxo costs remain provisional and current validation gates still apply. The 20-session observation is not complete. A repaired data series alone does not authorize an order.
 
-| Strategy | Typical Assets | WR | PF | Status |
-|----------|----------------|----|----|--------|
-| **RSI(2)** | META, MSFT, NVDA, GOOGL | 70%+ | 1.6+ | **VALIDATED** |
-| **IBS** | AAPL, MSFT, QQQ | 68%+ | 1.5+ | **VALIDATED** |
-| **TOM** | SPY, QQQ, META, AAPL | 60%+ | 1.4+ | **VALIDATED** |
+## Strategies and execution assumptions
 
-> **Requirement**: USD sub-account on Saxo/Interactive Brokers is mandatory. FX conversion fees (0.25%/trade) will destroy the edge of these short-term strategies.
+- RSI(2) mean reversion
+- IBS mean reversion
+- Turn of the Month (TOM)
 
-## Quick Start
+The scanner forms signals after the close and targets the next session's open. Backtests and paper fills use executable prices and account for gaps; an opening price is not guaranteed for a market order. Adjusted prices are reserved for indicators, with split and dividend handling kept distinct from execution prices.
 
-```bash
-# Install dependencies
+Historical strategy results are research evidence, not current purchase recommendations. Fees and slippage must be calibrated against executed Saxo USD statements before net performance is treated as verified. Do not use prior validation tables as a substitute for the current production validation report.
+
+## Run locally
+
+Python 3.12+ and Node.js are required.
+
+~~~bash
 pip install -e ".[dev,api,analysis]"
+pytest tests/ -q
 
-# Run unit tests (449 tests)
-pytest tests/ -v
-
-# Start local development API
+# Dashboard API
 uvicorn api.app:app --reload
 
-# Start Frontend (in a separate terminal)
-cd frontend && npm run dev
-```
+# Frontend, in a second terminal
+cd frontend
+npm install
+npm run dev
+~~~
 
-## Production (Docker)
+The API is available at http://127.0.0.1:8000; the Vite development server prints its local address.
 
-The production stack includes the automated scanner (cron) and the dashboard API.
+## Docker
 
-```bash
-cp .env.example .env          # Fill TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, etc.
-docker compose up -d          # Dashboard available at http://localhost:9000
-```
+~~~bash
+cp .env.example .env
+docker compose up -d --build
+~~~
 
-## Automated Maintenance
+The dashboard is served on port 9000. See deploy/README.md before touching an existing server. The legacy deployment script force-resets its checkout, stops the compose project, removes orphans and prunes Docker images; it must not be used as a routine update on a server with other workloads.
 
-The system is designed to run autonomously via cron jobs (configured in the Docker environment):
+## Documentation
 
-- **Daily Scanner (`scripts/daily_scanner.py`)**: Runs every weekday at 22:15 CET. It evaluates all strategies, logs paper trades, and sends signals to Telegram.
-- **Monthly Refresh (`scripts/monthly_refresh.py`)**: Runs on the 1st of each month. It re-runs all backtests (screens and validations) to ensure strategy performance remains consistent with new data.
+- Next-open model, data controls and rollback guidance: docs/NEXT_OPEN_V2.md
+- Roadmap and current project status: docs/ROADMAP.md
+- 4.0.0 release notes: docs/RELEASE_NOTES.md
+- Deployment guide and safety limits: deploy/README.md
 
-## Workflow
+## Project structure
 
-1. **Daily Scan**: Automated at 22:15 CET (after US close). Signals are sent to Telegram and stored in the DB.
-2. **Execution**: Review "Approaching Triggers" in the dashboard. If a BUY triggers, execute manually at the next market open.
-3. **Logging**: Use the Dashboard to "Log Real Trade" from a paper position.
-4. **Journaling**: Add notes and track slippage (Paper vs Live) in the unified Trade Journal.
+~~~text
+api/               FastAPI dashboard and account/observation endpoints
+config/            Strategy settings, fee assumptions and verified price repairs
+data/              SQLite persistence, Yahoo loader and Nasdaq fallback
+engine/            Indicators, calendar, ranking, fees and simulation
+frontend/          React dashboard
+scripts/           Daily scanner and validation tools
+strategies/        RSI(2), IBS and TOM rules
+validation/        Next-open and statistical validation
+tests/             Regression and gap-aware tests
+~~~
 
-## Engineering & Validation Rigor
+## Environment
 
-This project goes beyond simple backtesting by implementing professional-grade quantitative validation tools:
-
-- **Statistical Integrity**: Uses **Monte Carlo Block Bootstrap** and **Deflated Sharpe Ratio (DSR)** (via `optimization/overfit_detection.py`) to distinguish between true strategy edge and "backtest overfitting" (luck).
-- **Walk-Forward Optimization**: Implements rolling window optimizations (`optimization/walk_forward.py`) to ensure strategies remain robust across different market regimes.
-- **Execution Forensic**: Systematic auditing of execution biases. For instance, `scripts/compare_ibs_exit_timing.py` empirically proves that the IBS strategy remains conservative (and even more profitable) when using next-day open prices instead of same-day close.
-- **Modern Tech Stack**: Built on **NumPy 2.0+** for vectorized performance and deployed using **uv** for ultra-fast, reproducible builds.
-- **Unified State Management**: Fully migrated from legacy JSON/Parquet files to a robust **SQLite** architecture (`data/db.py`) ensuring ACID compliance for trade journals and paper trading logs.
-
-## Project Structure
-
-```text
-api/               — FastAPI Dashboard API & Signal routes
-frontend/          — React Dashboard (Vite + Tailwind v4 + Recharts)
-strategies/        — Pluggable strategy logic (BaseStrategy)
-engine/            — Simulation engine (simulator.py), fee models, and indicators
-validation/        — Robustness & Statistical validation pipeline
-cli/               — Command-line tools for validation and screening
-data/              — SQLite DB manager (db.py) and Yahoo Finance loader
-scripts/           — Production scanner and maintenance scripts
-config/            — Asset universes (YAML) and production parameters
-```
-
-## Phase History
-
-| Phase | Description | Status |
-|-------|-------------|--------|
-| Phase 1-3 | Backtest Engine, Modular Framework & Validation Pipeline | **COMPLETE** |
-| Phase 4 | SQLite Migration & Multi-Strategy Scanner | **COMPLETE** |
-| Phase 5 | Web Dashboard & Trade Journal | **COMPLETE** |
-| Phase 6 | Advanced Forensic, OOS Analysis & Automated Refresh | **EN COURS** |
-| Phase 7 | Scale up capital + Expand Universe | **PLANIFIÉ** |
-
-## Environment Variables
-
-```env
-TELEGRAM_BOT_TOKEN=...
-TELEGRAM_CHAT_ID=...
-TZ=Europe/Zurich
-```
+TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are optional. TZ defaults to Europe/Zurich. Keep .env, database files, broker statements and server backups out of version control.

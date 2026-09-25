@@ -206,10 +206,23 @@ def build_cache(
         for month_period in periods.unique():
             mask = periods == month_period
             idx_in_month = np.where(mask)[0]
-            n_in_month = len(idx_in_month)
-            for rank, idx in enumerate(idx_in_month):
-                tdom[idx] = rank + 1         # 1er, 2ème... jour de trading du mois
-                tdlm[idx] = n_in_month - rank  # jours restants (inclus)
+            from engine.trading_calendar import XNYS
+
+            first = month_period.start_time
+            last = month_period.end_time.normalize()
+            sessions = XNYS.sessions_in_range(first, last)
+            # Synthetic test data may contain exchange holidays. Keep the
+            # historical fallback for those data; production bars are strict.
+            month_dates = ts[idx_in_month].normalize()
+            if all(XNYS.is_session(day) for day in month_dates):
+                for idx, day in zip(idx_in_month, month_dates):
+                    rank = int(sessions.get_loc(day)) + 1
+                    tdom[idx] = rank
+                    tdlm[idx] = len(sessions) - rank + 1
+            else:
+                for rank, idx in enumerate(idx_in_month):
+                    tdom[idx] = rank + 1
+                    tdlm[idx] = len(idx_in_month) - rank
 
         trading_day_of_month_arr = tdom
         trading_days_left_arr = tdlm

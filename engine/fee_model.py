@@ -7,6 +7,9 @@ commission fixe + variable, spread, conversion FX, taxe, overnight.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
+
+import yaml
 
 
 @dataclass
@@ -24,27 +27,40 @@ class FeeModel:
     fx_conversion_pct: float = 0.0       # Frais de change (ex: 0.25% si EUR→USD)
     tax_pct: float = 0.0                 # TTF/stamp duty (ex: 0.3% France)
     overnight_daily_pct: float = 0.0     # Funding CFD (0 si pas de leverage)
+    exit_tax_pct: float = 0.0            # Swiss stamp duty applies on sale too
+    regulatory_exit_pct: float = 0.0     # Optional US sell-side regulatory fees
+    execution_slippage_pct: float = 0.0  # Observed execution gap beyond opening reference
+    commission_is_minimum: bool = False  # Saxo quotes percent with a floor
+
+    def _commission(self, notional: float) -> float:
+        """Calculate fixed-plus-rate or rate-with-minimum commission."""
+        variable = notional * self.commission_pct
+        if self.commission_is_minimum:
+            return max(self.commission_per_trade, variable)
+        return self.commission_per_trade + variable
 
     def total_entry_cost(self, notional: float) -> float:
         """Coût total à l'entrée d'un trade."""
         return (
-            self.commission_per_trade
-            + notional * self.commission_pct
+            self._commission(notional)
             + notional * self.spread_pct / 2  # demi-spread à l'entrée
             + notional * self.fx_conversion_pct
             + notional * self.tax_pct
+            + notional * self.execution_slippage_pct
         )
 
     def total_exit_cost(self, notional: float) -> float:
         """Coût total à la sortie d'un trade.
 
-        Pas de tax à la sortie (TTF = achat seulement en France/UK).
+        Exit tax is configurable; Swiss stamp duty applies on both sides.
         """
         return (
-            self.commission_per_trade
-            + notional * self.commission_pct
+            self._commission(notional)
             + notional * self.spread_pct / 2  # demi-spread à la sortie
             + notional * self.fx_conversion_pct
+            + notional * self.exit_tax_pct
+            + notional * self.regulatory_exit_pct
+            + notional * self.execution_slippage_pct
         )
 
     def overnight_cost(self, notional: float, n_days: int) -> float:
@@ -73,6 +89,44 @@ FEE_MODEL_US_STOCKS_USD = FeeModel(
     tax_pct=0.0,
     overnight_daily_pct=0.0,
 )
+
+# Public Saxo Switzerland indicative schedule, pending account statement
+# calibration. US stock commission 0.08% with USD 1 minimum; Saxo's stamp
+# foreign-security duty is 0.30% in total; the customer-side half is 0.15%.
+# Sources: https://www.home.saxo/en-ch/products/stocks
+# https://www.estv.admin.ch/de/umsatzabgabe-kurz-erklaert
+FEE_MODEL_SAXO_CH_USD_PROVISIONAL = FeeModel(
+    name="saxo_ch_usd_provisional",
+    commission_per_trade=1.0,
+    commission_pct=0.0008,
+    commission_is_minimum=True,
+    spread_pct=0.0005,
+    tax_pct=0.0015,
+    exit_tax_pct=0.0015,
+    regulatory_exit_pct=0.0000206,
+)
+
+
+def load_saxo_ch_costs(
+    path: str | Path = "config/saxo_costs.yaml",
+) -> tuple[FeeModel, bool]:
+    """Load account-specific costs and whether statements verified them."""
+    with open(path, encoding="utf-8") as stream:
+        values = yaml.safe_load(stream)
+    model = FeeModel(
+        name="saxo_ch_usd_verified" if values["verified_from_statements"] else "saxo_ch_usd_provisional",
+        commission_per_trade=float(values["commission_min_usd"]),
+        commission_pct=float(values["commission_rate"]),
+        commission_is_minimum=True,
+        spread_pct=float(values["spread_rate"]),
+        fx_conversion_pct=float(values["fx_conversion_rate"]),
+        tax_pct=float(values["foreign_stamp_duty_each_side"]),
+        exit_tax_pct=float(values["foreign_stamp_duty_each_side"]),
+        regulatory_exit_pct=float(values["regulatory_exit_rate"]),
+        execution_slippage_pct=float(values["execution_slippage_rate"]),
+    )
+    verified = bool(values["verified_from_statements"]) and int(values["statement_count"]) >= 2
+    return model, verified
 
 FEE_MODEL_US_ETFS_USD = FeeModel(
     name="us_etfs_usd_account",

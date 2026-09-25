@@ -37,12 +37,67 @@ def get_today_signals(
             "close_price": s["close_price"],
             "indicator_value": s["indicator_value"],
             "notes": s["notes"],
+            "source_session": s.get("source_session"),
+            "target_session": s.get("target_session"),
+            "technical_signal": s.get("technical_signal"),
+            "eligibility": s.get("eligibility"),
+            "reasons": s.get("reasons", []),
+            "expires_at": s.get("expires_at"),
+            "max_budget_usd": s.get("max_budget_usd"),
+            "indicative_shares": s.get("indicative_shares"),
+            "score": s.get("score"),
+            "paper_signal": s.get("paper_signal"),
+            "paper_status": s.get("paper_status"),
+            "follow_signal": s.get("follow_signal"),
+            "follow_status": s.get("follow_status"),
+            "paper_reasons": s.get("paper_reasons", []),
+            "paper_warnings": s.get("paper_warnings", []),
+            "paper_budget_usd": s.get("paper_budget_usd"),
+            "paper_indicative_shares": s.get("paper_indicative_shares"),
         })
 
     return {
         "scanner_timestamp": ts,
+        "source_session": all_signals[0].get("source_session") if all_signals else None,
+        "target_session": all_signals[0].get("target_session") if all_signals else None,
+        "paper_universe_complete": not any(
+            signal.get("eligibility") == "DATA_MISSING" for signal in all_signals
+        ),
+        "paper_excluded_symbols": sorted({
+            signal["symbol"] for signal in all_signals
+            if signal.get("eligibility") == "DATA_MISSING"
+        }),
+        "verified_price_repairs": db.get_price_repairs(),
         "strategies": strategies,
     }
+
+
+@router.get("/candidates")
+def get_candidates(db: SignalRadarDB = Depends(get_db)) -> dict:
+    """Group simultaneous strategy triggers into one candidate per title."""
+    source, signals = db.get_latest_signals()
+    groups: dict[str, dict] = {}
+    for row in signals:
+        if row.get("technical_signal") != "BUY":
+            continue
+        symbol = row["symbol"]
+        item = groups.setdefault(symbol, {
+            "symbol": symbol, "strategies": [], "signal": "SKIP",
+            "eligibility": "BLOCKED", "reasons": [], "source_session": source,
+            "target_session": row.get("target_session"),
+            "max_budget_usd": None, "indicative_shares": None,
+        })
+        item["strategies"].append(row["strategy"])
+        if row["signal"] == "BUY":
+            item.update({
+                "signal": "BUY", "eligibility": "ELIGIBLE",
+                "max_budget_usd": row.get("max_budget_usd"),
+                "indicative_shares": row.get("indicative_shares"),
+                "reasons": [],
+            })
+        elif item["signal"] != "BUY":
+            item["reasons"].extend(row.get("reasons", []))
+    return {"source_session": source, "candidates": list(groups.values())}
 
 
 @router.get("/history")
